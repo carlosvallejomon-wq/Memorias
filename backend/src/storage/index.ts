@@ -32,3 +32,11 @@ export async function createPresignedUploadUrl(
 export function publicUrlFor(key: string): string {
   return `${publicBaseUrl}/${key}`;
 }
+
+// Subida server-side (a diferencia de la presigned URL, aquí el binario ya
+// lo tiene el propio backend/worker) — usada por el worker de generación de
+// reels para publicar el vídeo resultante.
+export async function uploadObject(key: string, body: Buffer, contentType: string): Promise<string> {
+  await s3Client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
+  return publicUrlFor(key);
+}

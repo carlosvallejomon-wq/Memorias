@@ -45,6 +45,8 @@ export const albums = pgTable(
     // Token opaco usado en los enlaces mágicos / QR de invitación.
     accessToken: text('access_token').unique().notNull(),
     qrCodeUrl: text('qr_code_url'),
+    // Última versión del vídeo resumen generado por el worker de BullMQ.
+    highlightReelUrl: text('highlight_reel_url'),
     createdBy: uuid('created_by')
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),

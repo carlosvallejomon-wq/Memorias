@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Database } from '../../db';
 import { albums, media } from '../../db/schema';
+import { mediaProcessingQueue } from '../../queue/queues';
 import { createPresignedUploadUrl, publicUrlFor } from '../../storage';
 import { publicProcedure, router } from '../trpc';
 
@@ -80,6 +81,12 @@ export const mediaRouter = router({
           uploadedBy: input.guestName,
         })
         .returning();
+
+      // El reconocimiento facial y el embedding semántico se generan en
+      // segundo plano: no bloqueamos la confirmación de la subida por ello.
+      if (created.type === 'IMAGE') {
+        await mediaProcessingQueue.add('detect-faces', { mediaId: created.id });
+      }
 
       return created;
     }),
