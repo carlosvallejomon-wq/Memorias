@@ -45,7 +45,12 @@ export default function DashboardPage() {
     <main className="mx-auto max-w-3xl px-6 py-10">
       <header className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Tus álbumes</h1>
-        <UserButton afterSignOutUrl="/" />
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/map" className="text-sm text-amber-600 hover:underline">
+            🗺️ Ver mapa
+          </Link>
+          <UserButton afterSignOutUrl="/" />
+        </div>
       </header>
 
       <form

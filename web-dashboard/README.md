@@ -43,6 +43,13 @@ npm run dev --workspace web-dashboard
   navegador la cifra antes del PUT a S3/R2) no tiene todavía una pantalla
   de invitado donde conectarse — `encryptBlob()` ya está listo para
   usarse ahí en cuanto exista esa vista.
+- `src/app/dashboard/map/page.tsx` — mapa interactivo con MapLibre GL: todos
+  los álbumes del organizador con latitud/longitud, agrupados en clusters
+  (nativo de MapLibre, sin librería aparte) que se expanden al hacer clic o
+  zoom; clic en un punto individual navega al álbum. `pitch: 45` da una
+  vista inclinada — la aproximación "3D" razonable sin datos de terreno
+  propios. El estilo del mapa es configurable vía
+  `NEXT_PUBLIC_MAP_STYLE_URL` (por defecto, el estilo de demo público de
+  MapLibre).
 
-No incluye aún: gestión de invitados, generación de QR desde el panel, ni el
-mapa 3D (ver tareas pendientes del roadmap).
+No incluye aún: gestión de invitados, generación de QR desde el panel.
