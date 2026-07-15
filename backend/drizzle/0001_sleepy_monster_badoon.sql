@@ -1,0 +1,1 @@
+ALTER TABLE "albums" ADD COLUMN "highlight_reel_url" text;
