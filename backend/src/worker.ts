@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { reelSchedulerQueue } from './queue/queues';
+import { chatCleanupWorker } from './queue/workers/chat-cleanup.worker';
 import { mediaProcessingWorker } from './queue/workers/media-processing.worker';
 import { reelGenerationWorker } from './queue/workers/reel-generation.worker';
 import { reelSchedulerWorker } from './queue/workers/reel-scheduler.worker';
@@ -14,7 +15,8 @@ async function bootstrap() {
     { repeat: { pattern: '0 9 * * 1' }, jobId: 'weekly-reel-scan' },
   );
 
-  for (const worker of [mediaProcessingWorker, reelGenerationWorker, reelSchedulerWorker]) {
+  const workers = [mediaProcessingWorker, reelGenerationWorker, reelSchedulerWorker, chatCleanupWorker];
+  for (const worker of workers) {
     worker.on('failed', (job, error) => {
       // eslint-disable-next-line no-console
       console.error(`[${worker.name}] job ${job?.id} falló:`, error);
@@ -22,7 +24,9 @@ async function bootstrap() {
   }
 
   // eslint-disable-next-line no-console
-  console.log('Worker de Memorias Vivas escuchando: media-processing, reel-generation, reel-scheduler');
+  console.log(
+    'Worker de Memorias Vivas escuchando: media-processing, reel-generation, reel-scheduler, chat-cleanup',
+  );
 }
 
 void bootstrap();

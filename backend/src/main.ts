@@ -4,11 +4,16 @@ import helmet from 'helmet';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
+import { RedisIoAdapter } from './chat/redis-io.adapter';
 import { appRouter } from './trpc/app.router';
 import { createContext } from './trpc/trpc.context';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   app.use(helmet());
   app.enableCors({

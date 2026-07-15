@@ -46,8 +46,17 @@ generar los highlight reels.
   semanal que decide qué álbumes tienen actividad reciente). `src/worker.ts`
   es el proceso independiente que las consume — se despliega aparte de la
   API (`src/main.ts`) para escalarlos por separado.
+- `src/chat/` — `ChatGateway` (WebSockets vía Socket.IO, namespace `/chat`):
+  cada álbum es una room identificada por su id; el cliente se une con
+  `join { accessToken }` y envía mensajes con `message { accessToken, content,
+  guestName?, authToken?, isEphemeral? }`. Los mensajes efímeros se autoborran
+  a las 24h mediante un job de BullMQ con delay (`chat-cleanup`, ver
+  `src/queue/workers/chat-cleanup.worker.ts`). `redis-io.adapter.ts` conecta
+  Socket.IO al adapter de Redis para que los broadcasts lleguen a los
+  clientes conectados a cualquier réplica de la API, no solo a la que
+  recibió el mensaje.
 
-Este es el esqueleto inicial: auth, esquema, tRPC, subida de media y el
-pipeline de IA + reels en segundo plano. El panel de moderación/estadísticas,
-el mapa 3D, el chat en tiempo real, el cifrado E2E, la app Flutter y el
+Este es el esqueleto inicial: auth, esquema, tRPC, subida de media, el
+pipeline de IA + reels en segundo plano, y el chat en tiempo real. El panel
+de moderación/estadísticas, el mapa 3D, el cifrado E2E, la app Flutter y el
 dashboard de Next.js quedan como siguientes iteraciones sobre esta base.
