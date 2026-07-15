@@ -1,8 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import { TRPCError } from '@trpc/server';
-import { eq } from 'drizzle-orm';
+import { countDistinct, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { albums } from '../../db/schema';
+import type { Database } from '../../db';
+import { albums, chatMessages, media } from '../../db/schema';
 import { protectedProcedure, publicProcedure, router } from '../trpc';
 
 const createAlbumInput = z.object({
@@ -19,6 +20,17 @@ function generateAccessToken(): string {
   // 24 bytes -> ~32 caracteres base64url, suficiente entropía para un
   // enlace mágico que no debe ser adivinable ni siquiera por fuerza bruta.
   return randomBytes(24).toString('base64url');
+}
+
+async function requireOwnAlbum(db: Database, albumId: string, userId: string) {
+  const found = await db.query.albums.findFirst({ where: eq(albums.id, albumId) });
+  if (!found) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'Álbum no encontrado' });
+  }
+  if (found.createdBy !== userId) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'No eres el propietario de este álbum' });
+  }
+  return found;
 }
 
 export const albumRouter = router({
@@ -54,4 +66,46 @@ export const albumRouter = router({
 
       return album;
     }),
+
+  // Estadísticas para el panel de administración del organizador. Solo se
+  // cuenta lo que realmente registramos (fotos, vídeos, mensajes,
+  // colaboradores distintos) — no hay "visitas" porque no existe tracking
+  // de páginas vistas en este esqueleto.
+  stats: protectedProcedure
+    .input(z.object({ albumId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      await requireOwnAlbum(ctx.db, input.albumId, ctx.user.id);
+
+      const [mediaStats] = await ctx.db
+        .select({
+          photos: sql<number>`count(*) filter (where ${media.type} = 'IMAGE')`,
+          videos: sql<number>`count(*) filter (where ${media.type} = 'VIDEO')`,
+          contributors: countDistinct(media.uploadedBy),
+          lastMediaAt: sql<string | null>`max(${media.createdAt})`,
+        })
+        .from(media)
+        .where(eq(media.albumId, input.albumId));
+
+      const [messageStats] = await ctx.db
+        .select({
+          total: sql<number>`count(*)`,
+          lastMessageAt: sql<string | null>`max(${chatMessages.createdAt})`,
+        })
+        .from(chatMessages)
+        .where(eq(chatMessages.albumId, input.albumId));
+
+      const lastActivityAt = [mediaStats?.lastMediaAt, messageStats?.lastMessageAt]
+        .filter((date): date is string => Boolean(date))
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null;
+
+      return {
+        totalPhotos: Number(mediaStats?.photos ?? 0),
+        totalVideos: Number(mediaStats?.videos ?? 0),
+        totalMessages: Number(messageStats?.total ?? 0),
+        uniqueContributors: Number(mediaStats?.contributors ?? 0),
+        lastActivityAt,
+      };
+    }),
 });
+
+export { requireOwnAlbum };

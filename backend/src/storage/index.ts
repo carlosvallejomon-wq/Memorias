@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const bucket = process.env.S3_BUCKET!;
@@ -39,4 +39,12 @@ export function publicUrlFor(key: string): string {
 export async function uploadObject(key: string, body: Buffer, contentType: string): Promise<string> {
   await s3Client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
   return publicUrlFor(key);
+}
+
+// Usado por la moderación del panel de admin: borra el fichero del bucket
+// cuando se elimina un `media`. Acepta tanto la key cruda como la URL
+// pública completa (la forma en que se guarda en `media.url`).
+export async function deleteObject(keyOrUrl: string): Promise<void> {
+  const key = keyOrUrl.startsWith(publicBaseUrl) ? keyOrUrl.slice(publicBaseUrl.length + 1) : keyOrUrl;
+  await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }

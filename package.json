@@ -1,0 +1,8 @@
+{
+  "name": "memorias-vivas",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "web-dashboard"
+  ]
+}

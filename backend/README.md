@@ -6,14 +6,17 @@ para autenticación.
 
 ## Arranque local
 
+Este paquete forma parte de un workspace de npm (ver `package.json` en la
+raíz del repo, junto a `/web-dashboard`) — instala siempre desde la raíz.
+
 ```bash
-cp .env.example .env      # completa CLERK_SECRET_KEY, etc.
-docker compose up -d      # postgres+pgvector, redis, minio
-npm install
-npm run db:generate       # genera la migración SQL a partir de src/db/schema.ts
-npm run db:migrate        # la aplica contra DATABASE_URL
-npm run start:dev         # API (Nest + tRPC) en el puerto 3000
-npm run worker:dev        # proceso de worker de BullMQ, aparte
+cp .env.example .env             # completa CLERK_SECRET_KEY, etc. (desde /backend)
+docker compose up -d             # postgres+pgvector, redis, minio (desde /backend)
+npm install                      # desde la raíz del repo
+npm run db:generate --workspace backend   # genera la migración a partir de src/db/schema.ts
+npm run db:migrate --workspace backend    # la aplica contra DATABASE_URL
+npm run start:dev --workspace backend     # API (Nest + tRPC) en el puerto 3000
+npm run worker:dev --workspace backend    # proceso de worker de BullMQ, aparte
 ```
 
 El worker requiere `ffmpeg` instalado en el sistema (lo trae cualquier imagen
