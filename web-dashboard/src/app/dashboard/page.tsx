@@ -4,6 +4,9 @@ import { UserButton } from '@clerk/nextjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
+import { E2eeKeyPanel } from '@/components/E2eeKeyPanel';
+import { exportKey, generateAlbumKey } from '@/lib/e2ee';
+import { saveAlbumKey } from '@/lib/e2ee-key-storage';
 import { useTrpc } from '@/lib/trpc-hooks';
 
 export default function DashboardPage() {
@@ -17,12 +20,23 @@ export default function DashboardPage() {
 
   const [title, setTitle] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [isE2ee, setIsE2ee] = useState(false);
+  const [justCreatedAlbumId, setJustCreatedAlbumId] = useState<string | null>(null);
 
   const createAlbum = useMutation({
-    mutationFn: () => trpc.album.create.mutate({ title, eventDate: new Date(eventDate) }),
-    onSuccess: () => {
+    mutationFn: async () => {
+      const album = await trpc.album.create.mutate({ title, eventDate: new Date(eventDate), isE2ee });
+      if (isE2ee) {
+        const key = await generateAlbumKey();
+        saveAlbumKey(album.id, await exportKey(key));
+      }
+      return album;
+    },
+    onSuccess: (album) => {
       setTitle('');
       setEventDate('');
+      setJustCreatedAlbumId(isE2ee ? album.id : null);
+      setIsE2ee(false);
       void queryClient.invalidateQueries({ queryKey: ['albums', 'listMine'] });
     },
   });
@@ -35,7 +49,7 @@ export default function DashboardPage() {
       </header>
 
       <form
-        className="mb-10 flex flex-wrap items-end gap-3 rounded-2xl border border-amber-100 bg-white/60 p-4 dark:bg-ink/40"
+        className="mb-6 flex flex-wrap items-end gap-3 rounded-2xl border border-amber-100 bg-white/60 p-4 dark:bg-ink/40"
         onSubmit={(event) => {
           event.preventDefault();
           if (title && eventDate) createAlbum.mutate();
@@ -66,6 +80,10 @@ export default function DashboardPage() {
             required
           />
         </div>
+        <label className="flex items-center gap-2 pb-2 text-sm">
+          <input type="checkbox" checked={isE2ee} onChange={(event) => setIsE2ee(event.target.checked)} />
+          🔒 Alta privacidad (cifrado E2E)
+        </label>
         <button
           type="submit"
           disabled={createAlbum.isPending}
@@ -74,6 +92,8 @@ export default function DashboardPage() {
           {createAlbum.isPending ? 'Creando…' : 'Crear álbum'}
         </button>
       </form>
+
+      {justCreatedAlbumId && <E2eeKeyPanel albumId={justCreatedAlbumId} />}
 
       {albumsQuery.isLoading && <p>Cargando…</p>}
       {albumsQuery.error && <p className="text-red-600">No se pudieron cargar los álbumes.</p>}
@@ -85,7 +105,10 @@ export default function DashboardPage() {
               href={`/dashboard/${album.id}`}
               className="block rounded-2xl border border-amber-100 bg-white/60 p-4 transition hover:border-amber-400 dark:bg-ink/40"
             >
-              <p className="font-medium">{album.title}</p>
+              <p className="font-medium">
+                {album.isE2ee && '🔒 '}
+                {album.title}
+              </p>
               <p className="text-sm text-ink/60 dark:text-cream/60">
                 {new Date(album.eventDate).toLocaleDateString('es-ES')}
               </p>

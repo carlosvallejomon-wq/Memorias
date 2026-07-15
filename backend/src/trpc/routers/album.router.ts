@@ -50,6 +50,10 @@ export const albumRouter = router({
     });
   }),
 
+  getById: protectedProcedure
+    .input(z.object({ albumId: z.string().uuid() }))
+    .query(({ ctx, input }) => requireOwnAlbum(ctx.db, input.albumId, ctx.user.id)),
+
   // Ruta de acceso para invitados: solo requiere el token del enlace mágico
   // o del QR, nunca una sesión de Clerk (subida sin fricción, sin registro).
   getByAccessToken: publicProcedure
