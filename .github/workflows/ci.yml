@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend — typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit -p backend/tsconfig.json
+
+  web-dashboard:
+    name: Web dashboard — build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit -p web-dashboard/tsconfig.json
+      - name: next build
+        working-directory: web-dashboard
+        env:
+          # Placeholders válidos por formato para que el build corra sin
+          # secretos configurados; sustitúyelos por secrets del repo
+          # (Settings > Secrets and variables > Actions) para un chequeo
+          # más realista.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk' }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_dummy' }}
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/trpc"
+        run: npx next build
