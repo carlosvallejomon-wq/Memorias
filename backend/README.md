@@ -24,7 +24,13 @@ npm run start:dev
 - `src/trpc/` — router de tRPC montado en `/trpc`; `protectedProcedure` exige
   sesión, `publicProcedure` se usa para el acceso de invitados vía
   `accessToken` (enlace mágico / QR).
+- `src/storage/` — cliente S3 (compatible con MinIO/R2/AWS) y generación de
+  URLs firmadas de subida directa. `media.router.ts` expone el flujo en dos
+  pasos: `requestUploadUrl` (firma la subida) → el cliente sube el binario
+  directamente al bucket → `confirmUpload` (registra el `media` en el álbum).
+  Ambos procedimientos son públicos: los invitados suben contenido solo con
+  el `accessToken` del enlace mágico/QR, sin registro.
 
-Este es el esqueleto inicial (auth + esquema + tRPC). Los módulos de subida de
-media (presigned URLs a S3/R2), el pipeline de IA (Replicate/Hugging Face) y
-los workers de BullMQ se añaden como siguientes iteraciones sobre esta base.
+Este es el esqueleto inicial (auth + esquema + tRPC + subida de media). El
+pipeline de IA (Replicate/Hugging Face) y los workers de BullMQ se añaden
+como siguientes iteraciones sobre esta base.
