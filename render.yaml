@@ -1,0 +1,26 @@
+# Blueprint de Render: al crear un "Blueprint" desde este repo, Render lee
+# este archivo y preconfigura el servicio del backend — solo hay que pegar
+# los valores de las variables marcadas con `sync: false`.
+#
+# El worker de BullMQ (backend/src/worker.ts) no está aquí a propósito: los
+# background workers no entran en el plan gratuito de Render. Los jobs se
+# encolan en Upstash y quedan a la espera; cuando haya un worker desplegado
+# (plan de pago o otro proveedor), los consumirá.
+services:
+  - type: web
+    name: memorias-vivas-api
+    runtime: node
+    plan: free
+    buildCommand: npm install --include=dev && npm run build --workspace backend
+    startCommand: npm run start:prod --workspace backend
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
