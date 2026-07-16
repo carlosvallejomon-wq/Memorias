@@ -54,12 +54,18 @@ export default async function AlbumAdminPage({
             {items.length} {items.length === 1 ? "recuerdo" : "recuerdos"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <a
             href={`/api/albums/${album.id}/download`}
             className="rounded-lg border border-tinta/20 bg-white px-4 py-2 text-sm font-semibold transition hover:bg-arena"
           >
             ⬇️ Descargar ZIP
+          </a>
+          <a
+            href={`/api/albums/${album.id}/dotbook`}
+            className="rounded-lg border border-tinta/20 bg-white px-4 py-2 text-sm font-semibold transition hover:bg-arena"
+          >
+            📖 Dotbook (PDF)
           </a>
           <DeleteAlbumButton albumId={album.id} albumName={album.name} />
         </div>

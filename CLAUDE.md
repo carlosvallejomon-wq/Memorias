@@ -28,10 +28,22 @@ repo, desplegada en **Vercel**, con:
   porque si Clerk envuelve las rutas públicas, con instancias de desarrollo
   redirige a los invitados al handshake de Clerk y rompe la página.
 
-Rutas: `/` portada · `/dashboard` panel (crear/gestionar álbumes, QR,
-ZIP) · `/a/[code]` página pública del invitado (galería, subida, vista por
-días, reacciones ❤️😂😮👏, comentarios). Los invitados se identifican con un
-UUID anónimo en localStorage (`mv_guest_id`) y un nombre opcional.
+Rutas: `/` portada · `/dashboard` panel (crear/gestionar álbumes, QR, ZIP,
+Dotbook PDF) · `/a/[code]` página pública del invitado (galería, subida,
+vista por días, reacciones ❤️😂😮👏, comentarios). Los invitados se
+identifican con un UUID anónimo en localStorage (`mv_guest_id`) y un nombre
+opcional.
+
+**Dotbook digital** (`/api/albums/[id]/dotbook`, lógica en
+`src/lib/build-dotbook.ts`): genera un PDF con una página por recuerdo.
+`pdf-lib` solo incrusta JPG/PNG directamente; para vídeos y formatos no
+soportados (HEIC, etc.) la página lleva un QR (con la librería `qrcode`, ya
+usada para compartir álbumes) que enlaza al archivo original en Blob — así
+se replica el concepto del Dotbook físico de Dots Memories sin necesitar una
+imprenta. Verificado end-to-end con un script que invoca `buildDotbookPdf`
+directamente contra Postgres local (sin pasar por Clerk) y renderizando el
+PDF resultante con el visor de Chromium vía Playwright, comprobando ambas
+rutas: imagen incrustada y QR de respaldo.
 
 Variables de entorno: `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`,
 `CLERK_SECRET_KEY`, `BLOB_READ_WRITE_TOKEN` (esta la inyecta Vercel al

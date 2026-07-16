@@ -7,8 +7,10 @@ vídeos desde el móvil **sin instalar nada y sin registrarse**.
 ## Qué incluye
 
 - **Panel del organizador** (`/dashboard`, con login de Clerk): crear álbumes,
-  ver el QR y el enlace para compartir, borrar contenido, borrar el álbum y
-  descargar todo en un ZIP.
+  ver el QR y el enlace para compartir, borrar contenido, borrar el álbum,
+  descargar todo en un ZIP y generar un **Dotbook digital en PDF** (una
+  página por recuerdo; los vídeos y formatos no incrustables llevan un QR
+  que enlaza al original).
 - **Página del invitado** (`/a/<código>`, sin login): subir fotos y vídeos,
   galería, vista agrupada por días, reacciones (❤️ 😂 😮 👏) y comentarios.
 - Una sola app **Next.js**, desplegada en **Vercel**, con base de datos en
@@ -71,6 +73,8 @@ src/app/api/blob-upload/          Tokens de subida directa a Vercel Blob
 src/app/api/guest/[code]/media/   Listar y registrar contenido (público)
 src/app/api/media/[id]/…          Comentarios y reacciones (público)
 src/app/api/albums/[id]/download/ ZIP del álbum (solo el dueño)
+src/app/api/albums/[id]/dotbook/  Dotbook digital en PDF (solo el dueño)
+src/lib/build-dotbook.ts          Lógica de generación del PDF
 src/app/api/setup/                Crea las tablas en Neon (idempotente)
 src/db/                           Esquema Drizzle y conexión Postgres
 src/proxy.ts                      Middleware de Clerk (solo /dashboard)
