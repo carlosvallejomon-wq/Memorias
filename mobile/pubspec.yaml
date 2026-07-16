@@ -1,0 +1,42 @@
+name: memorias_vivas
+description: App móvil de Memorias Vivas (Flutter, arquitectura limpia).
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ">=3.6.2 <4.0.0"
+  flutter: ">=3.27.4"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Autenticación (SDK oficial de Clerk para Flutter, en beta a fecha de
+  # escritura — revisa el changelog antes de subir de versión).
+  clerk_flutter: 0.0.16-beta
+
+  # Cliente HTTP para el backend (tRPC vía HTTP plano, sin generación de
+  # código: ver lib/services/api_client.dart).
+  dio: ^5.10.0
+
+  # Cifrado E2E (AES-GCM), compatible en formato con web-dashboard/src/lib/e2ee.ts.
+  cryptography: ^2.9.0
+
+  # La clave E2E se guarda en Keychain/Keystore, nunca en texto plano.
+  flutter_secure_storage: ^10.3.1
+
+  # Cache offline-first de álbumes/media.
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.6
+
+  # Chat en tiempo real (namespace /chat del backend).
+  socket_io_client: ^3.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
