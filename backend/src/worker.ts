@@ -1,3 +1,7 @@
+// Debe ser el primer import: ver el comentario equivalente en src/main.ts —
+// este script no pasa por Nest/ConfigModule en absoluto, así que sin esto
+// process.env.REDIS_URL (etc.) nunca se cargaría desde .env.
+import 'dotenv/config';
 import 'reflect-metadata';
 import { reelSchedulerQueue } from './queue/queues';
 import { chatCleanupWorker } from './queue/workers/chat-cleanup.worker';

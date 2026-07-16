@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { TRPCError } from '@trpc/server';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Database } from '../../db';
 import { albums, media } from '../../db/schema';
 import { mediaProcessingQueue } from '../../queue/queues';
-import { createPresignedUploadUrl, publicUrlFor } from '../../storage';
-import { publicProcedure, router } from '../trpc';
+import { createPresignedUploadUrl, deleteObject, publicUrlFor } from '../../storage';
+import { protectedProcedure, publicProcedure, router } from '../trpc';
+import { requireOwnAlbum } from './album.router';
 
 // Extensiones de imagen/vídeo soportadas por el álbum (sección 2 del spec:
 // JPG/PNG/HEIC y MP4/MOV). Mapear aquí también sirve de lista blanca de
@@ -89,5 +90,36 @@ export const mediaRouter = router({
       }
 
       return created;
+    }),
+
+  // Moderación (panel de administración): solo el propietario del álbum
+  // puede listar/borrar su contenido.
+  listByAlbum: protectedProcedure
+    .input(z.object({ albumId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      await requireOwnAlbum(ctx.db, input.albumId, ctx.user.id);
+
+      return ctx.db.query.media.findMany({
+        where: eq(media.albumId, input.albumId),
+        orderBy: desc(media.createdAt),
+      });
+    }),
+
+  remove: protectedProcedure
+    .input(z.object({ mediaId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const target = await ctx.db.query.media.findFirst({ where: eq(media.id, input.mediaId) });
+      if (!target) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Contenido no encontrado' });
+      }
+      await requireOwnAlbum(ctx.db, target.albumId, ctx.user.id);
+
+      await ctx.db.delete(media).where(eq(media.id, target.id));
+      await deleteObject(target.url).catch(() => {
+        // El fichero puede ya no existir en el bucket (p. ej. subida a
+        // medias); no bloqueamos la moderación por un fallo de limpieza.
+      });
+
+      return { id: target.id };
     }),
 });

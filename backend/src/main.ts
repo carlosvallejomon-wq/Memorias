@@ -1,3 +1,12 @@
+// Debe ser el primer import: db/index.ts, storage/index.ts y queue/redis.ts
+// leen process.env.* en la parte superior del módulo, en el momento en que
+// se importan — no dentro de una función. Como AppModule/appRouter/
+// RedisIoAdapter los importan transitivamente más abajo, y esos imports se
+// evalúan antes de que el cuerpo de bootstrap() llegue a ejecutar
+// ConfigModule.forRoot(), sin esto los valores de .env aún no existirían en
+// process.env cuando esos módulos se inicializan (p. ej. REDIS_URL sería
+// undefined y BullMQ/ioredis caerían de vuelta a localhost:6379).
+import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
