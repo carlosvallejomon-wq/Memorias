@@ -132,7 +132,8 @@ export function GuestAlbum({
         });
       } catch (err) {
         console.error("Error subiendo", file.name, err);
-        alert(`No se pudo subir «${file.name}». Inténtalo de nuevo.`);
+        const detail = err instanceof Error ? err.message : String(err);
+        alert(`No se pudo subir «${file.name}»: ${detail}`);
       }
       setUploading((u) => (u ? { ...u, done: u.done + 1 } : u));
     }
