@@ -11,6 +11,10 @@ import {
   ArrowRight,
   Play,
   Lock,
+  PartyPopper,
+  Mountain,
+  Users,
+  Wine,
 } from "lucide-react";
 
 const FEATURES = [
@@ -59,13 +63,13 @@ const STEPS = [
   },
 ];
 
-const TILE_STYLES = [
-  "from-teja to-teja-oscuro",
-  "from-vino to-tinta",
-  "from-oro to-teja",
-  "from-tinta to-vino",
-  "from-teja-oscuro to-oro",
-  "from-vino to-oro",
+const TILES = [
+  { g: "from-teja to-teja-oscuro", icon: Heart },
+  { g: "from-vino to-tinta", icon: PartyPopper },
+  { g: "from-oro to-teja", icon: Mountain },
+  { g: "from-tinta to-vino", icon: Users },
+  { g: "from-teja-oscuro to-oro", icon: Camera },
+  { g: "from-vino to-oro", icon: Wine },
 ];
 
 function PhoneMockup() {
@@ -85,12 +89,13 @@ function PhoneMockup() {
               <Camera size={13} /> Boda de Ana y Luis
             </div>
             <div className="grid grid-cols-3 gap-1.5">
-              {TILE_STYLES.map((g, i) => (
+              {TILES.map(({ g, icon: Icon }, i) => (
                 <div
                   key={i}
-                  className={`relative aspect-square overflow-hidden rounded-lg bg-gradient-to-br shadow-soft ${g}`}
+                  className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br shadow-soft ${g}`}
                 >
                   <div className="absolute -right-2 -top-2 h-8 w-8 rounded-full bg-white/20 blur-md" />
+                  <Icon size={22} className="text-white/90" strokeWidth={1.75} />
                 </div>
               ))}
             </div>
