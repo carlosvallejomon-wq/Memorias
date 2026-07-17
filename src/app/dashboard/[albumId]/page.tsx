@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { albums, media } from "@/db/schema";
 import { ShareCard } from "@/components/ShareCard";
 import { ModerationToggle } from "@/components/ModerationToggle";
+import { InvitationGenerator } from "@/components/InvitationGenerator";
 import {
   ApproveMediaButton,
   DeleteAlbumButton,
@@ -44,6 +45,13 @@ export default async function AlbumAdminPage({
   const proto = h.get("x-forwarded-proto") ?? "https";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const shareUrl = `${proto}://${host}/a/${album.shareCode}`;
+  const eventDateLabel = album.eventDate
+    ? new Date(album.eventDate + "T00:00:00").toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
@@ -62,12 +70,7 @@ export default async function AlbumAdminPage({
             {album.name}
           </h1>
           <p className="mt-1 text-sm text-tinta/60">
-            {album.eventDate
-              ? new Date(album.eventDate + "T00:00:00").toLocaleDateString(
-                  "es-ES",
-                  { day: "numeric", month: "long", year: "numeric" },
-                )
-              : "Sin fecha"}
+            {eventDateLabel ?? (album.kind === "familia" ? "Álbum de familia" : "Sin fecha")}
             {" · "}
             {items.length} {items.length === 1 ? "recuerdo" : "recuerdos"}
           </p>
@@ -81,6 +84,11 @@ export default async function AlbumAdminPage({
           >
             <MonitorPlay size={16} /> Modo pantalla
           </a>
+          <InvitationGenerator
+            albumName={album.name}
+            eventDateLabel={eventDateLabel}
+            shareUrl={shareUrl}
+          />
           <a
             href={`/api/albums/${album.id}/download`}
             className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"

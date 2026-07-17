@@ -18,6 +18,7 @@ export async function createAlbum(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const eventDate = String(formData.get("eventDate") ?? "").trim();
+  const kind = formData.get("kind") === "familia" ? "familia" : "evento";
   if (!name) return;
 
   const [album] = await db()
@@ -25,7 +26,8 @@ export async function createAlbum(formData: FormData) {
     .values({
       ownerId: userId,
       name,
-      eventDate: eventDate || null,
+      kind,
+      eventDate: kind === "familia" ? null : eventDate || null,
       shareCode: makeCode(),
     })
     .returning();
