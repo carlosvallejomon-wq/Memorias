@@ -13,6 +13,7 @@ export const albums = pgTable("albums", {
   id: uuid("id").primaryKey().defaultRandom(),
   ownerId: text("owner_id").notNull(),
   name: text("name").notNull(),
+  kind: text("kind").notNull().default("evento"), // "evento" | "familia"
   eventDate: date("event_date"),
   shareCode: text("share_code").notNull().unique(),
   moderationEnabled: boolean("moderation_enabled").notNull().default(false),

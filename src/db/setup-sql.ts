@@ -5,12 +5,14 @@ export const SETUP_STATEMENTS: string[] = [
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id text NOT NULL,
     name text NOT NULL,
+    kind text NOT NULL DEFAULT 'evento',
     event_date date,
     share_code text NOT NULL UNIQUE,
     moderation_enabled boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `ALTER TABLE albums ADD COLUMN IF NOT EXISTS moderation_enabled boolean NOT NULL DEFAULT false`,
+  `ALTER TABLE albums ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'evento'`,
   `CREATE TABLE IF NOT EXISTS media (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     album_id uuid NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
