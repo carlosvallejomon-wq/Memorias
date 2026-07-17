@@ -1,0 +1,520 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
+
+type MediaItem = {
+  id: string;
+  url: string;
+  type: "image" | "video";
+  uploaderName: string | null;
+  takenAt: string | null;
+  createdAt: string;
+  commentCount: number;
+  reactions: Record<string, number>;
+  myReactions: string[];
+};
+
+type Comment = {
+  id: string;
+  authorName: string | null;
+  body: string;
+  createdAt: string;
+};
+
+const EMOJIS = ["❤️", "😂", "😮", "👏"];
+
+function useLocalValue(key: string, generate?: () => string) {
+  const [value, setValue] = useState("");
+  useEffect(() => {
+    let v = localStorage.getItem(key) ?? "";
+    if (!v && generate) {
+      v = generate();
+      localStorage.setItem(key, v);
+    }
+    setValue(v);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  const save = useCallback(
+    (v: string) => {
+      setValue(v);
+      localStorage.setItem(key, v);
+    },
+    [key],
+  );
+  return [value, save] as const;
+}
+
+function itemDate(item: MediaItem): Date {
+  return new Date(item.takenAt ?? item.createdAt);
+}
+
+function dayKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function dayLabel(key: string): string {
+  return new Date(key + "T12:00:00").toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export function GuestAlbum({
+  code,
+  name,
+  eventDate,
+}: {
+  code: string;
+  name: string;
+  eventDate: string | null;
+}) {
+  const [guestId] = useLocalValue("mv_guest_id", () => crypto.randomUUID());
+  const [guestName, setGuestName] = useLocalValue("mv_guest_name");
+  const [askName, setAskName] = useState(false);
+  const [items, setItems] = useState<MediaItem[] | null>(null);
+  const [view, setView] = useState<"galeria" | "dias">("galeria");
+  const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
+  const [selected, setSelected] = useState<MediaItem | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const refresh = useCallback(async () => {
+    if (!guestId) return;
+    const res = await fetch(
+      `/api/guest/${code}/media?guestId=${encodeURIComponent(guestId)}`,
+    );
+    if (res.ok) {
+      const data = (await res.json()) as { items: MediaItem[] };
+      setItems(data.items);
+      setSelected((prev) =>
+        prev ? (data.items.find((i) => i.id === prev.id) ?? null) : null,
+      );
+    }
+  }, [code, guestId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (guestId && !localStorage.getItem("mv_guest_name_asked")) {
+      setAskName(true);
+    }
+  }, [guestId]);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files);
+    setUploading({ done: 0, total: list.length });
+    for (const file of list) {
+      try {
+        const blob = await upload(file.name, file, {
+          access: "public",
+          handleUploadUrl: "/api/blob-upload",
+          clientPayload: JSON.stringify({
+            code,
+            uploaderName: guestName || null,
+            takenAt: file.lastModified,
+          }),
+        });
+        await fetch(`/api/guest/${code}/media`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: blob.url,
+            pathname: blob.pathname,
+            contentType: blob.contentType || file.type,
+            uploaderName: guestName || null,
+            takenAt: file.lastModified,
+          }),
+        });
+      } catch (err) {
+        console.error("Error subiendo", file.name, err);
+        alert(`No se pudo subir «${file.name}». Inténtalo de nuevo.`);
+      }
+      setUploading((u) => (u ? { ...u, done: u.done + 1 } : u));
+    }
+    setUploading(null);
+    if (fileInput.current) fileInput.current.value = "";
+    await refresh();
+  }
+
+  async function toggleReaction(item: MediaItem, emoji: string) {
+    // Actualización optimista para que se sienta instantáneo.
+    const had = item.myReactions.includes(emoji);
+    const patch = (it: MediaItem): MediaItem =>
+      it.id !== item.id
+        ? it
+        : {
+            ...it,
+            myReactions: had
+              ? it.myReactions.filter((e) => e !== emoji)
+              : [...it.myReactions, emoji],
+            reactions: {
+              ...it.reactions,
+              [emoji]: Math.max(0, (it.reactions[emoji] ?? 0) + (had ? -1 : 1)),
+            },
+          };
+    setItems((prev) => (prev ? prev.map(patch) : prev));
+    setSelected((prev) => (prev ? patch(prev) : prev));
+    await fetch(`/api/media/${item.id}/reactions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guestId, emoji }),
+    });
+  }
+
+  const grouped = (items ?? []).reduce<Map<string, MediaItem[]>>((map, it) => {
+    const key = dayKey(itemDate(it));
+    map.set(key, [...(map.get(key) ?? []), it]);
+    return map;
+  }, new Map());
+  const dayKeys = [...grouped.keys()].sort().reverse();
+
+  return (
+    <main className="mx-auto max-w-4xl px-4 pb-28 pt-6">
+      <header className="text-center">
+        <p className="text-sm text-tinta/50">📸 Memorias Vivas</p>
+        <h1 className="mt-1 text-3xl font-bold">{name}</h1>
+        {eventDate && (
+          <p className="mt-1 text-tinta/60">
+            {new Date(eventDate + "T00:00:00").toLocaleDateString("es-ES", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        )}
+      </header>
+
+      <div className="mt-5 flex items-center justify-center gap-2">
+        <button
+          onClick={() => setView("galeria")}
+          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+            view === "galeria" ? "bg-tinta text-white" : "bg-arena text-tinta/70"
+          }`}
+        >
+          Galería
+        </button>
+        <button
+          onClick={() => setView("dias")}
+          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+            view === "dias" ? "bg-tinta text-white" : "bg-arena text-tinta/70"
+          }`}
+        >
+          📅 Por días
+        </button>
+      </div>
+
+      {items === null ? (
+        <p className="mt-12 text-center text-tinta/50">Cargando recuerdos…</p>
+      ) : items.length === 0 ? (
+        <div className="mt-12 text-center text-tinta/60">
+          <p className="text-4xl">🌱</p>
+          <p className="mt-2">
+            Este álbum está esperando su primer recuerdo.
+            <br />
+            ¡Sube tú la primera foto!
+          </p>
+        </div>
+      ) : view === "galeria" ? (
+        <ul className="mt-6 grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2">
+          {items.map((item) => (
+            <Thumb key={item.id} item={item} onClick={() => setSelected(item)} />
+          ))}
+        </ul>
+      ) : (
+        <div className="mt-6 space-y-8">
+          {dayKeys.map((key) => (
+            <section key={key}>
+              <h2 className="text-sm font-semibold capitalize text-tinta/70">
+                {dayLabel(key)}{" "}
+                <span className="font-normal text-tinta/40">
+                  · {grouped.get(key)!.length}
+                </span>
+              </h2>
+              <ul className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2">
+                {grouped.get(key)!.map((item) => (
+                  <Thumb
+                    key={item.id}
+                    item={item}
+                    onClick={() => setSelected(item)}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {/* Botón flotante de subida */}
+      <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-crema via-crema/90 to-transparent px-4 pb-5 pt-8">
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          hidden
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+        <button
+          disabled={!!uploading}
+          onClick={() => fileInput.current?.click()}
+          className="rounded-full bg-teja px-8 py-3.5 text-lg font-semibold text-white shadow-xl transition hover:bg-teja-oscuro disabled:opacity-70"
+        >
+          {uploading
+            ? `Subiendo ${Math.min(uploading.done + 1, uploading.total)} de ${uploading.total}…`
+            : "📷 Subir fotos o vídeos"}
+        </button>
+      </div>
+
+      {/* Diálogo para pedir el nombre (opcional, una sola vez) */}
+      {askName && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="text-lg font-bold">¡Hola! 👋</h2>
+            <p className="mt-1 text-sm text-tinta/60">
+              ¿Cómo te llamas? Así los demás sabrán quién compartió cada foto.
+              Puedes dejarlo en blanco si lo prefieres.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                localStorage.setItem("mv_guest_name_asked", "1");
+                setAskName(false);
+              }}
+            >
+              <input
+                autoFocus
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="Tu nombre"
+                maxLength={100}
+                className="mt-4 w-full rounded-lg border border-tinta/20 px-3 py-2"
+              />
+              <button
+                type="submit"
+                className="mt-3 w-full rounded-lg bg-teja py-2.5 font-semibold text-white transition hover:bg-teja-oscuro"
+              >
+                Continuar
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {selected && (
+        <Lightbox
+          item={selected}
+          guestId={guestId}
+          guestName={guestName}
+          onClose={() => setSelected(null)}
+          onReact={(emoji) => toggleReaction(selected, emoji)}
+          onCommentAdded={refresh}
+        />
+      )}
+    </main>
+  );
+}
+
+function Thumb({ item, onClick }: { item: MediaItem; onClick: () => void }) {
+  const reactionTotal = Object.values(item.reactions).reduce((a, b) => a + b, 0);
+  return (
+    <li>
+      <button
+        onClick={onClick}
+        className="relative block w-full overflow-hidden rounded-lg bg-arena"
+      >
+        {item.type === "video" ? (
+          <>
+            <video
+              src={item.url}
+              className="aspect-square w-full object-cover"
+              preload="metadata"
+              muted
+              playsInline
+            />
+            <span className="absolute right-1.5 top-1.5 rounded bg-black/50 px-1 text-xs text-white">
+              ▶
+            </span>
+          </>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.url}
+            alt=""
+            loading="lazy"
+            className="aspect-square w-full object-cover"
+          />
+        )}
+        {(reactionTotal > 0 || item.commentCount > 0) && (
+          <span className="absolute bottom-1 left-1.5 rounded bg-black/50 px-1.5 py-0.5 text-xs text-white">
+            {reactionTotal > 0 && `❤️ ${reactionTotal}`}
+            {reactionTotal > 0 && item.commentCount > 0 && " · "}
+            {item.commentCount > 0 && `💬 ${item.commentCount}`}
+          </span>
+        )}
+      </button>
+    </li>
+  );
+}
+
+function Lightbox({
+  item,
+  guestId,
+  guestName,
+  onClose,
+  onReact,
+  onCommentAdded,
+}: {
+  item: MediaItem;
+  guestId: string;
+  guestName: string;
+  onClose: () => void;
+  onReact: (emoji: string) => void;
+  onCommentAdded: () => void;
+}) {
+  const [commentList, setCommentList] = useState<Comment[] | null>(null);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/media/${item.id}/comments`)
+      .then((r) => r.json())
+      .then((data: { items: Comment[] }) => setCommentList(data.items))
+      .catch(() => setCommentList([]));
+  }, [item.id]);
+
+  async function sendComment(e: React.FormEvent) {
+    e.preventDefault();
+    const text = draft.trim();
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/media/${item.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authorName: guestName || null, body: text }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { item: Comment };
+        setCommentList((prev) => [...(prev ?? []), data.item]);
+        setDraft("");
+        onCommentAdded();
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-30 flex flex-col bg-black/90"
+      onClick={onClose}
+    >
+      <div className="flex items-center justify-between p-3 text-white">
+        <span className="text-sm opacity-80">
+          {item.uploaderName ? `Subida por ${item.uploaderName}` : "Anónimo"}
+        </span>
+        <button
+          onClick={onClose}
+          className="rounded-full bg-white/15 px-3 py-1 text-sm"
+        >
+          ✕ Cerrar
+        </button>
+      </div>
+
+      <div
+        className="flex min-h-0 flex-1 items-center justify-center px-2"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {item.type === "video" ? (
+          <video
+            src={item.url}
+            controls
+            autoPlay
+            playsInline
+            className="max-h-full max-w-full rounded-lg"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.url}
+            alt=""
+            className="max-h-full max-w-full rounded-lg object-contain"
+          />
+        )}
+      </div>
+
+      <div
+        className="max-h-[45%] overflow-y-auto rounded-t-2xl bg-white p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-center gap-2">
+          {EMOJIS.map((emoji) => {
+            const count = item.reactions[emoji] ?? 0;
+            const mine = item.myReactions.includes(emoji);
+            return (
+              <button
+                key={emoji}
+                onClick={() => onReact(emoji)}
+                disabled={!guestId}
+                className={`rounded-full border px-3.5 py-1.5 text-lg transition ${
+                  mine
+                    ? "border-teja bg-teja/10"
+                    : "border-tinta/15 bg-white hover:bg-arena"
+                }`}
+              >
+                {emoji}
+                {count > 0 && (
+                  <span className="ml-1 text-sm text-tinta/60">{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-4">
+          {commentList === null ? (
+            <p className="text-center text-sm text-tinta/40">
+              Cargando comentarios…
+            </p>
+          ) : commentList.length === 0 ? (
+            <p className="text-center text-sm text-tinta/40">
+              Sé el primero en comentar 💬
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {commentList.map((c) => (
+                <li key={c.id} className="rounded-lg bg-arena px-3 py-2 text-sm">
+                  <span className="font-semibold">
+                    {c.authorName || "Anónimo"}:
+                  </span>{" "}
+                  {c.body}
+                </li>
+              ))}
+            </ul>
+          )}
+          <form onSubmit={sendComment} className="mt-3 flex gap-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Escribe un comentario…"
+              maxLength={1000}
+              className="flex-1 rounded-lg border border-tinta/20 px-3 py-2 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={sending || !draft.trim()}
+              className="rounded-lg bg-teja px-4 py-2 text-sm font-semibold text-white transition hover:bg-teja-oscuro disabled:opacity-50"
+            >
+              Enviar
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
