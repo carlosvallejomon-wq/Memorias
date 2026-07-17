@@ -1,5 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces } from "next/font/google";
 import "./globals.css";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
+});
 
 export const metadata: Metadata = {
   title: "Memorias Vivas",
@@ -16,7 +24,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es">
+    <html lang="es" className={fraunces.variable}>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );

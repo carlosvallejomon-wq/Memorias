@@ -1,7 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { deleteAlbum, deleteMedia } from "@/app/dashboard/actions";
+import { Trash2, Check, X, Loader2 } from "lucide-react";
+import { approveMedia, deleteAlbum, deleteMedia } from "@/app/dashboard/actions";
 
 export function DeleteAlbumButton({
   albumId,
@@ -24,9 +25,10 @@ export function DeleteAlbumButton({
           startTransition(() => deleteAlbum(albumId));
         }
       }}
-      className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+      className="flex items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-soft transition hover:bg-red-50 disabled:opacity-50"
     >
-      {pending ? "Borrando…" : "Borrar álbum"}
+      {pending ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+      Borrar álbum
     </button>
   );
 }
@@ -43,9 +45,45 @@ export function DeleteMediaButton({ mediaId }: { mediaId: string }) {
         }
       }}
       title="Borrar"
-      className="rounded-md bg-black/40 px-2 py-1 text-xs text-white opacity-0 transition group-hover:opacity-100 disabled:opacity-50"
+      className="rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 disabled:opacity-50"
     >
-      {pending ? "…" : "🗑"}
+      {pending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+    </button>
+  );
+}
+
+export function ApproveMediaButton({ mediaId }: { mediaId: string }) {
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <button
+      disabled={pending}
+      onClick={() => startTransition(() => approveMedia(mediaId))}
+      title="Aprobar y publicar"
+      className="flex items-center gap-1 rounded-full bg-teja px-3 py-1.5 text-xs font-semibold text-white shadow-soft transition hover:bg-teja-oscuro disabled:opacity-50"
+    >
+      {pending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+      Aprobar
+    </button>
+  );
+}
+
+export function RejectMediaButton({ mediaId }: { mediaId: string }) {
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <button
+      disabled={pending}
+      onClick={() => {
+        if (confirm("¿Rechazar y borrar esta foto?")) {
+          startTransition(() => deleteMedia(mediaId));
+        }
+      }}
+      title="Rechazar"
+      className="flex items-center gap-1 rounded-full border border-tinta/15 bg-white px-3 py-1.5 text-xs font-semibold text-tinta/70 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+    >
+      {pending ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+      Rechazar
     </button>
   );
 }

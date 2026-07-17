@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { albums, comments, media, reactions } from "@/db/schema";
 import { isAllowedBlobUrl, registerMedia } from "@/lib/register-media";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 async function findAlbum(code: string) {
   const [album] = await db()
-    .select({ id: albums.id })
+    .select({ id: albums.id, moderationEnabled: albums.moderationEnabled })
     .from(albums)
     .where(eq(albums.shareCode, code));
   return album ?? null;
@@ -33,11 +33,19 @@ export async function GET(
       url: media.url,
       type: media.type,
       uploaderName: media.uploaderName,
+      uploaderId: media.uploaderId,
+      approved: media.approved,
       takenAt: media.takenAt,
       createdAt: media.createdAt,
     })
     .from(media)
-    .where(eq(media.albumId, album.id))
+    .where(
+      and(
+        eq(media.albumId, album.id),
+        // Las fotos pendientes de aprobar solo las ve quien las subió.
+        or(eq(media.approved, true), guestId ? eq(media.uploaderId, guestId) : undefined),
+      ),
+    )
     .orderBy(desc(sql`coalesce(${media.takenAt}, ${media.createdAt})`));
 
   const [reactionRows, commentRows] = await Promise.all([
@@ -100,6 +108,7 @@ export async function POST(
     pathname?: string;
     contentType?: string;
     uploaderName?: string;
+    uploaderId?: string;
     takenAt?: number;
   };
 
@@ -113,7 +122,9 @@ export async function POST(
     pathname: body.pathname ?? null,
     contentType: body.contentType ?? null,
     uploaderName: body.uploaderName ?? null,
+    uploaderId: body.uploaderId ?? null,
     takenAt: body.takenAt ?? null,
+    approved: !album.moderationEnabled,
   });
 
   return NextResponse.json({ ok: true });

@@ -20,12 +20,13 @@ export async function POST(request: Request) {
         const payload = JSON.parse(clientPayload ?? "{}") as {
           code?: string;
           uploaderName?: string;
+          uploaderId?: string;
           takenAt?: number;
         };
         if (!payload.code) throw new Error("Falta el código del álbum");
 
         const [album] = await db()
-          .select({ id: albums.id })
+          .select({ id: albums.id, moderationEnabled: albums.moderationEnabled })
           .from(albums)
           .where(eq(albums.shareCode, payload.code));
         if (!album) throw new Error("El álbum no existe");
@@ -37,7 +38,9 @@ export async function POST(request: Request) {
           tokenPayload: JSON.stringify({
             albumId: album.id,
             uploaderName: payload.uploaderName ?? null,
+            uploaderId: payload.uploaderId ?? null,
             takenAt: payload.takenAt ?? null,
+            approved: !album.moderationEnabled,
           }),
         };
       },
@@ -49,7 +52,9 @@ export async function POST(request: Request) {
         const payload = JSON.parse(tokenPayload ?? "{}") as {
           albumId?: string;
           uploaderName?: string | null;
+          uploaderId?: string | null;
           takenAt?: number | null;
+          approved?: boolean;
         };
         if (!payload.albumId) return;
         await registerMedia({
@@ -58,7 +63,9 @@ export async function POST(request: Request) {
           pathname: blob.pathname,
           contentType: blob.contentType,
           uploaderName: payload.uploaderName ?? null,
+          uploaderId: payload.uploaderId ?? null,
           takenAt: payload.takenAt ?? null,
+          approved: payload.approved ?? true,
         });
       },
     });
