@@ -65,6 +65,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(jsonResponse);
   } catch (err) {
+    console.error("Error en /api/blob-upload:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },
       { status: 400 },
