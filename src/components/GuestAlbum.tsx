@@ -2,12 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
+import {
+  Camera,
+  CalendarDays,
+  LayoutGrid,
+  X,
+  Trash2,
+  Hourglass,
+  Sprout,
+  MessageCircle,
+  Play,
+  Loader2,
+} from "lucide-react";
 
 type MediaItem = {
   id: string;
   url: string;
   type: "image" | "video";
   uploaderName: string | null;
+  uploaderId: string | null;
+  approved: boolean;
   takenAt: string | null;
   createdAt: string;
   commentCount: number;
@@ -116,6 +130,7 @@ export function GuestAlbum({
           clientPayload: JSON.stringify({
             code,
             uploaderName: guestName || null,
+            uploaderId: guestId || null,
             takenAt: file.lastModified,
           }),
         });
@@ -127,6 +142,7 @@ export function GuestAlbum({
             pathname: blob.pathname,
             contentType: blob.contentType || file.type,
             uploaderName: guestName || null,
+            uploaderId: guestId || null,
             takenAt: file.lastModified,
           }),
         });
@@ -167,6 +183,15 @@ export function GuestAlbum({
     });
   }
 
+  async function deleteOwn(item: MediaItem) {
+    if (!confirm("¿Borrar esta foto que subiste?")) return;
+    setItems((prev) => (prev ? prev.filter((i) => i.id !== item.id) : prev));
+    setSelected(null);
+    await fetch(`/api/media/${item.id}?guestId=${encodeURIComponent(guestId)}`, {
+      method: "DELETE",
+    });
+  }
+
   const grouped = (items ?? []).reduce<Map<string, MediaItem[]>>((map, it) => {
     const key = dayKey(itemDate(it));
     map.set(key, [...(map.get(key) ?? []), it]);
@@ -177,8 +202,15 @@ export function GuestAlbum({
   return (
     <main className="mx-auto max-w-4xl px-4 pb-28 pt-6">
       <header className="text-center">
-        <p className="text-sm text-tinta/50">📸 Memorias Vivas</p>
-        <h1 className="mt-1 text-3xl font-bold">{name}</h1>
+        <p className="flex items-center justify-center gap-1.5 text-sm text-tinta/50">
+          <Camera size={14} /> Memorias Vivas
+        </p>
+        <h1
+          className="mt-1 text-3xl font-semibold sm:text-4xl"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {name}
+        </h1>
         {eventDate && (
           <p className="mt-1 text-tinta/60">
             {new Date(eventDate + "T00:00:00").toLocaleDateString("es-ES", {
@@ -193,28 +225,28 @@ export function GuestAlbum({
       <div className="mt-5 flex items-center justify-center gap-2">
         <button
           onClick={() => setView("galeria")}
-          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-            view === "galeria" ? "bg-tinta text-white" : "bg-arena text-tinta/70"
+          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+            view === "galeria" ? "bg-tinta text-white shadow-soft" : "bg-arena text-tinta/70"
           }`}
         >
-          Galería
+          <LayoutGrid size={15} /> Galería
         </button>
         <button
           onClick={() => setView("dias")}
-          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-            view === "dias" ? "bg-tinta text-white" : "bg-arena text-tinta/70"
+          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+            view === "dias" ? "bg-tinta text-white shadow-soft" : "bg-arena text-tinta/70"
           }`}
         >
-          📅 Por días
+          <CalendarDays size={15} /> Por días
         </button>
       </div>
 
       {items === null ? (
         <p className="mt-12 text-center text-tinta/50">Cargando recuerdos…</p>
       ) : items.length === 0 ? (
-        <div className="mt-12 text-center text-tinta/60">
-          <p className="text-4xl">🌱</p>
-          <p className="mt-2">
+        <div className="mt-12 flex flex-col items-center gap-2 text-center text-tinta/60">
+          <Sprout size={36} className="text-teja/60" />
+          <p>
             Este álbum está esperando su primer recuerdo.
             <br />
             ¡Sube tú la primera foto!
@@ -223,7 +255,12 @@ export function GuestAlbum({
       ) : view === "galeria" ? (
         <ul className="mt-6 grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2">
           {items.map((item) => (
-            <Thumb key={item.id} item={item} onClick={() => setSelected(item)} />
+            <Thumb
+              key={item.id}
+              item={item}
+              mine={!!guestId && item.uploaderId === guestId}
+              onClick={() => setSelected(item)}
+            />
           ))}
         </ul>
       ) : (
@@ -241,6 +278,7 @@ export function GuestAlbum({
                   <Thumb
                     key={item.id}
                     item={item}
+                    mine={!!guestId && item.uploaderId === guestId}
                     onClick={() => setSelected(item)}
                   />
                 ))}
@@ -263,19 +301,28 @@ export function GuestAlbum({
         <button
           disabled={!!uploading}
           onClick={() => fileInput.current?.click()}
-          className="rounded-full bg-teja px-8 py-3.5 text-lg font-semibold text-white shadow-xl transition hover:bg-teja-oscuro disabled:opacity-70"
+          className="shimmer flex items-center gap-2 rounded-full bg-teja px-8 py-3.5 text-lg font-semibold text-white shadow-lift transition hover:bg-teja-oscuro disabled:opacity-70"
         >
-          {uploading
-            ? `Subiendo ${Math.min(uploading.done + 1, uploading.total)} de ${uploading.total}…`
-            : "📷 Subir fotos o vídeos"}
+          {uploading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Subiendo {Math.min(uploading.done + 1, uploading.total)} de {uploading.total}…
+            </>
+          ) : (
+            <>
+              <Camera size={18} /> Subir fotos o vídeos
+            </>
+          )}
         </button>
       </div>
 
       {/* Diálogo para pedir el nombre (opcional, una sola vez) */}
       {askName && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h2 className="text-lg font-bold">¡Hola! 👋</h2>
+          <div className="glass animate-fade-in w-full max-w-sm rounded-2xl p-6">
+            <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+              ¡Hola! 👋
+            </h2>
             <p className="mt-1 text-sm text-tinta/60">
               ¿Cómo te llamas? Así los demás sabrán quién compartió cada foto.
               Puedes dejarlo en blanco si lo prefieres.
@@ -293,11 +340,11 @@ export function GuestAlbum({
                 onChange={(e) => setGuestName(e.target.value)}
                 placeholder="Tu nombre"
                 maxLength={100}
-                className="mt-4 w-full rounded-lg border border-tinta/20 px-3 py-2"
+                className="mt-4 w-full rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
               />
               <button
                 type="submit"
-                className="mt-3 w-full rounded-lg bg-teja py-2.5 font-semibold text-white transition hover:bg-teja-oscuro"
+                className="shimmer mt-3 w-full rounded-lg bg-teja py-2.5 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro"
               >
                 Continuar
               </button>
@@ -313,6 +360,7 @@ export function GuestAlbum({
           guestName={guestName}
           onClose={() => setSelected(null)}
           onReact={(emoji) => toggleReaction(selected, emoji)}
+          onDelete={() => deleteOwn(selected)}
           onCommentAdded={refresh}
         />
       )}
@@ -320,13 +368,24 @@ export function GuestAlbum({
   );
 }
 
-function Thumb({ item, onClick }: { item: MediaItem; onClick: () => void }) {
+function Thumb({
+  item,
+  mine,
+  onClick,
+}: {
+  item: MediaItem;
+  mine: boolean;
+  onClick: () => void;
+}) {
   const reactionTotal = Object.values(item.reactions).reduce((a, b) => a + b, 0);
+  const pending = !item.approved;
   return (
     <li>
       <button
         onClick={onClick}
-        className="relative block w-full overflow-hidden rounded-lg bg-arena"
+        className={`card-interactive relative block w-full overflow-hidden rounded-xl bg-arena shadow-soft ${
+          pending ? "opacity-60" : ""
+        }`}
       >
         {item.type === "video" ? (
           <>
@@ -337,8 +396,8 @@ function Thumb({ item, onClick }: { item: MediaItem; onClick: () => void }) {
               muted
               playsInline
             />
-            <span className="absolute right-1.5 top-1.5 rounded bg-black/50 px-1 text-xs text-white">
-              ▶
+            <span className="absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1 text-white">
+              <Play size={11} fill="white" />
             </span>
           </>
         ) : (
@@ -350,11 +409,24 @@ function Thumb({ item, onClick }: { item: MediaItem; onClick: () => void }) {
             className="aspect-square w-full object-cover"
           />
         )}
+        {pending && (
+          <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-tinta/80 px-2 py-0.5 text-[10px] font-semibold text-white">
+            <Hourglass size={10} /> Pendiente
+          </span>
+        )}
+        {mine && !pending && (
+          <span className="absolute left-1.5 top-1.5 rounded-full bg-teja/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+            Tuya
+          </span>
+        )}
         {(reactionTotal > 0 || item.commentCount > 0) && (
-          <span className="absolute bottom-1 left-1.5 rounded bg-black/50 px-1.5 py-0.5 text-xs text-white">
-            {reactionTotal > 0 && `❤️ ${reactionTotal}`}
-            {reactionTotal > 0 && item.commentCount > 0 && " · "}
-            {item.commentCount > 0 && `💬 ${item.commentCount}`}
+          <span className="absolute bottom-1 left-1.5 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white">
+            {reactionTotal > 0 && <span>❤️ {reactionTotal}</span>}
+            {item.commentCount > 0 && (
+              <span className="flex items-center gap-0.5">
+                <MessageCircle size={11} /> {item.commentCount}
+              </span>
+            )}
           </span>
         )}
       </button>
@@ -368,6 +440,7 @@ function Lightbox({
   guestName,
   onClose,
   onReact,
+  onDelete,
   onCommentAdded,
 }: {
   item: MediaItem;
@@ -375,11 +448,13 @@ function Lightbox({
   guestName: string;
   onClose: () => void;
   onReact: (emoji: string) => void;
+  onDelete: () => void;
   onCommentAdded: () => void;
 }) {
   const [commentList, setCommentList] = useState<Comment[] | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const mine = !!guestId && item.uploaderId === guestId;
 
   useEffect(() => {
     fetch(`/api/media/${item.id}/comments`)
@@ -412,19 +487,34 @@ function Lightbox({
 
   return (
     <div
-      className="fixed inset-0 z-30 flex flex-col bg-black/90"
+      className="animate-fade-in fixed inset-0 z-30 flex flex-col bg-black/90"
       onClick={onClose}
     >
       <div className="flex items-center justify-between p-3 text-white">
-        <span className="text-sm opacity-80">
+        <span className="flex items-center gap-2 text-sm opacity-80">
           {item.uploaderName ? `Subida por ${item.uploaderName}` : "Anónimo"}
+          {!item.approved && (
+            <span className="flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-xs">
+              <Hourglass size={11} /> Pendiente de aprobación
+            </span>
+          )}
         </span>
-        <button
-          onClick={onClose}
-          className="rounded-full bg-white/15 px-3 py-1 text-sm"
-        >
-          ✕ Cerrar
-        </button>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {mine && (
+            <button
+              onClick={onDelete}
+              className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm transition hover:bg-red-500/80"
+            >
+              <Trash2 size={14} /> Borrar
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm transition hover:bg-white/25"
+          >
+            <X size={14} /> Cerrar
+          </button>
+        </div>
       </div>
 
       <div
@@ -450,22 +540,22 @@ function Lightbox({
       </div>
 
       <div
-        className="max-h-[45%] overflow-y-auto rounded-t-2xl bg-white p-4"
+        className="glass max-h-[45%] overflow-y-auto rounded-t-2xl p-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center gap-2">
           {EMOJIS.map((emoji) => {
             const count = item.reactions[emoji] ?? 0;
-            const mine = item.myReactions.includes(emoji);
+            const mineReacted = item.myReactions.includes(emoji);
             return (
               <button
                 key={emoji}
                 onClick={() => onReact(emoji)}
                 disabled={!guestId}
                 className={`rounded-full border px-3.5 py-1.5 text-lg transition ${
-                  mine
-                    ? "border-teja bg-teja/10"
-                    : "border-tinta/15 bg-white hover:bg-arena"
+                  mineReacted
+                    ? "border-teja bg-teja/10 shadow-soft"
+                    : "border-tinta/15 bg-white/70 hover:bg-white"
                 }`}
               >
                 {emoji}
@@ -483,13 +573,13 @@ function Lightbox({
               Cargando comentarios…
             </p>
           ) : commentList.length === 0 ? (
-            <p className="text-center text-sm text-tinta/40">
-              Sé el primero en comentar 💬
+            <p className="flex items-center justify-center gap-1.5 text-center text-sm text-tinta/40">
+              <MessageCircle size={14} /> Sé el primero en comentar
             </p>
           ) : (
             <ul className="space-y-2">
               {commentList.map((c) => (
-                <li key={c.id} className="rounded-lg bg-arena px-3 py-2 text-sm">
+                <li key={c.id} className="rounded-lg bg-white/70 px-3 py-2 text-sm">
                   <span className="font-semibold">
                     {c.authorName || "Anónimo"}:
                   </span>{" "}
@@ -504,12 +594,12 @@ function Lightbox({
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Escribe un comentario…"
               maxLength={1000}
-              className="flex-1 rounded-lg border border-tinta/20 px-3 py-2 text-sm"
+              className="flex-1 rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
             />
             <button
               type="submit"
               disabled={sending || !draft.trim()}
-              className="rounded-lg bg-teja px-4 py-2 text-sm font-semibold text-white transition hover:bg-teja-oscuro disabled:opacity-50"
+              className="shimmer rounded-lg bg-teja px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-teja-oscuro disabled:opacity-50"
             >
               Enviar
             </button>

@@ -6,8 +6,15 @@
   --color-teja: #c2571b;
   --color-teja-oscuro: #9c4514;
   --color-arena: #efe6d8;
+  --color-vino: #6b2737;
+  --color-oro: #c9a227;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  --shadow-soft: 0 1px 2px rgba(43, 33, 24, 0.04), 0 8px 24px -8px rgba(43, 33, 24, 0.12);
+  --shadow-lift: 0 4px 8px rgba(43, 33, 24, 0.06), 0 20px 40px -12px rgba(43, 33, 24, 0.22);
+  --shadow-glow: 0 8px 32px -8px rgba(194, 87, 27, 0.35);
 }
 
 html {
@@ -17,4 +24,89 @@ html {
 body {
   background-color: var(--color-crema);
   color: var(--color-tinta);
+}
+
+/* Vidrio esmerilado: usar con moderación, solo en superficies destacadas
+   (barra de subida, visor, tarjetas de portada) — no en toda la interfaz. */
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--shadow-lift);
+}
+
+.glass-dark {
+  background: rgba(20, 14, 10, 0.55);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+.shadow-lift {
+  box-shadow: var(--shadow-lift);
+}
+
+/* Tarjeta con elevación al pasar el ratón/dedo, para miniaturas y tarjetas. */
+.card-interactive {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+}
+.card-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+.card-interactive:active {
+  transform: translateY(-1px);
+}
+
+/* Brillo tipo cristal que recorre el elemento al pasar el cursor. */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.35) 40%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.7s ease;
+}
+.shimmer:hover::after {
+  transform: translateX(100%);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes crossfade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-crossfade {
+  animation: crossfade 1.2s ease both;
 }

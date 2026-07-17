@@ -91,3 +91,42 @@ export async function deleteMedia(mediaId: string) {
     revalidatePath(`/dashboard/${deleted[0].albumId}`);
   }
 }
+
+export async function approveMedia(mediaId: string) {
+  const { userId } = await auth();
+  if (!userId) return;
+
+  const owned = await db()
+    .select({ id: albums.id })
+    .from(albums)
+    .where(eq(albums.ownerId, userId));
+  if (owned.length === 0) return;
+
+  const [row] = await db()
+    .update(media)
+    .set({ approved: true })
+    .where(
+      and(
+        eq(media.id, mediaId),
+        inArray(
+          media.albumId,
+          owned.map((a) => a.id),
+        ),
+      ),
+    )
+    .returning({ albumId: media.albumId });
+
+  if (row) revalidatePath(`/dashboard/${row.albumId}`);
+}
+
+export async function setModerationEnabled(albumId: string, enabled: boolean) {
+  const { userId } = await auth();
+  if (!userId) return;
+
+  await db()
+    .update(albums)
+    .set({ moderationEnabled: enabled })
+    .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)));
+
+  revalidatePath(`/dashboard/${albumId}`);
+}

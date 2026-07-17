@@ -18,7 +18,9 @@ export async function registerMedia(input: {
   pathname?: string | null;
   contentType?: string | null;
   uploaderName?: string | null;
+  uploaderId?: string | null;
   takenAt?: number | null;
+  approved: boolean;
 }) {
   const type = input.contentType?.startsWith("video/") ? "video" : "image";
   await db()
@@ -29,6 +31,8 @@ export async function registerMedia(input: {
       pathname: input.pathname ?? null,
       type,
       uploaderName: input.uploaderName || null,
+      uploaderId: input.uploaderId || null,
+      approved: input.approved,
       takenAt: input.takenAt ? new Date(input.takenAt) : null,
     })
     .onConflictDoNothing({ target: media.url });
