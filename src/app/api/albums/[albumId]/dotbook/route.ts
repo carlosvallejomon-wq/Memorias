@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { albums, comments, media } from "@/db/schema";
+import { albums, comments, media, reactions } from "@/db/schema";
 import { buildDotbookPdf } from "@/lib/build-dotbook";
 
 export const dynamic = "force-dynamic";
@@ -40,17 +41,41 @@ export async function GET(
     );
   }
 
-  const topCommentByMedia = new Map<string, string>();
+  const commentsByMedia = new Map<string, string[]>();
   const allComments = await db()
     .select({ mediaId: comments.mediaId, body: comments.body })
     .from(comments)
     .innerJoin(media, eq(comments.mediaId, media.id))
-    .where(eq(media.albumId, albumId));
+    .where(eq(media.albumId, albumId))
+    .orderBy(asc(comments.createdAt));
   for (const c of allComments) {
-    if (!topCommentByMedia.has(c.mediaId)) topCommentByMedia.set(c.mediaId, c.body);
+    const list = commentsByMedia.get(c.mediaId) ?? [];
+    if (list.length < 2) {
+      list.push(c.body);
+      commentsByMedia.set(c.mediaId, list);
+    }
   }
 
-  const pdfBytes = await buildDotbookPdf(album, items, topCommentByMedia);
+  const reactionCountByMedia = new Map<string, number>();
+  const allReactions = await db()
+    .select({ mediaId: reactions.mediaId })
+    .from(reactions)
+    .innerJoin(media, eq(reactions.mediaId, media.id))
+    .where(eq(media.albumId, albumId));
+  for (const r of allReactions) {
+    reactionCountByMedia.set(r.mediaId, (reactionCountByMedia.get(r.mediaId) ?? 0) + 1);
+  }
+
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const shareUrl = `${proto}://${host}/a/${album.shareCode}`;
+
+  const pdfBytes = await buildDotbookPdf(album, items, {
+    commentsByMedia,
+    reactionCountByMedia,
+    shareUrl,
+  });
 
   const safeName = album.name
     .toLowerCase()
