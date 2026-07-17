@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { desc, eq, sql } from "drizzle-orm";
-import { Camera, Sparkles, Plus, Images, Users } from "lucide-react";
+import { Camera, Sparkles, Images, Users, CalendarHeart, Wand2 } from "lucide-react";
 import { db } from "@/db";
 import { albums, media } from "@/db/schema";
 import { createAlbum } from "./actions";
@@ -46,27 +46,54 @@ export default async function DashboardPage() {
         <UserButton />
       </header>
 
-      <section className="glass mt-8 rounded-2xl p-5">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <Plus size={18} className="text-teja" /> Crear un álbum nuevo
-        </h2>
-        <form action={createAlbum} className="mt-3 flex flex-col gap-3">
-          <input
-            name="name"
-            required
-            placeholder="Nombre del evento o de la familia (p. ej. Boda de Ana y Luis)"
-            className="rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
-          />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section className="relative mt-8 overflow-hidden rounded-3xl border border-tinta/10 p-6 shadow-lift sm:p-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-arena via-crema to-oro/10"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-teja/15 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-vino/10 blur-3xl"
+        />
+
+        <div className="relative">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-teja/25 to-teja/10 text-teja-oscuro shadow-soft">
+              <Wand2 size={22} />
+            </div>
+            <div>
+              <h2
+                className="text-xl font-semibold"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                Crea tu álbum
+              </h2>
+              <p className="text-sm text-tinta/60">
+                Listo en menos de un minuto — comparte el QR y empieza a recibir fotos.
+              </p>
+            </div>
+          </div>
+
+          <form action={createAlbum} className="mt-6 flex flex-col gap-4">
+            <input
+              name="name"
+              required
+              placeholder="Nombre del evento o de la familia (p. ej. Boda de Ana y Luis)"
+              className="rounded-xl border border-tinta/15 bg-white/80 px-4 py-3 text-base outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
+            />
             <AlbumKindPicker />
             <button
               type="submit"
-              className="shimmer rounded-lg bg-teja px-5 py-2 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro sm:self-start"
+              className="shimmer flex items-center justify-center gap-2 self-start rounded-full bg-teja px-7 py-3 font-semibold text-white shadow-lift transition hover:bg-teja-oscuro"
             >
-              Crear
+              <Sparkles size={16} /> Crear álbum
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </section>
 
       <section className="mt-8">
@@ -77,36 +104,45 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2">
-            {rows.map((album) => (
-              <li key={album.id}>
-                <Link
-                  href={`/dashboard/${album.id}`}
-                  className="card-interactive block rounded-2xl border border-tinta/10 bg-white p-5 shadow-soft"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-lg font-semibold">{album.name}</h3>
-                    {album.kind === "familia" && (
-                      <span className="flex shrink-0 items-center gap-1 rounded-full bg-vino/10 px-2 py-0.5 text-xs font-semibold text-vino">
-                        <Users size={11} /> Familia
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 flex items-center gap-1.5 text-sm text-tinta/60">
-                    {album.eventDate
-                      ? new Date(album.eventDate + "T00:00:00").toLocaleDateString(
-                          "es-ES",
-                          { day: "numeric", month: "long", year: "numeric" },
-                        )
-                      : album.kind === "familia"
-                        ? "Álbum continuo"
-                        : "Sin fecha"}
-                    {" · "}
-                    <Images size={14} />
-                    {album.mediaCount}
-                  </p>
-                </Link>
-              </li>
-            ))}
+            {rows.map((album) => {
+              const KindIcon = album.kind === "familia" ? Users : CalendarHeart;
+              return (
+                <li key={album.id}>
+                  <Link
+                    href={`/dashboard/${album.id}`}
+                    className="card-interactive block rounded-2xl border border-tinta/10 bg-white p-5 shadow-soft"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br shadow-soft ${
+                          album.kind === "familia"
+                            ? "from-vino/20 to-vino/5 text-vino"
+                            : "from-teja/20 to-teja/5 text-teja-oscuro"
+                        }`}
+                      >
+                        <KindIcon size={17} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-lg font-semibold">{album.name}</h3>
+                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-tinta/60">
+                          {album.eventDate
+                            ? new Date(album.eventDate + "T00:00:00").toLocaleDateString(
+                                "es-ES",
+                                { day: "numeric", month: "long", year: "numeric" },
+                              )
+                            : album.kind === "familia"
+                              ? "Álbum continuo"
+                              : "Sin fecha"}
+                          {" · "}
+                          <Images size={14} />
+                          {album.mediaCount}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
