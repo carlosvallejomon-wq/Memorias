@@ -4,17 +4,21 @@ import { auth } from "@clerk/nextjs/server";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { albums, comments, media, reactions } from "@/db/schema";
-import { buildDotbookPdf } from "@/lib/build-dotbook";
+import { buildDotbookPdf, DOTBOOK_STYLES, type DotbookStyle } from "@/lib/build-dotbook";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 // Genera el "Dotbook digital" del álbum (PDF). Solo para el dueño.
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ albumId: string }> },
 ) {
   const { albumId } = await params;
+  const styleParam = request.nextUrl.searchParams.get("style");
+  const style: DotbookStyle = DOTBOOK_STYLES.some((s) => s.id === styleParam)
+    ? (styleParam as DotbookStyle)
+    : "clasico";
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -71,11 +75,12 @@ export async function GET(
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const shareUrl = `${proto}://${host}/a/${album.shareCode}`;
 
-  const pdfBytes = await buildDotbookPdf(album, items, {
-    commentsByMedia,
-    reactionCountByMedia,
-    shareUrl,
-  });
+  const pdfBytes = await buildDotbookPdf(
+    album,
+    items,
+    { commentsByMedia, reactionCountByMedia, shareUrl },
+    style,
+  );
 
   const safeName = album.name
     .toLowerCase()

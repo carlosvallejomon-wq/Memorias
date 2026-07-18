@@ -3,12 +3,13 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { and, desc, eq } from "drizzle-orm";
-import { ArrowLeft, Download, BookOpen, MonitorPlay, Hourglass, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, MonitorPlay, Hourglass, ExternalLink } from "lucide-react";
 import { db } from "@/db";
 import { albums, media } from "@/db/schema";
 import { ShareCard } from "@/components/ShareCard";
 import { ModerationToggle } from "@/components/ModerationToggle";
 import { InvitationGenerator } from "@/components/InvitationGenerator";
+import { DotbookGenerator } from "@/components/DotbookGenerator";
 import {
   ApproveMediaButton,
   DeleteAlbumButton,
@@ -118,12 +119,7 @@ export default async function AlbumAdminPage({
             >
               <Download size={16} /> ZIP
             </a>
-            <a
-              href={`/api/albums/${album.id}/dotbook`}
-              className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
-            >
-              <BookOpen size={16} /> Dotbook
-            </a>
+            <DotbookGenerator albumId={album.id} />
             <DeleteAlbumButton albumId={album.id} albumName={album.name} />
           </div>
         </div>
