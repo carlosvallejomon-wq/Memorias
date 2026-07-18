@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Play,
   Loader2,
+  Upload,
 } from "lucide-react";
 
 type MediaItem = {
@@ -92,6 +93,8 @@ export function GuestAlbum({
   const [view, setView] = useState<"galeria" | "dias">("galeria");
   const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
   const [selected, setSelected] = useState<MediaItem | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
+  const [pendingDate, setPendingDate] = useState(eventDate ?? "");
   const fileInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -118,11 +121,27 @@ export function GuestAlbum({
     }
   }, [guestId]);
 
-  async function handleFiles(files: FileList | null) {
+  function selectFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const list = Array.from(files);
+    setPendingFiles(Array.from(files));
+  }
+
+  function cancelUpload() {
+    setPendingFiles(null);
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
+  async function confirmUpload() {
+    const list = pendingFiles;
+    if (!list || list.length === 0) return;
+    // Si el invitado elige una fecha, se aplica a todo el lote (lo normal es
+    // subir varias fotos del mismo momento a la vez). Si la deja en blanco,
+    // se usa la fecha del propio archivo como respaldo.
+    const overrideTakenAt = pendingDate ? new Date(`${pendingDate}T12:00:00`).getTime() : null;
+    setPendingFiles(null);
     setUploading({ done: 0, total: list.length });
     for (const file of list) {
+      const takenAt = overrideTakenAt ?? file.lastModified;
       try {
         const blob = await upload(file.name, file, {
           access: "public",
@@ -131,7 +150,7 @@ export function GuestAlbum({
             code,
             uploaderName: guestName || null,
             uploaderId: guestId || null,
-            takenAt: file.lastModified,
+            takenAt,
           }),
         });
         await fetch(`/api/guest/${code}/media`, {
@@ -143,7 +162,7 @@ export function GuestAlbum({
             contentType: blob.contentType || file.type,
             uploaderName: guestName || null,
             uploaderId: guestId || null,
-            takenAt: file.lastModified,
+            takenAt,
           }),
         });
       } catch (err) {
@@ -296,7 +315,7 @@ export function GuestAlbum({
           accept="image/*,video/*"
           multiple
           hidden
-          onChange={(e) => handleFiles(e.target.files)}
+          onChange={(e) => selectFiles(e.target.files)}
         />
         <button
           disabled={!!uploading}
@@ -315,6 +334,47 @@ export function GuestAlbum({
           )}
         </button>
       </div>
+
+      {/* Confirmación antes de subir: permite corregir la fecha, para que el
+          Dotbook y la vista por días queden bien organizados aunque el
+          archivo no traiga la fecha real (frecuente en fotos reenviadas por
+          WhatsApp). */}
+      {pendingFiles && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
+          <div className="glass animate-fade-in w-full max-w-sm rounded-2xl p-6">
+            <h2 className="flex items-center gap-2 text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+              <Upload size={18} className="text-teja" />
+              {pendingFiles.length} {pendingFiles.length === 1 ? "archivo" : "archivos"}
+            </h2>
+            <label className="mt-4 block text-sm font-semibold text-tinta/70">
+              ¿De qué día son estas fotos?
+            </label>
+            <p className="mt-0.5 text-xs text-tinta/50">
+              Opcional, pero ayuda a que se organicen bien en la galería y en el Dotbook.
+            </p>
+            <input
+              type="date"
+              value={pendingDate}
+              onChange={(e) => setPendingDate(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
+            />
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={cancelUpload}
+                className="flex-1 rounded-lg border border-tinta/15 bg-white/70 py-2.5 font-semibold text-tinta/70 transition hover:bg-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmUpload}
+                className="shimmer flex-1 rounded-lg bg-teja py-2.5 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro"
+              >
+                Subir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Diálogo para pedir el nombre (opcional, una sola vez) */}
       {askName && (
