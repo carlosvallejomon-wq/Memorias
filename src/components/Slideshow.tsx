@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
+import { Gauge } from "lucide-react";
 
 type MediaItem = {
   id: string;
@@ -12,9 +13,27 @@ type MediaItem = {
   createdAt: string;
 };
 
-const ADVANCE_MS = 7000;
+const SPEEDS = [
+  { label: "Lento", ms: 12000 },
+  { label: "Normal", ms: 7000 },
+  { label: "Rápido", ms: 4000 },
+];
+const DEFAULT_SPEED_MS = 7000;
 const POLL_MS = 8000;
 const VIDEO_MAX_MS = 20000;
+
+function useSlideshowSpeed() {
+  const [speedMs, setSpeedMs] = useState(DEFAULT_SPEED_MS);
+  useEffect(() => {
+    const saved = Number(localStorage.getItem("mv_slideshow_speed"));
+    if (saved && SPEEDS.some((s) => s.ms === saved)) setSpeedMs(saved);
+  }, []);
+  const change = (ms: number) => {
+    setSpeedMs(ms);
+    localStorage.setItem("mv_slideshow_speed", String(ms));
+  };
+  return [speedMs, change] as const;
+}
 
 export function Slideshow({
   code,
@@ -28,6 +47,7 @@ export function Slideshow({
   const [items, setItems] = useState<MediaItem[]>([]);
   const [index, setIndex] = useState(0);
   const [qr, setQr] = useState<string | null>(null);
+  const [speedMs, setSpeedMs] = useSlideshowSpeed();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -63,20 +83,15 @@ export function Slideshow({
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!current || items.length <= 1) return;
-    if (current.type === "image") {
-      timerRef.current = setTimeout(() => {
-        setIndex((i) => (i + 1) % items.length);
-      }, ADVANCE_MS);
-    } else {
-      timerRef.current = setTimeout(() => {
-        setIndex((i) => (i + 1) % items.length);
-      }, VIDEO_MAX_MS);
-    }
+    const delay = current.type === "image" ? speedMs : VIDEO_MAX_MS;
+    timerRef.current = setTimeout(() => {
+      setIndex((i) => (i + 1) % items.length);
+    }, delay);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.id, items.length]);
+  }, [current?.id, items.length, speedMs]);
 
   const caption = useMemo(() => {
     if (!current) return "";
@@ -122,6 +137,21 @@ export function Slideshow({
         >
           {albumName}
         </span>
+      </div>
+
+      <div className="glass-dark absolute right-6 top-6 flex items-center gap-1.5 rounded-full p-1 text-white">
+        <Gauge size={14} className="ml-2 text-white/60" />
+        {SPEEDS.map((s) => (
+          <button
+            key={s.ms}
+            onClick={() => setSpeedMs(s.ms)}
+            className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+              speedMs === s.ms ? "bg-teja text-white" : "text-white/60 hover:text-white"
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
       {caption && (

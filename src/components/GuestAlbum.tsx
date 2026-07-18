@@ -272,7 +272,7 @@ export function GuestAlbum({
           </p>
         </div>
       ) : view === "galeria" ? (
-        <ul className="mt-6 grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2">
+        <ul className="mt-6 columns-2 gap-1.5 sm:columns-3 sm:gap-2">
           {items.map((item) => (
             <Thumb
               key={item.id}
@@ -292,7 +292,7 @@ export function GuestAlbum({
                   · {grouped.get(key)!.length}
                 </span>
               </h2>
-              <ul className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2">
+              <ul className="mt-2 columns-2 gap-1.5 sm:columns-3 sm:gap-2">
                 {grouped.get(key)!.map((item) => (
                   <Thumb
                     key={item.id}
@@ -440,7 +440,7 @@ function Thumb({
   const reactionTotal = Object.values(item.reactions).reduce((a, b) => a + b, 0);
   const pending = !item.approved;
   return (
-    <li>
+    <li className="mb-1.5 break-inside-avoid sm:mb-2">
       <button
         onClick={onClick}
         className={`card-interactive relative block w-full overflow-hidden rounded-xl bg-arena shadow-soft ${
@@ -451,7 +451,7 @@ function Thumb({
           <>
             <video
               src={item.url}
-              className="aspect-square w-full object-cover"
+              className="block w-full"
               preload="metadata"
               muted
               playsInline
@@ -462,12 +462,7 @@ function Thumb({
           </>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.url}
-            alt=""
-            loading="lazy"
-            className="aspect-square w-full object-cover"
-          />
+          <img src={item.url} alt="" loading="lazy" className="block w-full" />
         )}
         {pending && (
           <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-tinta/80 px-2 py-0.5 text-[10px] font-semibold text-white">

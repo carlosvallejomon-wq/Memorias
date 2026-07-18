@@ -1,4 +1,20 @@
-import { PDFDocument, PDFFont, PDFPage, rgb, RGB, StandardFonts } from "pdf-lib";
+import {
+  PDFDocument,
+  PDFFont,
+  PDFPage,
+  PDFImage,
+  rgb,
+  RGB,
+  StandardFonts,
+  degrees,
+  pushGraphicsState,
+  popGraphicsState,
+  rectangle as rectangleOp,
+  clip as clipOp,
+  endPath as endPathOp,
+  translate as translateOp,
+  rotateDegrees as rotateOp,
+} from "pdf-lib";
 import QRCode from "qrcode";
 import type { albums, media } from "@/db/schema";
 
@@ -12,21 +28,11 @@ const INK_FAINT = rgb(0.55, 0.5, 0.45);
 const CREAM = rgb(0.98, 0.96, 0.94);
 const SAND = rgb(0.94, 0.9, 0.85);
 const TERRACOTTA = rgb(0.76, 0.34, 0.11);
-const WINE = rgb(0.42, 0.15, 0.22);
+const OLIVE = rgb(0.42, 0.46, 0.32);
 
 function formatLongDate(d: Date | null): string {
   if (!d) return "";
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
-}
-
-function formatDayHeading(d: Date): string {
-  const s = d.toLocaleDateString("es-ES", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function dayKey(d: Date): string {
@@ -56,7 +62,7 @@ function drawCentered(
   page.drawText(text, { x: (PAGE_WIDTH - width) / 2, y, size, font, color });
 }
 
-// Envuelve texto a un ancho máximo; devuelve las líneas dibujadas.
+// Envuelve texto a un ancho máximo; devuelve la posición y tras la última línea.
 function drawWrapped(
   page: PDFPage,
   text: string,
@@ -108,8 +114,18 @@ function drawDivider(page: PDFPage, y: number, color: RGB) {
   page.drawEllipse({ x: PAGE_WIDTH / 2, y, xScale: 3, yScale: 3, color });
 }
 
-// Marco tipo "paspartú" con una sombra sutil, como una foto pegada en un
-// álbum físico en vez de una imagen a bordes vivos.
+// Recorte real (no un truco de escalado): todo lo que se dibuje entre
+// clipRect/unclip queda cortado exactamente al rectángulo dado, así una
+// imagen con "cover fit" nunca se sale de su marco.
+function clipRect(page: PDFPage, x: number, y: number, w: number, h: number) {
+  page.pushOperators(pushGraphicsState(), rectangleOp(x, y, w, h), clipOp(), endPathOp());
+}
+function unclip(page: PDFPage) {
+  page.pushOperators(popGraphicsState());
+}
+
+// Marco tipo "paspartú" con sombra, del mismo tamaño exacto que el marco
+// (antes la sombra y la imagen podían quedar de tamaños distintos).
 function drawFrame(page: PDFPage, x: number, y: number, w: number, h: number) {
   page.drawRectangle({ x: x + 5, y: y - 5, width: w, height: h, color: rgb(0.72, 0.65, 0.56), opacity: 0.3 });
   page.drawRectangle({ x, y, width: w, height: h, color: rgb(1, 1, 1) });
@@ -121,6 +137,24 @@ function drawFrame(page: PDFPage, x: number, y: number, w: number, h: number) {
     borderColor: rgb(0.86, 0.81, 0.73),
     borderWidth: 1,
   });
+}
+
+// Dibuja la imagen ajustada "cover" (recortando el sobrante) dentro de un
+// rectángulo, usando recorte real para que nunca desborde el marco.
+function drawImageCover(
+  page: PDFPage,
+  image: PDFImage,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  clipRect(page, x, y, w, h);
+  const scale = Math.max(w / image.width, h / image.height);
+  const iw = image.width * scale;
+  const ih = image.height * scale;
+  page.drawImage(image, { x: x + (w - iw) / 2, y: y + (h - ih) / 2, width: iw, height: ih });
+  unclip(page);
 }
 
 async function embedQr(pdf: PDFDocument, url: string, size = 400) {
@@ -142,17 +176,127 @@ async function tryEmbedImage(pdf: PDFDocument, url: string) {
   }
 }
 
+// Una "polaroid" rotada con washi tape, como en un scrapbook — se dibuja en
+// un sistema de coordenadas local (origen abajo-a-la-izquierda de la
+// tarjeta) que luego se traslada y rota como conjunto, así que todo gira
+// junto sin descuadrarse.
+function drawPolaroid(
+  page: PDFPage,
+  image: PDFImage,
+  centerX: number,
+  centerY: number,
+  rotationDeg: number,
+  tapeColor: RGB,
+) {
+  const pad = 12;
+  const photoSize = 150;
+  const bottomMargin = 46;
+  const cardW = photoSize + pad * 2;
+  const cardH = pad + photoSize + bottomMargin;
+
+  page.pushOperators(
+    pushGraphicsState(),
+    translateOp(centerX, centerY),
+    rotateOp(rotationDeg),
+    translateOp(-cardW / 2, -cardH / 2),
+  );
+
+  // Sombra + tarjeta blanca.
+  page.drawRectangle({
+    x: 4,
+    y: -4,
+    width: cardW,
+    height: cardH,
+    color: rgb(0.2, 0.16, 0.1),
+    opacity: 0.25,
+  });
+  page.drawRectangle({ x: 0, y: 0, width: cardW, height: cardH, color: rgb(1, 1, 1) });
+
+  drawImageCover(page, image, pad, cardH - pad - photoSize, photoSize, photoSize);
+
+  // Washi tape asomando por arriba.
+  page.drawRectangle({
+    x: cardW / 2 - 26,
+    y: cardH - 14,
+    width: 52,
+    height: 22,
+    color: tapeColor,
+    opacity: 0.55,
+    rotate: degrees(-6),
+  });
+
+  page.pushOperators(popGraphicsState());
+}
+
+// Ramas decorativas de esquina, sencillas pero con textura de scrapbook.
+function drawCornerBranch(
+  page: PDFPage,
+  x: number,
+  y: number,
+  angleDeg: number,
+  length: number,
+  mirror: boolean,
+) {
+  page.pushOperators(
+    pushGraphicsState(),
+    translateOp(x, y),
+    rotateOp(angleDeg),
+  );
+  const dir = mirror ? -1 : 1;
+  page.drawLine({
+    start: { x: 0, y: 0 },
+    end: { x: dir * length, y: length * 0.25 },
+    thickness: 1.5,
+    color: OLIVE,
+    opacity: 0.5,
+  });
+  for (const t of [0.25, 0.5, 0.75]) {
+    const lx = dir * length * t;
+    const ly = length * 0.25 * t;
+    page.drawEllipse({
+      x: lx,
+      y: ly,
+      xScale: 10,
+      yScale: 5,
+      rotate: degrees(dir * -30),
+      color: OLIVE,
+      opacity: 0.4,
+    });
+  }
+  page.pushOperators(popGraphicsState());
+}
+
+const POLAROID_LAYOUTS: { x: number; y: number; rot: number }[][] = [
+  [{ x: 297, y: 195, rot: -4 }],
+  [
+    { x: 190, y: 195, rot: -7 },
+    { x: 400, y: 185, rot: 6 },
+  ],
+  [
+    { x: 150, y: 190, rot: -8 },
+    { x: 340, y: 205, rot: 5 },
+    { x: 470, y: 170, rot: -5 },
+  ],
+  [
+    { x: 130, y: 200, rot: -8 },
+    { x: 320, y: 215, rot: 6 },
+    { x: 470, y: 175, rot: -6 },
+    { x: 230, y: 150, rot: 9 },
+  ],
+];
+
 function addCoverPage(
   pdf: PDFDocument,
   album: Album,
   fonts: Fonts,
   stats: { total: number; uploaders: number; days: number },
-  previewImages: { img: Awaited<ReturnType<PDFDocument["embedJpg"]>> }[],
+  previewImages: PDFImage[],
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: CREAM });
-  page.drawRectangle({ x: 0, y: PAGE_HEIGHT - 10, width: PAGE_WIDTH, height: 10, color: TERRACOTTA });
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: 10, color: TERRACOTTA });
+
+  drawCornerBranch(page, 40, PAGE_HEIGHT - 40, -20, 90, false);
+  drawCornerBranch(page, PAGE_WIDTH - 40, 40, -20, 90, true);
 
   drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 90, fonts.regular, 12, INK_FAINT);
 
@@ -197,47 +341,11 @@ function addCoverPage(
   ].filter((v): v is string => !!v);
   drawCentered(page, statsParts.join("   ·   "), y, fonts.regular, 13, INK_FAINT);
 
-  if (previewImages.length > 0) {
-    const cols = Math.min(previewImages.length, 4);
-    const tile = 100;
-    const gap = 14;
-    const totalW = cols * tile + (cols - 1) * gap;
-    let x = (PAGE_WIDTH - totalW) / 2;
-    const ty = 150;
-    for (let i = 0; i < cols; i++) {
-      const { img } = previewImages[i];
-      const scale = Math.max(tile / img.width, tile / img.height);
-      const w = img.width * scale;
-      const h = img.height * scale;
-      drawFrame(page, x, ty, tile, tile);
-      page.drawImage(img, {
-        x: x + (tile - w) / 2,
-        y: ty + (tile - h) / 2,
-        width: w,
-        height: h,
-      });
-      // recorte simple de bordes: pdf-lib no admite clipping fácil aquí, así
-      // que dejamos la imagen algo mayor que el marco solo si excede poco.
-      x += tile + gap;
-    }
-  }
-}
-
-function addDayDivider(pdf: PDFDocument, fonts: Fonts, date: Date, count: number) {
-  const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: CREAM });
-  const centerY = PAGE_HEIGHT / 2;
-  drawCentered(page, "U N   D Í A   M Á S   D E   L A   H I S T O R I A", centerY + 50, fonts.italic, 11, WINE);
-  drawCentered(page, formatDayHeading(date), centerY, fonts.bold, 26, INK);
-  drawCentered(
-    page,
-    `${count} ${count === 1 ? "recuerdo" : "recuerdos"}`,
-    centerY - 34,
-    fonts.italic,
-    13,
-    INK_FAINT,
-  );
-  drawDivider(page, centerY - 70, TERRACOTTA);
+  const tapeColors = [TERRACOTTA, OLIVE, rgb(0.7, 0.55, 0.3), TERRACOTTA];
+  const layout = POLAROID_LAYOUTS[Math.min(previewImages.length, 4) - 1] ?? [];
+  previewImages.slice(0, layout.length).forEach((image, i) => {
+    drawPolaroid(page, image, layout[i].x, layout[i].y, layout[i].rot, tapeColors[i % tapeColors.length]);
+  });
 }
 
 async function addPhotoPage(
@@ -260,12 +368,14 @@ async function addPhotoPage(
     const image = await tryEmbedImage(pdf, item.url);
     if (image) {
       const pad = 18;
+      drawFrame(page, frameX, frameY, frameW, frameH);
+      // "Contain" (no recorte) para la foto protagonista de la página: se ve
+      // completa siempre, sea cual sea su proporción original.
       const innerW = frameW - pad * 2;
       const innerH = frameH - pad * 2;
       const scale = Math.min(innerW / image.width, innerH / image.height);
       const w = image.width * scale;
       const h = image.height * scale;
-      drawFrame(page, frameX, frameY, frameW, frameH);
       page.drawImage(image, {
         x: frameX + (frameW - w) / 2,
         y: frameY + (frameH - h) / 2,
@@ -331,7 +441,7 @@ async function addPhotoPage(
   }
 }
 
-function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: Awaited<ReturnType<PDFDocument["embedPng"]>>) {
+function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: PDFImage) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: rgb(0.94, 0.9, 0.85) });
   const centerY = PAGE_HEIGHT / 2 + 60;
@@ -350,12 +460,12 @@ function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: Awaited<ReturnT
   drawCentered(page, "M E M O R I A S   V I V A S", MARGIN + 30, fonts.regular, 10, INK_FAINT);
 }
 
-// Genera el "Dotbook digital": un PDF con capítulos por día, fotos
-// enmarcadas, comentarios y reacciones — pensado para sentirse como un
-// álbum de verdad, no una lista de imágenes sueltas. Los vídeos (y las
-// fotos en formatos que un PDF no puede incrustar, como HEIC) se
-// representan con un código QR que lleva directamente al recuerdo
-// original — igual que hace Dots Memories en su libro físico.
+// Genera el "Dotbook digital": una portada tipo scrapbook con fotos reales
+// a modo de polaroid, y una página por recuerdo con marco, comentarios y
+// reacciones. Los vídeos (y las fotos en formatos que un PDF no puede
+// incrustar, como HEIC) se representan con un código QR que lleva
+// directamente al recuerdo original — igual que hace Dots Memories en su
+// libro físico.
 export async function buildDotbookPdf(
   album: Album,
   items: MediaItem[],
@@ -381,10 +491,10 @@ export async function buildDotbookPdf(
   const days = new Set(sorted.map((i) => dayKey(i.takenAt ?? i.createdAt)));
 
   const previewSourceImages = sorted.filter((i) => i.type === "image").slice(0, 4);
-  const previewImages: { img: Awaited<ReturnType<PDFDocument["embedJpg"]>> }[] = [];
+  const previewImages: PDFImage[] = [];
   for (const item of previewSourceImages) {
     const img = await tryEmbedImage(pdf, item.url);
-    if (img) previewImages.push({ img });
+    if (img) previewImages.push(img);
   }
 
   addCoverPage(
@@ -395,15 +505,7 @@ export async function buildDotbookPdf(
     previewImages,
   );
 
-  let currentDay: string | null = null;
   for (const item of sorted) {
-    const itemDate = item.takenAt ?? item.createdAt;
-    const key = dayKey(itemDate);
-    if (key !== currentDay) {
-      currentDay = key;
-      const count = sorted.filter((i) => dayKey(i.takenAt ?? i.createdAt) === key).length;
-      addDayDivider(pdf, fonts, itemDate, count);
-    }
     await addPhotoPage(
       pdf,
       fonts,

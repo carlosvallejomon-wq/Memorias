@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { and, desc, eq } from "drizzle-orm";
-import { ArrowLeft, Download, BookOpen, MonitorPlay, Hourglass } from "lucide-react";
+import { ArrowLeft, Download, BookOpen, MonitorPlay, Hourglass, ExternalLink } from "lucide-react";
 import { db } from "@/db";
 import { albums, media } from "@/db/schema";
 import { ShareCard } from "@/components/ShareCard";
@@ -61,55 +61,81 @@ export default async function AlbumAdminPage({
       >
         <ArrowLeft size={15} /> Mis álbumes
       </Link>
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1
-            className="text-3xl font-semibold"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            {album.name}
-          </h1>
-          <p className="mt-1 text-sm text-tinta/60">
-            {eventDateLabel ?? (album.kind === "familia" ? "Álbum de familia" : "Sin fecha")}
-            {" · "}
-            {items.length} {items.length === 1 ? "recuerdo" : "recuerdos"}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href={`/a/${album.shareCode}/pantalla`}
-            target="_blank"
-            rel="noreferrer"
-            className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
-          >
-            <MonitorPlay size={16} /> Modo pantalla
-          </a>
-          <InvitationGenerator
-            albumName={album.name}
-            eventDateLabel={eventDateLabel}
-            shareUrl={shareUrl}
-          />
-          <a
-            href={`/api/albums/${album.id}/download`}
-            className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
-          >
-            <Download size={16} /> ZIP
-          </a>
-          <a
-            href={`/api/albums/${album.id}/dotbook`}
-            className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
-          >
-            <BookOpen size={16} /> Dotbook
-          </a>
-          <DeleteAlbumButton albumId={album.id} albumName={album.name} />
-        </div>
-      </div>
 
-      <ShareCard shareUrl={shareUrl} />
+      <section className="relative mt-4 overflow-hidden rounded-3xl border border-tinta/10 p-6 shadow-lift sm:p-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-arena via-crema to-oro/10"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-teja/15 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-vino/10 blur-3xl"
+        />
 
-      <div className="mt-6 flex justify-center sm:justify-start">
-        <ModerationToggle albumId={album.id} enabled={album.moderationEnabled} />
-      </div>
+        <div className="relative flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1
+              className="text-3xl font-semibold"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {album.name}
+            </h1>
+            <p className="mt-1 text-sm text-tinta/60">
+              {eventDateLabel ?? (album.kind === "familia" ? "Álbum de familia" : "Sin fecha")}
+              {" · "}
+              {items.length} {items.length === 1 ? "recuerdo" : "recuerdos"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={`/a/${album.shareCode}`}
+              target="_blank"
+              rel="noreferrer"
+              className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
+            >
+              <ExternalLink size={16} /> Ver álbum
+            </a>
+            <a
+              href={`/a/${album.shareCode}/pantalla`}
+              target="_blank"
+              rel="noreferrer"
+              className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
+            >
+              <MonitorPlay size={16} /> Modo pantalla
+            </a>
+            <InvitationGenerator
+              albumName={album.name}
+              eventDateLabel={eventDateLabel}
+              shareUrl={shareUrl}
+            />
+            <a
+              href={`/api/albums/${album.id}/download`}
+              className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
+            >
+              <Download size={16} /> ZIP
+            </a>
+            <a
+              href={`/api/albums/${album.id}/dotbook`}
+              className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
+            >
+              <BookOpen size={16} /> Dotbook
+            </a>
+            <DeleteAlbumButton albumId={album.id} albumName={album.name} />
+          </div>
+        </div>
+
+        <div className="relative">
+          <ShareCard shareUrl={shareUrl} />
+        </div>
+
+        <div className="relative mt-6 flex justify-center sm:justify-start">
+          <ModerationToggle albumId={album.id} enabled={album.moderationEnabled} />
+        </div>
+      </section>
 
       {pendingItems.length > 0 && (
         <section className="mt-8 animate-fade-in rounded-2xl border border-teja/20 bg-teja/5 p-5">
@@ -117,28 +143,17 @@ export default async function AlbumAdminPage({
             <Hourglass size={18} />
             Pendientes de aprobar ({pendingItems.length})
           </h2>
-          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          <ul className="mt-3 columns-2 gap-3 sm:columns-3 md:columns-4">
             {pendingItems.map((item) => (
               <li
                 key={item.id}
-                className="card-interactive overflow-hidden rounded-xl bg-white shadow-soft"
+                className="card-interactive mb-3 break-inside-avoid overflow-hidden rounded-xl bg-white shadow-soft"
               >
                 {item.type === "video" ? (
-                  <video
-                    src={item.url}
-                    className="aspect-square w-full object-cover"
-                    preload="metadata"
-                    muted
-                    playsInline
-                  />
+                  <video src={item.url} className="block w-full" preload="metadata" muted playsInline />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.url}
-                    alt=""
-                    loading="lazy"
-                    className="aspect-square w-full object-cover"
-                  />
+                  <img src={item.url} alt="" loading="lazy" className="block w-full" />
                 )}
                 <div className="flex items-center justify-between gap-1 p-2">
                   <ApproveMediaButton mediaId={item.id} />
@@ -158,28 +173,17 @@ export default async function AlbumAdminPage({
             invitados para que empiecen a subir recuerdos.
           </p>
         ) : (
-          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          <ul className="mt-3 columns-2 gap-3 sm:columns-3 md:columns-4">
             {items.map((item) => (
               <li
                 key={item.id}
-                className="card-interactive group relative overflow-hidden rounded-xl bg-arena shadow-soft"
+                className="card-interactive group relative mb-3 break-inside-avoid overflow-hidden rounded-xl bg-arena shadow-soft"
               >
                 {item.type === "video" ? (
-                  <video
-                    src={item.url}
-                    className="aspect-square w-full object-cover"
-                    preload="metadata"
-                    muted
-                    playsInline
-                  />
+                  <video src={item.url} className="block w-full" preload="metadata" muted playsInline />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.url}
-                    alt=""
-                    loading="lazy"
-                    className="aspect-square w-full object-cover"
-                  />
+                  <img src={item.url} alt="" loading="lazy" className="block w-full" />
                 )}
                 <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-2">
                   <span className="truncate text-xs text-white">
