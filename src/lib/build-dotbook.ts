@@ -30,6 +30,85 @@ const SAND = rgb(0.94, 0.9, 0.85);
 const TERRACOTTA = rgb(0.76, 0.34, 0.11);
 const OLIVE = rgb(0.42, 0.46, 0.32);
 
+// Estilos de portada del Dotbook, inspirados en plantillas de portadas de
+// álbum de referencia (familia/cálido, elegante boda-graduación, fiesta
+// infantil) — igual que los 4 estilos de invitación, pero para el PDF.
+export type DotbookStyle = "clasico" | "elegante" | "fiesta";
+
+export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
+  { id: "clasico", label: "Cálido clásico" },
+  { id: "elegante", label: "Elegante" },
+  { id: "fiesta", label: "Fiesta" },
+];
+
+type Palette = {
+  bg: RGB;
+  bgClosing: RGB;
+  ink: RGB;
+  inkSoft: RGB;
+  inkFaint: RGB;
+  accent: RGB;
+  tapeColors: RGB[];
+  branch: RGB;
+  decoration: "branch" | "confetti";
+};
+
+const PALETTES: Record<DotbookStyle, Palette> = {
+  clasico: {
+    bg: CREAM,
+    bgClosing: SAND,
+    ink: INK,
+    inkSoft: INK_SOFT,
+    inkFaint: INK_FAINT,
+    accent: TERRACOTTA,
+    tapeColors: [TERRACOTTA, OLIVE, rgb(0.7, 0.55, 0.3), TERRACOTTA],
+    branch: OLIVE,
+    decoration: "branch",
+  },
+  elegante: {
+    bg: rgb(0.95, 0.95, 0.96),
+    bgClosing: rgb(0.91, 0.91, 0.93),
+    ink: rgb(0.13, 0.16, 0.24),
+    inkSoft: rgb(0.32, 0.36, 0.44),
+    inkFaint: rgb(0.5, 0.53, 0.58),
+    accent: rgb(0.7, 0.56, 0.27),
+    tapeColors: [
+      rgb(0.7, 0.56, 0.27),
+      rgb(0.16, 0.22, 0.36),
+      rgb(0.7, 0.56, 0.27),
+      rgb(0.16, 0.22, 0.36),
+    ],
+    branch: rgb(0.7, 0.56, 0.27),
+    decoration: "branch",
+  },
+  fiesta: {
+    bg: rgb(1, 0.97, 0.94),
+    bgClosing: rgb(1, 0.94, 0.9),
+    ink: rgb(0.3, 0.16, 0.34),
+    inkSoft: rgb(0.5, 0.3, 0.45),
+    inkFaint: rgb(0.62, 0.48, 0.58),
+    accent: rgb(0.86, 0.29, 0.47),
+    tapeColors: [
+      rgb(0.86, 0.29, 0.47),
+      rgb(0.26, 0.66, 0.6),
+      rgb(0.95, 0.71, 0.22),
+      rgb(0.55, 0.42, 0.75),
+    ],
+    branch: rgb(0.86, 0.29, 0.47),
+    decoration: "confetti",
+  },
+};
+
+function mulberry32(seed: number) {
+  return function random() {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function formatLongDate(d: Date | null): string {
   if (!d) return "";
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
@@ -236,6 +315,7 @@ function drawCornerBranch(
   angleDeg: number,
   length: number,
   mirror: boolean,
+  color: RGB,
 ) {
   page.pushOperators(
     pushGraphicsState(),
@@ -247,7 +327,7 @@ function drawCornerBranch(
     start: { x: 0, y: 0 },
     end: { x: dir * length, y: length * 0.25 },
     thickness: 1.5,
-    color: OLIVE,
+    color,
     opacity: 0.5,
   });
   for (const t of [0.25, 0.5, 0.75]) {
@@ -259,11 +339,46 @@ function drawCornerBranch(
       xScale: 10,
       yScale: 5,
       rotate: degrees(dir * -30),
-      color: OLIVE,
+      color,
       opacity: 0.4,
     });
   }
   page.pushOperators(popGraphicsState());
+}
+
+// Confeti de esquina para el estilo "fiesta" — puntos y rectángulos
+// esparcidos con una semilla fija para que el resultado sea reproducible.
+function drawCornerConfetti(
+  page: PDFPage,
+  x: number,
+  y: number,
+  spreadX: number,
+  spreadY: number,
+  colors: RGB[],
+  seed: number,
+) {
+  const rng = mulberry32(seed);
+  for (let i = 0; i < 14; i++) {
+    const dx = (rng() - 0.5) * 2 * spreadX;
+    const dy = (rng() - 0.5) * 2 * spreadY;
+    const color = colors[Math.floor(rng() * colors.length)];
+    const opacity = 0.35 + rng() * 0.35;
+    if (rng() > 0.5) {
+      page.drawEllipse({ x: x + dx, y: y + dy, xScale: 3 + rng() * 3, yScale: 3 + rng() * 3, color, opacity });
+    } else {
+      page.pushOperators(pushGraphicsState(), translateOp(x + dx, y + dy), rotateOp(rng() * 360));
+      page.drawRectangle({ x: -4, y: -2, width: 8, height: 4, color, opacity });
+      page.pushOperators(popGraphicsState());
+    }
+  }
+}
+
+function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: number, mirror: boolean, palette: Palette, seed: number) {
+  if (palette.decoration === "confetti") {
+    drawCornerConfetti(page, x, y, 70, 60, palette.tapeColors, seed);
+  } else {
+    drawCornerBranch(page, x, y, angleDeg, 90, mirror, palette.branch);
+  }
 }
 
 const POLAROID_LAYOUTS: { x: number; y: number; rot: number }[][] = [
@@ -291,14 +406,15 @@ function addCoverPage(
   fonts: Fonts,
   stats: { total: number; uploaders: number; days: number },
   previewImages: PDFImage[],
+  palette: Palette,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: CREAM });
+  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
 
-  drawCornerBranch(page, 40, PAGE_HEIGHT - 40, -20, 90, false);
-  drawCornerBranch(page, PAGE_WIDTH - 40, 40, -20, 90, true);
+  drawCornerDecoration(page, 40, PAGE_HEIGHT - 40, -20, false, palette, 1);
+  drawCornerDecoration(page, PAGE_WIDTH - 40, 40, -20, true, palette, 2);
 
-  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 90, fonts.regular, 12, INK_FAINT);
+  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 90, fonts.regular, 12, palette.inkFaint);
 
   let y = drawWrapped(
     page,
@@ -309,7 +425,7 @@ function addCoverPage(
     38,
     fonts.bold,
     30,
-    INK,
+    palette.ink,
     "center",
   );
 
@@ -321,15 +437,15 @@ function addCoverPage(
       y,
       fonts.italic,
       14,
-      INK_SOFT,
+      palette.inkSoft,
     );
     y -= 26;
   } else if (album.kind === "familia") {
-    drawCentered(page, "Álbum de familia", y, fonts.italic, 14, INK_SOFT);
+    drawCentered(page, "Álbum de familia", y, fonts.italic, 14, palette.inkSoft);
     y -= 26;
   }
 
-  drawDivider(page, y, TERRACOTTA);
+  drawDivider(page, y, palette.accent);
   y -= 30;
 
   const statsParts = [
@@ -339,12 +455,18 @@ function addCoverPage(
       : null,
     stats.days > 1 ? `${stats.days} días` : null,
   ].filter((v): v is string => !!v);
-  drawCentered(page, statsParts.join("   ·   "), y, fonts.regular, 13, INK_FAINT);
+  drawCentered(page, statsParts.join("   ·   "), y, fonts.regular, 13, palette.inkFaint);
 
-  const tapeColors = [TERRACOTTA, OLIVE, rgb(0.7, 0.55, 0.3), TERRACOTTA];
   const layout = POLAROID_LAYOUTS[Math.min(previewImages.length, 4) - 1] ?? [];
   previewImages.slice(0, layout.length).forEach((image, i) => {
-    drawPolaroid(page, image, layout[i].x, layout[i].y, layout[i].rot, tapeColors[i % tapeColors.length]);
+    drawPolaroid(
+      page,
+      image,
+      layout[i].x,
+      layout[i].y,
+      layout[i].rot,
+      palette.tapeColors[i % palette.tapeColors.length],
+    );
   });
 }
 
@@ -354,9 +476,10 @@ async function addPhotoPage(
   item: MediaItem,
   comments: string[],
   reactionCount: number,
+  palette: Palette,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: CREAM });
+  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
 
   const frameX = MARGIN;
   const frameW = PAGE_WIDTH - MARGIN * 2;
@@ -409,7 +532,7 @@ async function addPhotoPage(
       frameY + (frameH - qrSize) / 2 - 14,
       fonts.regular,
       12,
-      INK_SOFT,
+      palette.inkSoft,
     );
   }
 
@@ -420,7 +543,7 @@ async function addPhotoPage(
   ]
     .filter(Boolean)
     .join("  ·  ");
-  page.drawText(caption, { x: frameX, y, size: 12, font: fonts.bold, color: INK });
+  page.drawText(caption, { x: frameX, y, size: 12, font: fonts.bold, color: palette.ink });
 
   if (reactionCount > 0) {
     const label = `${reactionCount} ${reactionCount === 1 ? "reacción" : "reacciones"}`;
@@ -430,24 +553,24 @@ async function addPhotoPage(
       y,
       size: 11,
       font: fonts.regular,
-      color: TERRACOTTA,
+      color: palette.accent,
     });
   }
   y -= 22;
 
   for (const comment of comments.slice(0, 2)) {
-    y = drawWrapped(page, `"${comment.slice(0, 160)}"`, frameX, y, frameW, 15, fonts.italic, 11, INK_FAINT);
+    y = drawWrapped(page, `"${comment.slice(0, 160)}"`, frameX, y, frameW, 15, fonts.italic, 11, palette.inkFaint);
     y -= 18;
   }
 }
 
-function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: PDFImage) {
+function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: PDFImage, palette: Palette) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: rgb(0.94, 0.9, 0.85) });
+  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bgClosing });
   const centerY = PAGE_HEIGHT / 2 + 60;
 
-  drawCentered(page, "Gracias por compartir", centerY + 30, fonts.bold, 24, INK);
-  drawCentered(page, "estos recuerdos", centerY, fonts.bold, 24, INK);
+  drawCentered(page, "Gracias por compartir", centerY + 30, fonts.bold, 24, palette.ink);
+  drawCentered(page, "estos recuerdos", centerY, fonts.bold, 24, palette.ink);
 
   const qrSize = 150;
   page.drawImage(qrImage, {
@@ -456,8 +579,8 @@ function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: PDFImage) {
     width: qrSize,
     height: qrSize,
   });
-  drawCentered(page, "Vuelve a ver el álbum en cualquier momento", centerY - 240, fonts.regular, 11, INK_SOFT);
-  drawCentered(page, "M E M O R I A S   V I V A S", MARGIN + 30, fonts.regular, 10, INK_FAINT);
+  drawCentered(page, "Vuelve a ver el álbum en cualquier momento", centerY - 240, fonts.regular, 11, palette.inkSoft);
+  drawCentered(page, "M E M O R I A S   V I V A S", MARGIN + 30, fonts.regular, 10, palette.inkFaint);
 }
 
 // Genera el "Dotbook digital": una portada tipo scrapbook con fotos reales
@@ -470,7 +593,9 @@ export async function buildDotbookPdf(
   album: Album,
   items: MediaItem[],
   extras: DotbookExtras,
+  style: DotbookStyle = "clasico",
 ): Promise<Uint8Array> {
+  const palette = PALETTES[style] ?? PALETTES.clasico;
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Dotbook · ${album.name}`);
   const fonts: Fonts = {
@@ -503,6 +628,7 @@ export async function buildDotbookPdf(
     fonts,
     { total: sorted.length, uploaders: uploaders.size, days: days.size },
     previewImages,
+    palette,
   );
 
   for (const item of sorted) {
@@ -512,11 +638,12 @@ export async function buildDotbookPdf(
       item,
       extras.commentsByMedia.get(item.id) ?? [],
       extras.reactionCountByMedia.get(item.id) ?? 0,
+      palette,
     );
   }
 
   const closingQr = await embedQr(pdf, extras.shareUrl, 300);
-  addClosingPage(pdf, fonts, closingQr);
+  addClosingPage(pdf, fonts, closingQr, palette);
 
   return pdf.save();
 }
