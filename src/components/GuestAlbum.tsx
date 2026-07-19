@@ -14,7 +14,9 @@ import {
   Play,
   Loader2,
   Upload,
+  ChevronLeft,
 } from "lucide-react";
+import { computeJustifiedRows, useElementWidth } from "@/lib/justified-layout";
 
 type MediaItem = {
   id: string;
@@ -96,6 +98,12 @@ export function GuestAlbum({
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
   const [pendingDate, setPendingDate] = useState(eventDate ?? "");
   const fileInput = useRef<HTMLInputElement>(null);
+  const [ratios, setRatios] = useState<Record<string, number>>({});
+  const [galleryRef, galleryWidth] = useElementWidth<HTMLDivElement>();
+
+  const handleRatio = useCallback((id: string, ratio: number) => {
+    setRatios((prev) => (prev[id] ? prev : { ...prev, [id]: ratio }));
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!guestId) return;
@@ -218,8 +226,21 @@ export function GuestAlbum({
   }, new Map());
   const dayKeys = [...grouped.keys()].sort().reverse();
 
+  // Filas "justificadas": cada foto conserva su relación de aspecto real (sin
+  // recortes) y cada fila se estira para llenar el ancho, así la galería se
+  // ve ordenada aunque las fotos y vídeos no tengan todos el mismo tamaño.
+  const rowHeight = galleryWidth < 480 ? 110 : 160;
+  const gap = galleryWidth < 480 ? 6 : 8;
+  const galleryRows = computeJustifiedRows(items ?? [], ratios, galleryWidth, rowHeight, gap);
+
   return (
     <main className="mx-auto max-w-4xl px-4 pb-28 pt-6">
+      <a
+        href="/"
+        className="inline-flex items-center gap-1 text-sm text-tinta/40 transition hover:text-tinta/70"
+      >
+        <ChevronLeft size={15} /> Memorias Vivas
+      </a>
       <header className="text-center">
         <p className="flex items-center justify-center gap-1.5 text-sm text-tinta/50">
           <Camera size={14} /> Memorias Vivas
@@ -260,52 +281,70 @@ export function GuestAlbum({
         </button>
       </div>
 
-      {items === null ? (
-        <p className="mt-12 text-center text-tinta/50">Cargando recuerdos…</p>
-      ) : items.length === 0 ? (
-        <div className="mt-12 flex flex-col items-center gap-2 text-center text-tinta/60">
-          <Sprout size={36} className="text-teja/60" />
-          <p>
-            Este álbum está esperando su primer recuerdo.
-            <br />
-            ¡Sube tú la primera foto!
-          </p>
-        </div>
-      ) : view === "galeria" ? (
-        <ul className="mt-6 columns-2 gap-1.5 sm:columns-3 sm:gap-2">
-          {items.map((item) => (
-            <Thumb
-              key={item.id}
-              item={item}
-              mine={!!guestId && item.uploaderId === guestId}
-              onClick={() => setSelected(item)}
-            />
-          ))}
-        </ul>
-      ) : (
-        <div className="mt-6 space-y-8">
-          {dayKeys.map((key) => (
-            <section key={key}>
-              <h2 className="text-sm font-semibold capitalize text-tinta/70">
-                {dayLabel(key)}{" "}
-                <span className="font-normal text-tinta/40">
-                  · {grouped.get(key)!.length}
-                </span>
-              </h2>
-              <ul className="mt-2 columns-2 gap-1.5 sm:columns-3 sm:gap-2">
-                {grouped.get(key)!.map((item) => (
+      <div ref={galleryRef}>
+        {items === null ? (
+          <p className="mt-12 text-center text-tinta/50">Cargando recuerdos…</p>
+        ) : items.length === 0 ? (
+          <div className="mt-12 flex flex-col items-center gap-2 text-center text-tinta/60">
+            <Sprout size={36} className="text-teja/60" />
+            <p>
+              Este álbum está esperando su primer recuerdo.
+              <br />
+              ¡Sube tú la primera foto!
+            </p>
+          </div>
+        ) : view === "galeria" ? (
+          <div className="mt-6 flex flex-col" style={{ gap }}>
+            {galleryRows.map((row, i) => (
+              <div key={i} className="flex" style={{ gap }}>
+                {row.map(({ item, width, height }) => (
                   <Thumb
                     key={item.id}
                     item={item}
+                    width={width}
+                    height={height}
                     mine={!!guestId && item.uploaderId === guestId}
                     onClick={() => setSelected(item)}
+                    onRatio={(ratio) => handleRatio(item.id, ratio)}
                   />
                 ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 space-y-8">
+            {dayKeys.map((key) => {
+              const dayItems = grouped.get(key)!;
+              const dayRows = computeJustifiedRows(dayItems, ratios, galleryWidth, rowHeight, gap);
+              return (
+                <section key={key}>
+                  <h2 className="text-sm font-semibold capitalize text-tinta/70">
+                    {dayLabel(key)}{" "}
+                    <span className="font-normal text-tinta/40">· {dayItems.length}</span>
+                  </h2>
+                  <div className="mt-2 flex flex-col" style={{ gap }}>
+                    {dayRows.map((row, i) => (
+                      <div key={i} className="flex" style={{ gap }}>
+                        {row.map(({ item, width, height }) => (
+                          <Thumb
+                            key={item.id}
+                            item={item}
+                            width={width}
+                            height={height}
+                            mine={!!guestId && item.uploaderId === guestId}
+                            onClick={() => setSelected(item)}
+                            onRatio={(ratio) => handleRatio(item.id, ratio)}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Botón flotante de subida */}
       <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-crema via-crema/90 to-transparent px-4 pb-5 pt-8">
@@ -431,61 +470,79 @@ export function GuestAlbum({
 function Thumb({
   item,
   mine,
+  width,
+  height,
   onClick,
+  onRatio,
 }: {
   item: MediaItem;
   mine: boolean;
+  width: number;
+  height: number;
   onClick: () => void;
+  onRatio: (ratio: number) => void;
 }) {
   const reactionTotal = Object.values(item.reactions).reduce((a, b) => a + b, 0);
   const pending = !item.approved;
   return (
-    <li className="mb-1.5 break-inside-avoid sm:mb-2">
-      <button
-        onClick={onClick}
-        className={`card-interactive relative block w-full overflow-hidden rounded-xl bg-arena shadow-soft ${
-          pending ? "opacity-60" : ""
-        }`}
-      >
-        {item.type === "video" ? (
-          <>
-            <video
-              src={item.url}
-              className="block w-full"
-              preload="metadata"
-              muted
-              playsInline
-            />
-            <span className="absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1 text-white">
-              <Play size={11} fill="white" />
+    <button
+      onClick={onClick}
+      style={{ width, height }}
+      className={`card-interactive relative block shrink-0 overflow-hidden rounded-xl bg-arena shadow-soft ${
+        pending ? "opacity-60" : ""
+      }`}
+    >
+      {item.type === "video" ? (
+        <>
+          <video
+            src={item.url}
+            className="h-full w-full object-cover"
+            preload="metadata"
+            muted
+            playsInline
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget;
+              if (v.videoWidth && v.videoHeight) onRatio(v.videoWidth / v.videoHeight);
+            }}
+          />
+          <span className="absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1 text-white">
+            <Play size={11} fill="white" />
+          </span>
+        </>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.url}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            if (img.naturalWidth && img.naturalHeight) onRatio(img.naturalWidth / img.naturalHeight);
+          }}
+        />
+      )}
+      {pending && (
+        <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-tinta/80 px-2 py-0.5 text-[10px] font-semibold text-white">
+          <Hourglass size={10} /> Pendiente
+        </span>
+      )}
+      {mine && !pending && (
+        <span className="absolute left-1.5 top-1.5 rounded-full bg-teja/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+          Tuya
+        </span>
+      )}
+      {(reactionTotal > 0 || item.commentCount > 0) && (
+        <span className="absolute bottom-1 left-1.5 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white">
+          {reactionTotal > 0 && <span>❤️ {reactionTotal}</span>}
+          {item.commentCount > 0 && (
+            <span className="flex items-center gap-0.5">
+              <MessageCircle size={11} /> {item.commentCount}
             </span>
-          </>
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.url} alt="" loading="lazy" className="block w-full" />
-        )}
-        {pending && (
-          <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-tinta/80 px-2 py-0.5 text-[10px] font-semibold text-white">
-            <Hourglass size={10} /> Pendiente
-          </span>
-        )}
-        {mine && !pending && (
-          <span className="absolute left-1.5 top-1.5 rounded-full bg-teja/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-            Tuya
-          </span>
-        )}
-        {(reactionTotal > 0 || item.commentCount > 0) && (
-          <span className="absolute bottom-1 left-1.5 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white">
-            {reactionTotal > 0 && <span>❤️ {reactionTotal}</span>}
-            {item.commentCount > 0 && (
-              <span className="flex items-center gap-0.5">
-                <MessageCircle size={11} /> {item.commentCount}
-              </span>
-            )}
-          </span>
-        )}
-      </button>
-    </li>
+          )}
+        </span>
+      )}
+    </button>
   );
 }
 

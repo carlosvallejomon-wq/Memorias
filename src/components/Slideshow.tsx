@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Gauge } from "lucide-react";
+import { Gauge, X } from "lucide-react";
 
 type MediaItem = {
   id: string;
@@ -126,18 +126,23 @@ export function Slideshow({
         </div>
       )}
 
-      <div className="glass-dark absolute left-6 top-6 flex items-center gap-2 rounded-full px-4 py-2 text-sm text-white">
+      <a
+        href={`/a/${code}`}
+        className="glass-dark absolute left-6 top-6 flex items-center gap-2 rounded-full px-4 py-2 text-sm text-white transition hover:bg-white/20"
+        title="Salir del modo pantalla"
+      >
+        <X size={14} className="text-white/70" />
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teja opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-teja" />
         </span>
         <span
-          className="max-w-[50vw] truncate"
+          className="max-w-[40vw] truncate"
           style={{ fontFamily: "var(--font-display)" }}
         >
           {albumName}
         </span>
-      </div>
+      </a>
 
       <div className="glass-dark absolute right-6 top-6 flex items-center gap-1.5 rounded-full p-1 text-white">
         <Gauge size={14} className="ml-2 text-white/60" />
