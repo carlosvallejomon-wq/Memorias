@@ -11,10 +11,6 @@ import {
   MonitorPlay,
   ShieldCheck,
   BookOpen,
-  Heart,
-  PartyPopper,
-  Mountain,
-  Users,
 } from "lucide-react";
 import { createAlbum } from "../actions";
 import { AlbumKindPicker } from "@/components/AlbumKindPicker";
@@ -42,7 +38,9 @@ const HIGHLIGHTS = [
   { icon: QrCode, text: "Sin instalar nada" },
 ];
 
-const TILE_ICONS = [Heart, PartyPopper, Mountain, Users];
+// Fotos decorativas de muestra (no son de un evento real) — solo para que
+// la vista previa de la galería se sienta llena en vez de vacía.
+const TILE_PHOTOS = ["/decor/familia.jpg", "/decor/boda.jpg", "/decor/cumple.jpg", "/decor/viaje.jpg"];
 
 export default function NewAlbumPage() {
   const [name, setName] = useState("");
@@ -124,12 +122,10 @@ export default function NewAlbumPage() {
                     <span className="max-w-[190px] truncate">{name || "Tu álbum"}</span>
                   </p>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {TILE_ICONS.map((Icon, i) => (
-                      <div
-                        key={i}
-                        className="flex aspect-square items-center justify-center rounded-lg bg-gradient-to-br from-teja/70 to-vino/70 text-white shadow-soft"
-                      >
-                        <Icon size={22} strokeWidth={1.75} />
+                    {TILE_PHOTOS.map((src, i) => (
+                      <div key={i} className="aspect-square overflow-hidden rounded-lg shadow-soft">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt="" className="h-full w-full object-cover" />
                       </div>
                     ))}
                   </div>

@@ -11,10 +11,6 @@ import {
   ArrowRight,
   Play,
   Lock,
-  PartyPopper,
-  Mountain,
-  Users,
-  Wine,
 } from "lucide-react";
 
 const FEATURES = [
@@ -63,13 +59,15 @@ const STEPS = [
   },
 ];
 
+// Fotos decorativas de muestra (no son de un evento real) — solo para que
+// la vista previa de la galería se sienta llena en vez de vacía.
 const TILES = [
-  { g: "from-teja to-teja-oscuro", icon: Heart },
-  { g: "from-vino to-tinta", icon: PartyPopper },
-  { g: "from-oro to-teja", icon: Mountain },
-  { g: "from-tinta to-vino", icon: Users },
-  { g: "from-teja-oscuro to-oro", icon: Camera },
-  { g: "from-vino to-oro", icon: Wine },
+  "/decor/familia.jpg",
+  "/decor/cumple.jpg",
+  "/decor/viaje.jpg",
+  "/decor/quince.jpg",
+  "/decor/navidad.jpg",
+  "/decor/boda.jpg",
 ];
 
 function PhoneMockup() {
@@ -89,13 +87,13 @@ function PhoneMockup() {
               <Camera size={13} /> Boda de Ana y Luis
             </div>
             <div className="grid grid-cols-3 gap-1.5">
-              {TILES.map(({ g, icon: Icon }, i) => (
+              {TILES.map((src, i) => (
                 <div
                   key={i}
-                  className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br shadow-soft ${g}`}
+                  className="aspect-square overflow-hidden rounded-lg shadow-soft"
                 >
-                  <div className="absolute -right-2 -top-2 h-8 w-8 rounded-full bg-white/20 blur-md" />
-                  <Icon size={22} className="text-white/90" strokeWidth={1.75} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt="" className="h-full w-full object-cover" />
                 </div>
               ))}
             </div>
@@ -117,18 +115,20 @@ function PhoneMockup() {
         <span className="text-xs font-semibold">En vivo en pantalla</span>
       </div>
 
-      {/* Polaroids decorativas: simulan fotos sueltas sin necesitar imágenes reales. */}
+      {/* Polaroids decorativas sueltas, con fotos de muestra. */}
       <div
-        className="polaroid animate-float absolute -bottom-8 -left-10 hidden w-20 sm:block"
+        className="polaroid animate-float absolute -bottom-8 -left-10 hidden w-20 overflow-hidden sm:block"
         style={{ ["--rot" as string]: "-9deg", transform: "rotate(-9deg)", animationDelay: "0.4s" }}
       >
-        <div className="h-16 w-full rounded-sm bg-gradient-to-br from-oro to-teja" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/decor/babyshower.jpg" alt="" className="h-16 w-full rounded-sm object-cover" />
       </div>
       <div
-        className="polaroid animate-float absolute -bottom-4 -left-24 hidden w-16 sm:block"
+        className="polaroid animate-float absolute -bottom-4 -left-24 hidden w-16 overflow-hidden sm:block"
         style={{ ["--rot" as string]: "7deg", transform: "rotate(7deg)", animationDelay: "1.1s" }}
       >
-        <div className="h-12 w-full rounded-sm bg-gradient-to-br from-vino to-tinta" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/decor/anonuevo.jpg" alt="" className="h-12 w-full rounded-sm object-cover" />
       </div>
     </div>
   );
