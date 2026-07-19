@@ -9,6 +9,7 @@ const STYLES = [
   { id: "fiesta", label: "Fiesta", swatch: "from-vino to-oro" },
   { id: "gala", label: "Gala dorada", swatch: "from-black to-oro" },
   { id: "navidad", label: "Navideño", swatch: "from-red-800 to-green-800" },
+  { id: "viajes", label: "Viajes", swatch: "from-teja to-arena" },
 ] as const;
 
 export function DotbookGenerator({ albumId }: { albumId: string }) {
@@ -48,7 +49,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
             <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-tinta/50">
               Estilo de portada
             </p>
-            <div className="mt-2 grid grid-cols-5 gap-2">
+            <div className="mt-2 grid grid-cols-3 gap-2">
               {STYLES.map((s) => (
                 <button
                   key={s.id}

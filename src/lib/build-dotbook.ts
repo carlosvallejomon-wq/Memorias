@@ -34,7 +34,7 @@ const OLIVE = rgb(0.42, 0.46, 0.32);
 // álbum de referencia (familia/cálido con borde floral, elegante
 // boda-graduación, fiesta infantil, gala oscura y dorada tipo "Mis 15
 // años") — igual que los 4 estilos de invitación, pero para el PDF.
-export type DotbookStyle = "clasico" | "elegante" | "fiesta" | "gala" | "navidad";
+export type DotbookStyle = "clasico" | "elegante" | "fiesta" | "gala" | "navidad" | "viajes";
 
 export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
   { id: "clasico", label: "Cálido floral" },
@@ -42,6 +42,7 @@ export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
   { id: "fiesta", label: "Fiesta" },
   { id: "gala", label: "Gala dorada" },
   { id: "navidad", label: "Navideño" },
+  { id: "viajes", label: "Viajes" },
 ];
 
 type Palette = {
@@ -54,7 +55,7 @@ type Palette = {
   accent: RGB;
   tapeColors: RGB[];
   branch: RGB;
-  decoration: "branch" | "confetti";
+  decoration: "branch" | "confetti" | "postal";
   flowerColors?: RGB[];
   mandala?: boolean;
 };
@@ -142,6 +143,22 @@ const PALETTES: Record<DotbookStyle, Palette> = {
     ],
     branch: rgb(0.16, 0.35, 0.2),
     decoration: "branch",
+  },
+  viajes: {
+    bg: rgb(0.94, 0.91, 0.85),
+    bgClosing: rgb(0.89, 0.85, 0.77),
+    ink: rgb(0.2, 0.16, 0.12),
+    inkSoft: rgb(0.42, 0.35, 0.28),
+    inkFaint: rgb(0.58, 0.5, 0.42),
+    accent: rgb(0.78, 0.42, 0.18),
+    tapeColors: [
+      rgb(0.78, 0.42, 0.18),
+      rgb(0.35, 0.42, 0.48),
+      rgb(0.78, 0.42, 0.18),
+      rgb(0.35, 0.42, 0.48),
+    ],
+    branch: rgb(0.78, 0.42, 0.18),
+    decoration: "postal",
   },
 };
 
@@ -250,17 +267,19 @@ function unclip(page: PDFPage) {
 }
 
 // Marco tipo "paspartú" con sombra, del mismo tamaño exacto que el marco
-// (antes la sombra y la imagen podían quedar de tamaños distintos).
-function drawFrame(page: PDFPage, x: number, y: number, w: number, h: number) {
-  page.drawRectangle({ x: x + 5, y: y - 5, width: w, height: h, color: rgb(0.72, 0.65, 0.56), opacity: 0.3 });
+// (antes la sombra y la imagen podían quedar de tamaños distintos). El
+// borde usa un color de la paleta más intenso que el fondo de la página,
+// para que cada página de foto quede a juego con la portada.
+function drawFrame(page: PDFPage, x: number, y: number, w: number, h: number, borderColor: RGB) {
+  page.drawRectangle({ x: x + 5, y: y - 5, width: w, height: h, color: rgb(0.2, 0.17, 0.12), opacity: 0.18 });
   page.drawRectangle({ x, y, width: w, height: h, color: rgb(1, 1, 1) });
   page.drawRectangle({
     x,
     y,
     width: w,
     height: h,
-    borderColor: rgb(0.86, 0.81, 0.73),
-    borderWidth: 1,
+    borderColor,
+    borderWidth: 1.5,
   });
 }
 
@@ -520,9 +539,45 @@ function drawCornerConfetti(
   }
 }
 
+// Marca postal (matasellos + línea de ruta punteada), para el estilo
+// "Viajes": una línea de puntos que serpentea hacia el matasellos, como el
+// trazo de ruta de la plantilla de referencia.
+function drawPostalMark(page: PDFPage, x: number, y: number, mirror: boolean, color: RGB) {
+  const dir = mirror ? -1 : 1;
+  let px = x;
+  let py = y;
+  for (let i = 0; i < 9; i++) {
+    const nx = px + dir * 9;
+    const ny = py - (i % 2 === 0 ? 6 : -4);
+    page.drawEllipse({ x: nx, y: ny, xScale: 1.4, yScale: 1.4, color, opacity: 0.6 });
+    px = nx;
+    py = ny;
+  }
+  page.drawEllipse({
+    x: px + dir * 16,
+    y: py,
+    xScale: 17,
+    yScale: 17,
+    borderColor: color,
+    borderWidth: 1.2,
+    borderOpacity: 0.7,
+  });
+  page.drawEllipse({
+    x: px + dir * 16,
+    y: py,
+    xScale: 12,
+    yScale: 12,
+    borderColor: color,
+    borderWidth: 0.8,
+    borderOpacity: 0.5,
+  });
+}
+
 function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: number, mirror: boolean, palette: Palette, seed: number) {
   if (palette.decoration === "confetti") {
     drawCornerConfetti(page, x, y, 70, 60, palette.tapeColors, seed);
+  } else if (palette.decoration === "postal") {
+    drawPostalMark(page, x, y, mirror, palette.branch);
   } else {
     drawCornerBranch(page, x, y, angleDeg, 90, mirror, palette.branch);
   }
@@ -654,7 +709,7 @@ async function addPhotoPage(
     const image = await tryEmbedImage(pdf, item.url);
     if (image) {
       const pad = 18;
-      drawFrame(page, frameX, frameY, frameW, frameH);
+      drawFrame(page, frameX, frameY, frameW, frameH, palette.accent);
       // "Contain" (no recorte) para la foto protagonista de la página: se ve
       // completa siempre, sea cual sea su proporción original.
       const innerW = frameW - pad * 2;
@@ -673,7 +728,7 @@ async function addPhotoPage(
   }
 
   if (!embedded) {
-    drawFrame(page, frameX, frameY, frameW, frameH);
+    drawFrame(page, frameX, frameY, frameW, frameH, palette.accent);
     page.drawRectangle({
       x: frameX + 18,
       y: frameY + 18,
