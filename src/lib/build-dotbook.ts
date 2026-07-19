@@ -34,13 +34,14 @@ const OLIVE = rgb(0.42, 0.46, 0.32);
 // álbum de referencia (familia/cálido con borde floral, elegante
 // boda-graduación, fiesta infantil, gala oscura y dorada tipo "Mis 15
 // años") — igual que los 4 estilos de invitación, pero para el PDF.
-export type DotbookStyle = "clasico" | "elegante" | "fiesta" | "gala";
+export type DotbookStyle = "clasico" | "elegante" | "fiesta" | "gala" | "navidad";
 
 export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
   { id: "clasico", label: "Cálido floral" },
   { id: "elegante", label: "Elegante" },
   { id: "fiesta", label: "Fiesta" },
   { id: "gala", label: "Gala dorada" },
+  { id: "navidad", label: "Navideño" },
 ];
 
 type Palette = {
@@ -125,6 +126,22 @@ const PALETTES: Record<DotbookStyle, Palette> = {
     branch: rgb(0.78, 0.62, 0.32),
     decoration: "branch",
     mandala: true,
+  },
+  navidad: {
+    bg: CREAM,
+    bgClosing: rgb(0.94, 0.9, 0.85),
+    ink: rgb(0.15, 0.09, 0.09),
+    inkSoft: rgb(0.38, 0.28, 0.26),
+    inkFaint: rgb(0.55, 0.46, 0.44),
+    accent: rgb(0.55, 0.12, 0.14),
+    tapeColors: [
+      rgb(0.55, 0.12, 0.14),
+      rgb(0.16, 0.35, 0.2),
+      rgb(0.78, 0.62, 0.32),
+      rgb(0.16, 0.35, 0.2),
+    ],
+    branch: rgb(0.16, 0.35, 0.2),
+    decoration: "branch",
   },
 };
 
