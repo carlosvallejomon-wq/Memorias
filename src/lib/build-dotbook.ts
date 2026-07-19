@@ -31,18 +31,21 @@ const TERRACOTTA = rgb(0.76, 0.34, 0.11);
 const OLIVE = rgb(0.42, 0.46, 0.32);
 
 // Estilos de portada del Dotbook, inspirados en plantillas de portadas de
-// álbum de referencia (familia/cálido, elegante boda-graduación, fiesta
-// infantil) — igual que los 4 estilos de invitación, pero para el PDF.
-export type DotbookStyle = "clasico" | "elegante" | "fiesta";
+// álbum de referencia (familia/cálido con borde floral, elegante
+// boda-graduación, fiesta infantil, gala oscura y dorada tipo "Mis 15
+// años") — igual que los 4 estilos de invitación, pero para el PDF.
+export type DotbookStyle = "clasico" | "elegante" | "fiesta" | "gala";
 
 export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
-  { id: "clasico", label: "Cálido clásico" },
+  { id: "clasico", label: "Cálido floral" },
   { id: "elegante", label: "Elegante" },
   { id: "fiesta", label: "Fiesta" },
+  { id: "gala", label: "Gala dorada" },
 ];
 
 type Palette = {
   bg: RGB;
+  bgGradient?: [RGB, RGB];
   bgClosing: RGB;
   ink: RGB;
   inkSoft: RGB;
@@ -51,6 +54,8 @@ type Palette = {
   tapeColors: RGB[];
   branch: RGB;
   decoration: "branch" | "confetti";
+  flowerColors?: RGB[];
+  mandala?: boolean;
 };
 
 const PALETTES: Record<DotbookStyle, Palette> = {
@@ -64,6 +69,12 @@ const PALETTES: Record<DotbookStyle, Palette> = {
     tapeColors: [TERRACOTTA, OLIVE, rgb(0.7, 0.55, 0.3), TERRACOTTA],
     branch: OLIVE,
     decoration: "branch",
+    flowerColors: [
+      rgb(0.89, 0.42, 0.38),
+      rgb(0.93, 0.6, 0.72),
+      rgb(0.6, 0.48, 0.75),
+      rgb(0.95, 0.75, 0.4),
+    ],
   },
   elegante: {
     bg: rgb(0.95, 0.95, 0.96),
@@ -96,6 +107,24 @@ const PALETTES: Record<DotbookStyle, Palette> = {
     ],
     branch: rgb(0.86, 0.29, 0.47),
     decoration: "confetti",
+  },
+  gala: {
+    bg: rgb(0.16, 0.13, 0.06),
+    bgGradient: [rgb(0.08, 0.07, 0.05), rgb(0.42, 0.32, 0.1)],
+    bgClosing: rgb(0.1, 0.08, 0.05),
+    ink: rgb(0.96, 0.9, 0.75),
+    inkSoft: rgb(0.82, 0.72, 0.5),
+    inkFaint: rgb(0.65, 0.57, 0.42),
+    accent: rgb(0.78, 0.62, 0.32),
+    tapeColors: [
+      rgb(0.78, 0.62, 0.32),
+      rgb(0.6, 0.46, 0.22),
+      rgb(0.78, 0.62, 0.32),
+      rgb(0.6, 0.46, 0.22),
+    ],
+    branch: rgb(0.78, 0.62, 0.32),
+    decoration: "branch",
+    mandala: true,
   },
 };
 
@@ -215,6 +244,107 @@ function drawFrame(page: PDFPage, x: number, y: number, w: number, h: number) {
     height: h,
     borderColor: rgb(0.86, 0.81, 0.73),
     borderWidth: 1,
+  });
+}
+
+// Degradado vertical aproximado por bandas — pdf-lib no tiene una API de
+// alto nivel para rellenos con degradado, así que se simula con franjas
+// horizontales muy finas que interpolan entre dos colores.
+function drawGradientBg(page: PDFPage, top: RGB, bottom: RGB, steps = 56) {
+  const bandH = PAGE_HEIGHT / steps + 1;
+  for (let i = 0; i < steps; i++) {
+    const t = i / (steps - 1);
+    const color = rgb(
+      top.red + (bottom.red - top.red) * t,
+      top.green + (bottom.green - top.green) * t,
+      top.blue + (bottom.blue - top.blue) * t,
+    );
+    page.drawRectangle({
+      x: 0,
+      y: PAGE_HEIGHT - (i + 1) * bandH,
+      width: PAGE_WIDTH,
+      height: bandH,
+      color,
+    });
+  }
+}
+
+function drawBackground(page: PDFPage, palette: Palette) {
+  if (palette.bgGradient) {
+    drawGradientBg(page, palette.bgGradient[0], palette.bgGradient[1]);
+  } else {
+    page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
+  }
+}
+
+// Una florecita sencilla (pétalos + centro) para el borde tipo "pradera"
+// del estilo clásico, inspirado en la plantilla floral de referencia.
+function drawFlower(page: PDFPage, x: number, y: number, size: number, petal: RGB, center: RGB) {
+  const petalPositions = [
+    [0, size],
+    [size * 0.87, size * 0.5],
+    [size * 0.87, -size * 0.5],
+    [0, -size],
+    [-size * 0.87, -size * 0.5],
+    [-size * 0.87, size * 0.5],
+  ];
+  for (const [dx, dy] of petalPositions) {
+    page.drawEllipse({
+      x: x + dx * 0.55,
+      y: y + dy * 0.55,
+      xScale: size * 0.55,
+      yScale: size * 0.38,
+      rotate: degrees((Math.atan2(dy, dx) * 180) / Math.PI),
+      color: petal,
+      opacity: 0.75,
+    });
+  }
+  page.drawEllipse({ x, y, xScale: size * 0.32, yScale: size * 0.32, color: center, opacity: 0.9 });
+}
+
+// Borde inferior tipo "pradera de flores", a juego con la plantilla floral
+// que sirvió de referencia — una fila de florecitas de colores variados con
+// pequeños tallos, en vez de una simple rama de esquina.
+function drawFloralBorder(page: PDFPage, y: number, colors: RGB[], seed: number) {
+  const rng = mulberry32(seed);
+  const stemColor = rgb(0.55, 0.6, 0.42);
+  let x = 30;
+  while (x < PAGE_WIDTH - 20) {
+    const size = 7 + rng() * 6;
+    const lift = rng() * 14;
+    page.drawLine({
+      start: { x, y: y - 4 },
+      end: { x, y: y - 4 + lift },
+      thickness: 1.5,
+      color: stemColor,
+      opacity: 0.5,
+    });
+    const petal = colors[Math.floor(rng() * colors.length)];
+    drawFlower(page, x, y + lift, size, petal, rgb(0.98, 0.85, 0.4));
+    x += size * 2 + 14 + rng() * 12;
+  }
+}
+
+// Abanico de ramas doradas radiando desde un punto, a juego con el mandala
+// de la plantilla oscura de referencia ("Mis 15 años").
+function drawMandalaBurst(page: PDFPage, cx: number, cy: number, color: RGB) {
+  const angles = [-80, -55, -32, -12, 12, 32, 55, 80];
+  for (const a of angles) {
+    drawCornerBranch(page, cx, cy, a - 90, 95, a < 0, color);
+  }
+  page.drawLine({
+    start: { x: cx - 130, y: cy },
+    end: { x: cx - 22, y: cy },
+    thickness: 1,
+    color,
+    opacity: 0.6,
+  });
+  page.drawLine({
+    start: { x: cx + 22, y: cy },
+    end: { x: cx + 130, y: cy },
+    thickness: 1,
+    color,
+    opacity: 0.6,
   });
 }
 
@@ -409,10 +539,19 @@ function addCoverPage(
   palette: Palette,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
+  drawBackground(page, palette);
 
-  drawCornerDecoration(page, 40, PAGE_HEIGHT - 40, -20, false, palette, 1);
-  drawCornerDecoration(page, PAGE_WIDTH - 40, 40, -20, true, palette, 2);
+  if (palette.mandala) {
+    // Abanico dorado detrás del título, a juego con la plantilla oscura de
+    // referencia ("Mis 15 años"): las ramas quedan semitransparentes bajo
+    // el texto en vez de competir con él.
+    drawMandalaBurst(page, PAGE_WIDTH / 2, PAGE_HEIGHT - 125, palette.branch);
+  } else if (palette.flowerColors) {
+    drawFloralBorder(page, 74, palette.flowerColors, 3);
+  } else {
+    drawCornerDecoration(page, 40, PAGE_HEIGHT - 40, -20, false, palette, 1);
+    drawCornerDecoration(page, PAGE_WIDTH - 40, 40, -20, true, palette, 2);
+  }
 
   drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 90, fonts.regular, 12, palette.inkFaint);
 
@@ -481,7 +620,7 @@ async function addPhotoPage(
   total: number,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
+  drawBackground(page, palette);
 
   // Cabecera discreta a juego con la portada, para que cada página se sienta
   // diseñada y no "una foto gigante pegada en blanco".
