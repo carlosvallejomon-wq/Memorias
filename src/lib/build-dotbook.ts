@@ -477,14 +477,21 @@ async function addPhotoPage(
   comments: string[],
   reactionCount: number,
   palette: Palette,
+  index: number,
+  total: number,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
 
-  const frameX = MARGIN;
-  const frameW = PAGE_WIDTH - MARGIN * 2;
-  const frameH = 500;
-  const frameY = PAGE_HEIGHT - MARGIN - 40 - frameH;
+  // Cabecera discreta a juego con la portada, para que cada página se sienta
+  // diseñada y no "una foto gigante pegada en blanco".
+  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, index * 2 + 11);
+  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
+
+  const frameX = MARGIN + 12;
+  const frameW = PAGE_WIDTH - (MARGIN + 12) * 2;
+  const frameH = 420;
+  const frameY = PAGE_HEIGHT - 96 - frameH;
 
   let embedded = false;
   if (item.type === "image") {
@@ -536,7 +543,10 @@ async function addPhotoPage(
     );
   }
 
-  let y = frameY - 34;
+  let y = frameY - 22;
+  drawDivider(page, y, palette.accent);
+  y -= 26;
+
   const caption = [
     item.uploaderName ? `Subido por ${item.uploaderName}` : "Anónimo",
     formatLongDate(item.takenAt ?? item.createdAt),
@@ -562,6 +572,8 @@ async function addPhotoPage(
     y = drawWrapped(page, `"${comment.slice(0, 160)}"`, frameX, y, frameW, 15, fonts.italic, 11, palette.inkFaint);
     y -= 18;
   }
+
+  drawCentered(page, `${index} / ${total}`, 32, fonts.regular, 9, palette.inkFaint);
 }
 
 function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: PDFImage, palette: Palette) {
@@ -631,7 +643,8 @@ export async function buildDotbookPdf(
     palette,
   );
 
-  for (const item of sorted) {
+  for (let i = 0; i < sorted.length; i++) {
+    const item = sorted[i];
     await addPhotoPage(
       pdf,
       fonts,
@@ -639,6 +652,8 @@ export async function buildDotbookPdf(
       extras.commentsByMedia.get(item.id) ?? [],
       extras.reactionCountByMedia.get(item.id) ?? 0,
       palette,
+      i + 1,
+      sorted.length,
     );
   }
 
