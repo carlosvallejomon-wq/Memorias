@@ -88,22 +88,27 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-tinta/50">
                 Diseño de portada
               </p>
-              <div className="mt-2 grid grid-cols-4 gap-2">
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 {REAL_STYLES.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setStyleId(s.id)}
                     title={s.label}
-                    className={`aspect-square overflow-hidden rounded-lg shadow-soft transition ${
+                    className={`overflow-hidden rounded-lg bg-white shadow-soft transition ${
                       styleId === s.id ? "ring-2 ring-teja ring-offset-2" : "opacity-70"
                     }`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`/dotbook-templates/thumbs/${THUMB_FILE[s.id]}`}
-                      alt={s.label}
-                      className="h-full w-full object-cover"
-                    />
+                    <div className="aspect-square overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/dotbook-templates/thumbs/${THUMB_FILE[s.id]}`}
+                        alt={s.label}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <p className="truncate px-1 py-1 text-[10px] font-medium leading-tight text-tinta/75">
+                      {s.label}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -117,10 +122,15 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
                     key={s.id}
                     onClick={() => setStyleId(s.id)}
                     title={s.label}
-                    className={`aspect-[3/4] rounded-lg bg-gradient-to-br shadow-soft transition ${s.swatch} ${
+                    className={`overflow-hidden rounded-lg bg-white shadow-soft transition ${
                       styleId === s.id ? "ring-2 ring-teja ring-offset-2" : "opacity-70"
                     }`}
-                  />
+                  >
+                    <div className={`aspect-square bg-gradient-to-br ${s.swatch}`} />
+                    <p className="truncate px-1 py-1 text-[10px] font-medium leading-tight text-tinta/75">
+                      {s.label}
+                    </p>
+                  </button>
                 ))}
               </div>
             </div>
