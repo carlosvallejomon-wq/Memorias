@@ -73,12 +73,13 @@ export async function GET(
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "https";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
-  const shareUrl = `${proto}://${host}/a/${album.shareCode}`;
+  const baseUrl = `${proto}://${host}`;
+  const shareUrl = `${baseUrl}/a/${album.shareCode}`;
 
   const pdfBytes = await buildDotbookPdf(
     album,
     items,
-    { commentsByMedia, reactionCountByMedia, shareUrl },
+    { commentsByMedia, reactionCountByMedia, shareUrl, baseUrl },
     style,
   );
 
