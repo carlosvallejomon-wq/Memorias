@@ -50,6 +50,7 @@ export const VECTOR_DOTBOOK_STYLES: { id: VectorDotbookStyle; label: string }[] 
 // las páginas de foto siguientes heredan para el fondo, la sombra y el
 // margen, así todo el Dotbook queda a juego con la portada real.
 export type TemplateDotbookStyle =
+  | "realGeneral"
   | "realGraduacion"
   | "realComunion"
   | "realQuince"
@@ -65,6 +66,7 @@ export type TemplateDotbookStyle =
 type TemplateCoverConfig = { file: string; accent: RGB; label: string };
 
 const TEMPLATE_COVERS: Record<TemplateDotbookStyle, TemplateCoverConfig> = {
+  realGeneral: { file: "general.jpg", accent: rgb(0.62, 0.55, 0.42), label: "Recuerdos en general" },
   realGraduacion: { file: "graduacion.jpg", accent: rgb(0.16, 0.21, 0.35), label: "Graduación" },
   realComunion: { file: "comunion.jpg", accent: rgb(0.72, 0.58, 0.32), label: "Primera comunión" },
   realQuince: { file: "quince.jpg", accent: rgb(0.82, 0.5, 0.6), label: "Quinceañera" },

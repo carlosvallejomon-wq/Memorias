@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BookOpen, X, Download } from "lucide-react";
 
 const REAL_STYLES = [
+  { id: "realGeneral", label: "Recuerdos en general" },
   { id: "realFamilia", label: "Familia" },
   { id: "realBoda", label: "Boda" },
   { id: "realQuince", label: "Quinceañera" },
@@ -34,6 +35,7 @@ const ALL_LABELS: Record<StyleId, string> = Object.fromEntries([
 ]) as Record<StyleId, string>;
 
 const THUMB_FILE: Record<(typeof REAL_STYLES)[number]["id"], string> = {
+  realGeneral: "general.jpg",
   realFamilia: "familia.jpg",
   realBoda: "boda.jpg",
   realQuince: "quince.jpg",
