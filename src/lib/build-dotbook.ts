@@ -30,13 +30,12 @@ const SAND = rgb(0.94, 0.9, 0.85);
 const TERRACOTTA = rgb(0.76, 0.34, 0.11);
 const OLIVE = rgb(0.42, 0.46, 0.32);
 
-// Estilos de portada del Dotbook, inspirados en plantillas de portadas de
-// álbum de referencia (familia/cálido con borde floral, elegante
-// boda-graduación, fiesta infantil, gala oscura y dorada tipo "Mis 15
-// años") — igual que los 4 estilos de invitación, pero para el PDF.
-export type DotbookStyle = "clasico" | "elegante" | "fiesta" | "gala" | "navidad" | "viajes";
+// Estilos de portada del Dotbook dibujados con formas vectoriales, inspirados
+// en plantillas de referencia (familia/cálido con borde floral, elegante
+// boda-graduación, fiesta infantil, gala oscura y dorada tipo "Mis 15 años").
+export type VectorDotbookStyle = "clasico" | "elegante" | "fiesta" | "gala" | "navidad" | "viajes";
 
-export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
+export const VECTOR_DOTBOOK_STYLES: { id: VectorDotbookStyle; label: string }[] = [
   { id: "clasico", label: "Cálido floral" },
   { id: "elegante", label: "Elegante" },
   { id: "fiesta", label: "Fiesta" },
@@ -44,6 +43,83 @@ export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
   { id: "navidad", label: "Navideño" },
   { id: "viajes", label: "Viajes" },
 ];
+
+// Estilos de portada que usan los diseños reales (sin personas) que el
+// usuario creó en Canva, incrustados tal cual como imagen de fondo — no
+// recreados vectorialmente. Cada uno trae un color de acento propio, que
+// las páginas de foto siguientes heredan para el fondo, la sombra y el
+// margen, así todo el Dotbook queda a juego con la portada real.
+export type TemplateDotbookStyle =
+  | "realGraduacion"
+  | "realComunion"
+  | "realQuince"
+  | "realViajes"
+  | "realFamilia"
+  | "realAnoNuevo"
+  | "realBoda"
+  | "realBabyShower"
+  | "realBautizo"
+  | "realFiestaInfantil"
+  | "realNavidad";
+
+type TemplateCoverConfig = { file: string; accent: RGB; label: string };
+
+const TEMPLATE_COVERS: Record<TemplateDotbookStyle, TemplateCoverConfig> = {
+  realGraduacion: { file: "graduacion.jpg", accent: rgb(0.16, 0.21, 0.35), label: "Graduación" },
+  realComunion: { file: "comunion.jpg", accent: rgb(0.72, 0.58, 0.32), label: "Primera comunión" },
+  realQuince: { file: "quince.jpg", accent: rgb(0.82, 0.5, 0.6), label: "Quinceañera" },
+  realViajes: { file: "viajes.jpg", accent: rgb(0.74, 0.44, 0.2), label: "Viajes (diseño real)" },
+  realFamilia: { file: "familia.jpg", accent: rgb(0.5, 0.38, 0.25), label: "Familia (diseño real)" },
+  realAnoNuevo: { file: "anonuevo.jpg", accent: rgb(0.68, 0.55, 0.28), label: "Año nuevo" },
+  realBoda: { file: "boda.jpg", accent: rgb(0.44, 0.13, 0.18), label: "Boda" },
+  realBabyShower: { file: "babyshower.jpg", accent: rgb(0.5, 0.62, 0.72), label: "Baby shower" },
+  realBautizo: { file: "bautizo.jpg", accent: rgb(0.76, 0.59, 0.47), label: "Bautizo" },
+  realFiestaInfantil: { file: "fiestainfantil.jpg", accent: rgb(0.87, 0.56, 0.34), label: "Fiesta infantil" },
+  realNavidad: { file: "navidad.jpg", accent: rgb(0.48, 0.1, 0.12), label: "Navidad (diseño real)" },
+};
+
+export const TEMPLATE_DOTBOOK_STYLES: { id: TemplateDotbookStyle; label: string }[] = (
+  Object.entries(TEMPLATE_COVERS) as [TemplateDotbookStyle, TemplateCoverConfig][]
+).map(([id, cfg]) => ({ id, label: cfg.label }));
+
+export type DotbookStyle = VectorDotbookStyle | TemplateDotbookStyle;
+
+export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
+  ...TEMPLATE_DOTBOOK_STYLES,
+  ...VECTOR_DOTBOOK_STYLES,
+];
+
+function isTemplateStyle(style: DotbookStyle): style is TemplateDotbookStyle {
+  return Object.prototype.hasOwnProperty.call(TEMPLATE_COVERS, style);
+}
+
+function mix(a: RGB, b: RGB, t: number): RGB {
+  return rgb(
+    a.red + (b.red - a.red) * t,
+    a.green + (b.green - a.green) * t,
+    a.blue + (b.blue - a.blue) * t,
+  );
+}
+
+// Construye una paleta para las páginas de foto/cierre a partir del color de
+// acento de un diseño de portada real, para que hereden su color de fondo,
+// sombra y margen sin tener que definir una paleta a mano por cada uno.
+function paletteFromAccent(accent: RGB): Palette {
+  const white = rgb(1, 1, 1);
+  const near_black = rgb(0.08, 0.07, 0.06);
+  const ink = mix(accent, near_black, 0.55);
+  return {
+    bg: mix(accent, white, 0.9),
+    bgClosing: mix(accent, white, 0.8),
+    ink,
+    inkSoft: mix(ink, white, 0.35),
+    inkFaint: mix(ink, white, 0.55),
+    accent,
+    tapeColors: [accent, mix(accent, near_black, 0.3)],
+    branch: accent,
+    decoration: "branch",
+  };
+}
 
 type Palette = {
   bg: RGB;
@@ -60,7 +136,7 @@ type Palette = {
   mandala?: boolean;
 };
 
-const PALETTES: Record<DotbookStyle, Palette> = {
+const PALETTES: Record<VectorDotbookStyle, Palette> = {
   clasico: {
     bg: CREAM,
     bgClosing: SAND,
@@ -188,6 +264,10 @@ export type DotbookExtras = {
   commentsByMedia: Map<string, string[]>;
   reactionCountByMedia: Map<string, number>;
   shareUrl: string;
+  // Origen (protocolo+host) para poder buscar los diseños de portada reales
+  // en /public/dotbook-templates — solo hace falta para los estilos
+  // TemplateDotbookStyle.
+  baseUrl: string;
 };
 
 type Fonts = { bold: PDFFont; regular: PDFFont; italic: PDFFont };
@@ -681,6 +761,66 @@ function addCoverPage(
   });
 }
 
+// Portada con el diseño real (sin personas) incrustado tal cual como imagen
+// de fondo a página completa — no una recreación vectorial. Se añade una
+// franja inferior con el nombre real del álbum, fecha y estadísticas, ya que
+// el diseño en sí trae solo la etiqueta genérica de la categoría (p. ej.
+// "Graduation"). La franja usa un tono oscuro del propio color de acento del
+// diseño para que el texto blanco siempre se lea bien encima, sea cual sea
+// el diseño.
+function addTemplateCoverPage(
+  pdf: PDFDocument,
+  album: Album,
+  fonts: Fonts,
+  stats: { total: number; uploaders: number; days: number },
+  templateImage: PDFImage,
+  accent: RGB,
+) {
+  const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  drawImageCover(page, templateImage, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+
+  const nameplate = mix(accent, rgb(0.05, 0.04, 0.04), 0.6);
+  const textColor = rgb(0.98, 0.96, 0.92);
+  const textFaint = mix(textColor, nameplate, 0.4);
+
+  const bandH = 118;
+  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: bandH, color: nameplate, opacity: 0.92 });
+
+  let y = bandH - 34;
+  y = drawWrapped(
+    page,
+    album.name,
+    PAGE_WIDTH / 2,
+    y,
+    PAGE_WIDTH - MARGIN * 2,
+    26,
+    fonts.bold,
+    22,
+    textColor,
+    "center",
+  );
+  y -= 20;
+
+  const dateLabel = album.eventDate
+    ? formatLongDate(new Date(album.eventDate + "T00:00:00"))
+    : album.kind === "familia"
+      ? "Álbum de familia"
+      : null;
+  if (dateLabel) {
+    drawCentered(page, dateLabel, y, fonts.italic, 12, textColor);
+    y -= 18;
+  }
+
+  const statsParts = [
+    `${stats.total} ${stats.total === 1 ? "recuerdo" : "recuerdos"}`,
+    stats.uploaders > 0
+      ? `${stats.uploaders} ${stats.uploaders === 1 ? "invitado" : "invitados"}`
+      : null,
+    stats.days > 1 ? `${stats.days} días` : null,
+  ].filter((v): v is string => !!v);
+  drawCentered(page, statsParts.join("   ·   "), y, fonts.regular, 10, textFaint);
+}
+
 async function addPhotoPage(
   pdf: PDFDocument,
   fonts: Fonts,
@@ -818,7 +958,9 @@ export async function buildDotbookPdf(
   extras: DotbookExtras,
   style: DotbookStyle = "clasico",
 ): Promise<Uint8Array> {
-  const palette = PALETTES[style] ?? PALETTES.clasico;
+  const palette = isTemplateStyle(style)
+    ? paletteFromAccent(TEMPLATE_COVERS[style].accent)
+    : (PALETTES[style] ?? PALETTES.clasico);
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Dotbook · ${album.name}`);
   const fonts: Fonts = {
@@ -838,21 +980,25 @@ export async function buildDotbookPdf(
   );
   const days = new Set(sorted.map((i) => dayKey(i.takenAt ?? i.createdAt)));
 
-  const previewSourceImages = sorted.filter((i) => i.type === "image").slice(0, 4);
-  const previewImages: PDFImage[] = [];
-  for (const item of previewSourceImages) {
-    const img = await tryEmbedImage(pdf, item.url);
-    if (img) previewImages.push(img);
+  const stats = { total: sorted.length, uploaders: uploaders.size, days: days.size };
+
+  let templateCoverImage: PDFImage | null = null;
+  if (isTemplateStyle(style)) {
+    const cfg = TEMPLATE_COVERS[style];
+    templateCoverImage = await tryEmbedImage(pdf, `${extras.baseUrl}/dotbook-templates/${cfg.file}`);
   }
 
-  addCoverPage(
-    pdf,
-    album,
-    fonts,
-    { total: sorted.length, uploaders: uploaders.size, days: days.size },
-    previewImages,
-    palette,
-  );
+  if (templateCoverImage && isTemplateStyle(style)) {
+    addTemplateCoverPage(pdf, album, fonts, stats, templateCoverImage, TEMPLATE_COVERS[style].accent);
+  } else {
+    const previewSourceImages = sorted.filter((i) => i.type === "image").slice(0, 4);
+    const previewImages: PDFImage[] = [];
+    for (const item of previewSourceImages) {
+      const img = await tryEmbedImage(pdf, item.url);
+      if (img) previewImages.push(img);
+    }
+    addCoverPage(pdf, album, fonts, stats, previewImages, palette);
+  }
 
   for (let i = 0; i < sorted.length; i++) {
     const item = sorted[i];
