@@ -338,6 +338,37 @@ function inBounds(p: { x: number; y: number }, b: { x: number; y: number; w: num
   return p.x >= b.x - b.w / 2 && p.x <= b.x + b.w / 2 && p.y >= b.y - b.h / 2 && p.y <= b.y + b.h / 2;
 }
 
+// Evita que al arrastrar o agrandar un elemento (sobre todo el QR, cuyo
+// texto "Escanea..." queda debajo) termine fuera del lienzo o cortado.
+function clamp(v: number, min: number, max: number) {
+  return Math.min(Math.max(v, min), Math.max(min, max));
+}
+
+function clampTextLayout(l: TextLayout, canvasW: number, canvasH: number): TextLayout {
+  const halfW = l.maxWidth / 2;
+  const estH = l.fontSize * 4.6;
+  return {
+    ...l,
+    x: clamp(l.x, halfW, canvasW - halfW),
+    y: clamp(l.y, l.fontSize * 0.6, canvasH - estH),
+  };
+}
+
+function clampQrLayout(l: QrLayout, canvasW: number, canvasH: number): QrLayout {
+  const half = l.size / 2;
+  const captionH = Math.max(12, Math.round(l.size * 0.12)) * 1.4 + 24;
+  return {
+    ...l,
+    x: clamp(l.x, half + 14, canvasW - half - 14),
+    y: clamp(l.y, half + 14, canvasH - half - 14 - captionH),
+  };
+}
+
+function clampPhotoLayout(l: PhotoLayout, canvasW: number, canvasH: number): PhotoLayout {
+  const half = l.size / 2;
+  return { ...l, x: clamp(l.x, half, canvasW - half), y: clamp(l.y, half, canvasH - half) };
+}
+
 function drawTextBlock(ctx: CanvasRenderingContext2D, l: TextLayout, data: InvitationData) {
   ctx.textAlign = "center";
   ctx.fillStyle = l.color;
@@ -877,13 +908,22 @@ export function InvitationGenerator({
 }) {
   const [open, setOpen] = useState(false);
   const [templateId, setTemplateId] = useState(TEMPLATES[0].id);
+  const [date, setDate] = useState(eventDateLabel ?? "");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [hosts, setHosts] = useState("");
   const [rsvp, setRsvp] = useState("");
 
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
-  const data: InvitationData = { albumName, eventDateLabel, time, location, hosts, rsvp, shareUrl };
+  const data: InvitationData = {
+    albumName,
+    eventDateLabel: date.trim() || null,
+    time,
+    location,
+    hosts,
+    rsvp,
+    shareUrl,
+  };
 
   const [textLayout, setTextLayout] = useState<TextLayout>(() => ({ ...TEMPLATES[0].defaultText }));
   const [qrLayout, setQrLayout] = useState<QrLayout>(() => ({ ...TEMPLATES[0].defaultQr }));
@@ -957,7 +997,7 @@ export function InvitationGenerator({
     photoImg,
     selected,
     albumName,
-    eventDateLabel,
+    date,
     time,
     location,
     hosts,
@@ -1000,11 +1040,14 @@ export function InvitationGenerator({
     if (!dragRef.current) return;
     const p = getCanvasPoint(e);
     const { key, offX, offY } = dragRef.current;
-    const nx = Math.max(0, Math.min(template.canvasW, p.x - offX));
-    const ny = Math.max(0, Math.min(template.canvasH, p.y - offY));
-    if (key === "text") setTextLayout((l) => ({ ...l, x: nx, y: ny }));
-    if (key === "qr") setQrLayout((l) => ({ ...l, x: nx, y: ny }));
-    if (key === "photo") setPhotoLayout((l) => (l ? { ...l, x: nx, y: ny } : l));
+    const nx = p.x - offX;
+    const ny = p.y - offY;
+    const w = template.canvasW;
+    const h = template.canvasH;
+    if (key === "text") setTextLayout((l) => clampTextLayout({ ...l, x: nx, y: ny }, w, h));
+    if (key === "qr") setQrLayout((l) => clampQrLayout({ ...l, x: nx, y: ny }, w, h));
+    if (key === "photo")
+      setPhotoLayout((l) => (l ? clampPhotoLayout({ ...l, x: nx, y: ny }, w, h) : l));
   }
 
   function handlePointerUp() {
@@ -1104,6 +1147,13 @@ export function InvitationGenerator({
                   className="rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
                 />
                 <input
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  placeholder="Fecha (opcional, p. ej. Sábado 12 de septiembre de 2026)"
+                  maxLength={60}
+                  className="rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
+                />
+                <input
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
                   placeholder="Hora (opcional, p. ej. 5:00 pm)"
@@ -1151,7 +1201,15 @@ export function InvitationGenerator({
                     min={20}
                     max={70}
                     value={textLayout.fontSize}
-                    onChange={(e) => setTextLayout((l) => ({ ...l, fontSize: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setTextLayout((l) =>
+                        clampTextLayout(
+                          { ...l, fontSize: Number(e.target.value) },
+                          template.canvasW,
+                          template.canvasH,
+                        ),
+                      )
+                    }
                     className="flex-1"
                   />
                 </div>
@@ -1184,7 +1242,15 @@ export function InvitationGenerator({
                   min={70}
                   max={280}
                   value={qrLayout.size}
-                  onChange={(e) => setQrLayout((l) => ({ ...l, size: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setQrLayout((l) =>
+                      clampQrLayout(
+                        { ...l, size: Number(e.target.value) },
+                        template.canvasW,
+                        template.canvasH,
+                      ),
+                    )
+                  }
                   className="w-32"
                 />
               </div>
@@ -1217,7 +1283,15 @@ export function InvitationGenerator({
                         max={340}
                         value={photoLayout.size}
                         onChange={(e) =>
-                          setPhotoLayout((l) => l && { ...l, size: Number(e.target.value) })
+                          setPhotoLayout(
+                            (l) =>
+                              l &&
+                              clampPhotoLayout(
+                                { ...l, size: Number(e.target.value) },
+                                template.canvasW,
+                                template.canvasH,
+                              ),
+                          )
                         }
                         className="flex-1"
                       />
