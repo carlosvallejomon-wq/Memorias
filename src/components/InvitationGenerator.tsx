@@ -737,6 +737,221 @@ const TEMPLATES: Template[] = [
       ctx.drawImage(qrImage, cx - qrSize / 2, qrTop, qrSize, qrSize);
     },
   },
+  {
+    id: "quince-botanico",
+    label: "15 Años (botánico azul)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-botanico.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 890;
+      ctx.fillStyle = "#16324f";
+      ctx.font = nameFont(data.albumName, 46, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 780, 52);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 26;
+        ctx.font = "italic 24px Georgia, serif";
+        ctx.fillStyle = "#c9922a";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 36;
+      ctx.font = "23px Georgia, serif";
+      ctx.fillStyle = "#3a4a5a";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 33;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 20;
+      const qrSize = 150;
+      drawCard(ctx, cx, y, qrSize + 50, qrSize + 50, "rgba(255,255,255,0.95)", "#16324f");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 25, qrSize, qrSize);
+      y += qrSize + 50 + 40;
+
+      ctx.font = "600 18px Georgia, serif";
+      ctx.fillStyle = "#16324f";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 26;
+        ctx.font = "16px Georgia, serif";
+        ctx.fillStyle = "#c9922a";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-sparkle",
+    label: "15 Años (brillos)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-sparkle.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      drawCard(ctx, cx, 560, 780, 520, "rgba(20,16,20,0.4)", "rgba(255,255,255,0.25)");
+
+      ctx.textAlign = "center";
+      let y = 630;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = nameFont(data.albumName, 44, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 700, 50);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 26;
+        ctx.font = "italic 23px Georgia, serif";
+        ctx.fillStyle = "#f2c9d6";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 34;
+      ctx.font = "22px Georgia, serif";
+      ctx.fillStyle = "#f4eef1";
+      ctx.globalAlpha = 0.9;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 32;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 15;
+      const qrSize = 130;
+      ctx.fillStyle = "#ffffff";
+      roundRectPath(ctx, cx - qrSize / 2 - 18, y, qrSize + 36, qrSize + 36, 16);
+      ctx.fill();
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 18, qrSize, qrSize);
+      y += qrSize + 36 + 34;
+
+      ctx.font = "600 17px Georgia, serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 24;
+        ctx.font = "15px Georgia, serif";
+        ctx.fillStyle = "#f2c9d6";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-negrodorado",
+    label: "15 Años (negro y oro)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-negrodorado.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 460;
+      ctx.fillStyle = "#d3a94e";
+      ctx.font = nameFont(data.albumName, 46, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 780, 52);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 26;
+        ctx.font = "italic 23px Georgia, serif";
+        ctx.fillStyle = "#e9d5a8";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 36;
+      ctx.font = "22px Georgia, serif";
+      ctx.fillStyle = "#e9d5a8";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 32;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 30;
+      const qrSize = 150;
+      drawCard(ctx, cx, y, qrSize + 50, qrSize + 50, "rgba(255,255,255,0.95)", "#d3a94e");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 25, qrSize, qrSize);
+      y += qrSize + 50 + 40;
+
+      ctx.font = "600 18px Georgia, serif";
+      ctx.fillStyle = "#d3a94e";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 26;
+        ctx.font = "16px Georgia, serif";
+        ctx.fillStyle = "#e9d5a8";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-iris",
+    label: "15 Años (iris morado)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-iris.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 640;
+      ctx.fillStyle = "#3a2f52";
+      ctx.font = nameFont(data.albumName, 42, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 760, 48);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 24;
+        ctx.font = "italic 22px Georgia, serif";
+        ctx.fillStyle = "#6b5b8a";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 34;
+      ctx.font = "21px Georgia, serif";
+      ctx.fillStyle = "#4a3f60";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 30;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 25;
+      const qrSize = 140;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 30;
+
+      ctx.font = "600 17px Georgia, serif";
+      ctx.fillStyle = "#3a2f52";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 24;
+        ctx.font = "15px Georgia, serif";
+        ctx.fillStyle = "#6b5b8a";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
 ];
 
 async function generateInvitation(template: Template, data: InvitationData): Promise<string> {
