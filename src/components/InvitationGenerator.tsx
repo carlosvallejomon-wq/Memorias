@@ -13,6 +13,7 @@ type InvitationData = {
   eventDateLabel: string | null;
   time: string;
   location: string;
+  hosts: string;
   rsvp: string;
   shareUrl: string;
 };
@@ -21,7 +22,18 @@ type Template = {
   id: string;
   label: string;
   swatch: string;
-  draw: (ctx: CanvasRenderingContext2D, data: InvitationData, qrImage: HTMLImageElement) => void;
+  // Plantillas con diseño real (imagen de fondo incrustada tal cual, no
+  // recreada): traen su propio tamaño de lienzo (el de la imagen, para no
+  // recortar nada) y una miniatura real en vez de un degradado.
+  bgImage?: string;
+  canvasW?: number;
+  canvasH?: number;
+  draw: (
+    ctx: CanvasRenderingContext2D,
+    data: InvitationData,
+    qrImage: HTMLImageElement,
+    bgImage: HTMLImageElement | null,
+  ) => void;
 };
 
 // --- Utilidades de dibujo compartidas -------------------------------------
@@ -138,6 +150,11 @@ function detailLines(data: InvitationData): string[] {
   return [data.eventDateLabel, data.time, data.location].filter(
     (v): v is string => !!v && v.trim().length > 0,
   );
+}
+
+function hostLine(data: InvitationData): string | null {
+  const hosts = data.hosts.trim();
+  return hosts ? `Te invita: ${hosts}` : null;
 }
 
 function drawBranch(
@@ -261,6 +278,28 @@ function nameFont(name: string, base: number, weight: string, family: string) {
   return `${weight} ${size}px ${family}`;
 }
 
+// Tarjeta redondeada semitransparente para asentar los datos reales del
+// álbum encima de un diseño real (imagen de fondo), sin depender de que
+// haya un hueco perfectamente en blanco detrás.
+function drawCard(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  top: number,
+  w: number,
+  h: number,
+  fill: string,
+  border: string,
+) {
+  const x = cx - w / 2;
+  ctx.fillStyle = fill;
+  roundRectPath(ctx, x, top, w, h, 22);
+  ctx.fill();
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1.5;
+  roundRectPath(ctx, x, top, w, h, 22);
+  ctx.stroke();
+}
+
 // --- Plantillas -------------------------------------------------------------
 
 const TEMPLATES: Template[] = [
@@ -294,6 +333,14 @@ const TEMPLATES: Template[] = [
       ctx.fillStyle = "#2b2118";
       ctx.font = nameFont(data.albumName, 62, "700", "Georgia, serif");
       let y = wrapText(ctx, data.albumName, CANVAS_W / 2, 340, CANVAS_W - 220, 68);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 26;
+        ctx.font = "italic 22px Georgia, serif";
+        ctx.fillStyle = "#6b2737";
+        ctx.fillText(host, CANVAS_W / 2, y);
+      }
 
       y += 30;
       ctx.font = "27px Georgia, serif";
@@ -373,6 +420,14 @@ const TEMPLATES: Template[] = [
       ctx.font = nameFont(data.albumName, 108, "", '"Pinyon Script", cursive');
       let y = wrapText(ctx, data.albumName, CANVAS_W / 2, 400, CANVAS_W - 180, 110);
 
+      const host = hostLine(data);
+      if (host) {
+        y += 24;
+        ctx.font = "italic 24px Georgia, serif";
+        ctx.fillStyle = "#7c3aed";
+        ctx.fillText(host, CANVAS_W / 2, y);
+      }
+
       y += 10;
       ctx.font = "26px Georgia, serif";
       ctx.fillStyle = "#4c1d63";
@@ -429,6 +484,14 @@ const TEMPLATES: Template[] = [
       ctx.fillStyle = "#ffffff";
       ctx.font = nameFont(data.albumName, 68, "800", '"Poppins", sans-serif');
       let y = wrapText(ctx, data.albumName, CANVAS_W / 2, 350, CANVAS_W - 200, 78);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 26;
+        ctx.font = "500 22px Poppins, sans-serif";
+        ctx.fillStyle = "#c9a227";
+        ctx.fillText(host, CANVAS_W / 2, y);
+      }
 
       y += 30;
       ctx.font = "600 26px Poppins, sans-serif";
@@ -487,6 +550,14 @@ const TEMPLATES: Template[] = [
       ctx.font = nameFont(data.albumName, 118, "", '"Pinyon Script", cursive');
       let y = wrapText(ctx, data.albumName, CANVAS_W / 2, 500, CANVAS_W - 180, 118);
 
+      const host = hostLine(data);
+      if (host) {
+        y += 20;
+        ctx.font = "600 22px Poppins, sans-serif";
+        ctx.fillStyle = "#db2777";
+        ctx.fillText(host, CANVAS_W / 2, y);
+      }
+
       y += 20;
       ctx.font = "700 27px Poppins, sans-serif";
       ctx.fillStyle = "#1f2937";
@@ -510,17 +581,175 @@ const TEMPLATES: Template[] = [
       ctx.globalAlpha = 1;
     },
   },
+  {
+    id: "quince-pastel",
+    label: "Mis Quince (pastel)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-pastel.jpg",
+    canvasW: 810,
+    canvasH: 1440,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      drawCard(ctx, cx, 745, 640, 560, "rgba(255,255,255,0.93)", "#e9c9dc");
+
+      ctx.textAlign = "center";
+      let y = 810;
+      ctx.fillStyle = "#7a4a63";
+      ctx.font = nameFont(data.albumName, 36, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 560, 40);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 24;
+        ctx.font = "italic 19px Georgia, serif";
+        ctx.fillStyle = "#a4789a";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 30;
+      ctx.font = "20px Georgia, serif";
+      ctx.fillStyle = "#4a3a42";
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 28;
+      }
+
+      y += 20;
+      const qrSize = 150;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 30;
+
+      ctx.font = "600 16px Georgia, serif";
+      ctx.fillStyle = "#7a4a63";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 24;
+        ctx.font = "14px Georgia, serif";
+        ctx.fillStyle = "#8a6a7a";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-purpura",
+    label: "15 Años (morado)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-purpura.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 810;
+      ctx.fillStyle = "#f0e0fa";
+      ctx.font = nameFont(data.albumName, 46, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 760, 52);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 26;
+        ctx.font = "italic 24px Georgia, serif";
+        ctx.fillStyle = "#c9a8e0";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 40;
+      const qrSize = 160;
+      drawCard(ctx, cx, y, qrSize + 60, qrSize + 60, "rgba(255,255,255,0.95)", "#c9a8e0");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 30, qrSize, qrSize);
+      y += qrSize + 60 + 36;
+
+      ctx.font = "22px Georgia, serif";
+      ctx.fillStyle = "#e9d5f5";
+      ctx.globalAlpha = 0.9;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 32;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 10;
+      ctx.font = "600 18px Georgia, serif";
+      ctx.fillStyle = "#f0e0fa";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 26;
+        ctx.font = "16px Georgia, serif";
+        ctx.fillStyle = "#c9a8e0";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-lavanda",
+    label: "Mis Quince (lavanda)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-lavanda.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 750;
+      ctx.fillStyle = "#3a2f52";
+      ctx.font = nameFont(data.albumName, 42, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 760, 48);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 24;
+        ctx.font = "italic 22px Georgia, serif";
+        ctx.fillStyle = "#6b5b8a";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 34;
+      ctx.font = "22px Georgia, serif";
+      ctx.fillStyle = "#4a3f60";
+      ctx.globalAlpha = 0.9;
+      const lines = data.rsvp
+        ? [...detailLines(data), `Confirma tu asistencia: ${data.rsvp}`]
+        : detailLines(data);
+      for (const line of lines) {
+        ctx.fillText(line, cx, y);
+        y += 32;
+      }
+      ctx.globalAlpha = 1;
+
+      // Sustituye el "[ Código QR ]" de la plantilla por el QR real, justo
+      // debajo del texto "Escanea el código QR..." ya impreso en el diseño
+      // (que se deja intacto, sin taparlo).
+      const qrSize = 120;
+      const qrTop = 1335;
+      const cardW = 260;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      roundRectPath(ctx, cx - cardW / 2, qrTop - 20, cardW, qrSize + 40, 18);
+      ctx.fill();
+      ctx.drawImage(qrImage, cx - qrSize / 2, qrTop, qrSize, qrSize);
+    },
+  },
 ];
 
 async function generateInvitation(template: Template, data: InvitationData): Promise<string> {
   await ensureInvitationFonts();
   const canvas = document.createElement("canvas");
-  canvas.width = CANVAS_W;
-  canvas.height = CANVAS_H;
+  canvas.width = template.canvasW ?? CANVAS_W;
+  canvas.height = template.canvasH ?? CANVAS_H;
   const ctx = canvas.getContext("2d")!;
-  const qrDataUrl = await QRCode.toDataURL(data.shareUrl, { margin: 1, width: 480 });
-  const qrImage = await loadImage(qrDataUrl);
-  template.draw(ctx, data, qrImage);
+  const [qrImage, bgImage] = await Promise.all([
+    QRCode.toDataURL(data.shareUrl, { margin: 1, width: 480 }).then(loadImage),
+    template.bgImage ? loadImage(template.bgImage) : Promise.resolve(null),
+  ]);
+  await template.draw(ctx, data, qrImage, bgImage);
   return canvas.toDataURL("image/png");
 }
 
@@ -539,6 +768,7 @@ export function InvitationGenerator({
   const [templateId, setTemplateId] = useState(TEMPLATES[0].id);
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
+  const [hosts, setHosts] = useState("");
   const [rsvp, setRsvp] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -550,7 +780,7 @@ export function InvitationGenerator({
     debounceRef.current = setTimeout(() => {
       const template = TEMPLATES.find((t) => t.id === templateId)!;
       setLoading(true);
-      generateInvitation(template, { albumName, eventDateLabel, time, location, rsvp, shareUrl })
+      generateInvitation(template, { albumName, eventDateLabel, time, location, hosts, rsvp, shareUrl })
         .then(setPreview)
         .finally(() => setLoading(false));
     }, 300);
@@ -558,7 +788,7 @@ export function InvitationGenerator({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, templateId, time, location, rsvp]);
+  }, [open, templateId, time, location, hosts, rsvp]);
 
   return (
     <>
@@ -600,10 +830,15 @@ export function InvitationGenerator({
                     key={t.id}
                     onClick={() => setTemplateId(t.id)}
                     title={t.label}
-                    className={`aspect-[5/7] rounded-lg bg-gradient-to-br shadow-soft transition ${t.swatch} ${
-                      templateId === t.id ? "ring-2 ring-teja ring-offset-2" : "opacity-70"
-                    }`}
-                  />
+                    className={`aspect-[5/7] overflow-hidden rounded-lg shadow-soft transition ${
+                      t.swatch ? `bg-gradient-to-br ${t.swatch}` : ""
+                    } ${templateId === t.id ? "ring-2 ring-teja ring-offset-2" : "opacity-70"}`}
+                  >
+                    {t.bgImage && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.bgImage} alt={t.label} className="h-full w-full object-cover" />
+                    )}
+                  </button>
                 ))}
               </div>
               <p className="mt-1.5 text-xs text-tinta/50">
@@ -611,6 +846,13 @@ export function InvitationGenerator({
               </p>
 
               <div className="mt-4 flex flex-col gap-3">
+                <input
+                  value={hosts}
+                  onChange={(e) => setHosts(e.target.value)}
+                  placeholder="Quién invita (opcional, p. ej. Familia Pérez)"
+                  maxLength={100}
+                  className="rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
+                />
                 <input
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
