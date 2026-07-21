@@ -344,6 +344,11 @@ function clamp(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), Math.max(min, max));
 }
 
+// Tamaño fijo del texto "Escanea..." bajo el QR: no crece con el QR, así
+// agrandarlo no reduce igual el margen libre que queda debajo.
+const QR_CAPTION_SIZE = 15;
+const QR_CAPTION_GAP = 30 + QR_CAPTION_SIZE * 1.4;
+
 function clampTextLayout(l: TextLayout, canvasW: number, canvasH: number): TextLayout {
   const halfW = l.maxWidth / 2;
   const estH = l.fontSize * 4.6;
@@ -356,11 +361,10 @@ function clampTextLayout(l: TextLayout, canvasW: number, canvasH: number): TextL
 
 function clampQrLayout(l: QrLayout, canvasW: number, canvasH: number): QrLayout {
   const half = l.size / 2;
-  const captionH = Math.max(12, Math.round(l.size * 0.12)) * 1.4 + 24;
   return {
     ...l,
     x: clamp(l.x, half + 14, canvasW - half - 14),
-    y: clamp(l.y, half + 14, canvasH - half - 14 - captionH),
+    y: clamp(l.y, half + 14, canvasH - half - 14 - QR_CAPTION_GAP),
   };
 }
 
@@ -416,10 +420,12 @@ function drawQrBlock(
   ctx.globalAlpha = 1;
   ctx.drawImage(qrImage, left, top, l.size, l.size);
 
+  // El texto no crece con el QR (si no, un QR grande empuja igual de fuerte
+  // hacia lo que haya debajo, sin importar dónde quede el QR en sí).
   ctx.textAlign = "center";
   ctx.fillStyle = accent;
-  ctx.font = `600 ${Math.max(12, Math.round(l.size * 0.12))}px Georgia, serif`;
-  ctx.fillText("Escanea para tus fotos y vídeos", l.x, top + l.size + 32);
+  ctx.font = `600 ${QR_CAPTION_SIZE}px Georgia, serif`;
+  ctx.fillText("Escanea para tus fotos y vídeos", l.x, top + l.size + 30);
 }
 
 function drawPhotoBlock(ctx: CanvasRenderingContext2D, l: PhotoLayout, img: HTMLImageElement) {
@@ -1242,15 +1248,20 @@ export function InvitationGenerator({
                   min={70}
                   max={280}
                   value={qrLayout.size}
-                  onChange={(e) =>
-                    setQrLayout((l) =>
-                      clampQrLayout(
-                        { ...l, size: Number(e.target.value) },
+                  onChange={(e) => {
+                    const newSize = Number(e.target.value);
+                    setQrLayout((l) => {
+                      // Ancla el borde inferior: al agrandar, el QR crece hacia
+                      // arriba (donde suele haber más espacio libre) en vez de
+                      // hundirse en el texto o la decoración que tiene debajo.
+                      const bottom = l.y + l.size / 2;
+                      return clampQrLayout(
+                        { ...l, size: newSize, y: bottom - newSize / 2 },
                         template.canvasW,
                         template.canvasH,
-                      ),
-                    )
-                  }
+                      );
+                    });
+                  }}
                   className="w-32"
                 />
               </div>
