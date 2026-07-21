@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { PartyPopper, X, Download, ImagePlus } from "lucide-react";
+import { PartyPopper, X, Download, ImagePlus, QrCode } from "lucide-react";
 
 const CANVAS_W = 1000;
 const CANVAS_H = 1400;
 
-type InvitationData = {
+export type InvitationData = {
   albumName: string;
   eventDateLabel: string | null;
   time: string;
@@ -17,7 +17,7 @@ type InvitationData = {
   shareUrl: string;
 };
 
-type TextLayout = {
+export type TextLayout = {
   x: number;
   y: number;
   fontSize: number;
@@ -26,11 +26,11 @@ type TextLayout = {
   maxWidth: number;
 };
 
-type QrLayout = { x: number; y: number; size: number };
+export type QrLayout = { x: number; y: number; size: number };
 type PhotoLayout = { x: number; y: number; size: number; shape: "circle" | "square" };
 type SelectedKey = "text" | "qr" | "photo" | null;
 
-type Template = {
+export type Template = {
   id: string;
   label: string;
   swatch: string;
@@ -68,7 +68,7 @@ const COLOR_SWATCHES = [
 
 // --- Utilidades de dibujo compartidas -------------------------------------
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
@@ -94,7 +94,7 @@ function loadStylesheet(id: string, href: string): Promise<void> {
 }
 
 let fontsReady: Promise<void> | null = null;
-function ensureInvitationFonts(): Promise<void> {
+export function ensureInvitationFonts(): Promise<void> {
   if (!fontsReady) {
     fontsReady = (async () => {
       await loadStylesheet(
@@ -479,7 +479,7 @@ function drawSelectionOutline(
   ctx.restore();
 }
 
-function renderInvitation(
+export function renderInvitation(
   ctx: CanvasRenderingContext2D,
   template: Template,
   data: InvitationData,
@@ -603,7 +603,7 @@ function defQrY(textY: number, canvasH: number) {
   return Math.min(textY + 480, canvasH - 260);
 }
 
-const TEMPLATES: Template[] = [
+export const TEMPLATES: Template[] = [
   {
     id: "clasico",
     label: "Clásico cálido",
@@ -907,6 +907,48 @@ const TEMPLATES: Template[] = [
   },
 ];
 
+// --- Enlace compartible de la invitación (para un QR aparte del de fotos) --
+// Guarda el diseño completo (plantilla, textos y posiciones) en la propia
+// URL, sin necesitar guardar nada en el servidor: la página /invitacion lo
+// vuelve a dibujar con estos mismos datos.
+
+export type InvitationLinkState = {
+  t: string;
+  n: string;
+  d?: string;
+  h?: string;
+  l?: string;
+  o?: string;
+  r?: string;
+  u: string;
+  tx: TextLayout;
+  q: QrLayout;
+};
+
+export function encodeInvitationLink(state: InvitationLinkState): string {
+  return encodeURIComponent(JSON.stringify(state));
+}
+
+export function decodeInvitationLink(raw: string): InvitationLinkState | null {
+  try {
+    const parsed = JSON.parse(decodeURIComponent(raw));
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      typeof parsed.t !== "string" ||
+      typeof parsed.n !== "string" ||
+      typeof parsed.u !== "string" ||
+      !parsed.tx ||
+      !parsed.q
+    ) {
+      return null;
+    }
+    return parsed as InvitationLinkState;
+  } catch {
+    return null;
+  }
+}
+
 // --- Componente ---------------------------------------------------------
 
 export function InvitationGenerator({
@@ -945,6 +987,8 @@ export function InvitationGenerator({
   const [bgImg, setBgImg] = useState<HTMLImageElement | null>(null);
   const [qrImg, setQrImg] = useState<HTMLImageElement | null>(null);
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [invitationLinkQr, setInvitationLinkQr] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<{ key: "text" | "qr" | "photo"; offX: number; offY: number } | null>(null);
@@ -974,6 +1018,7 @@ export function InvitationGenerator({
     setPhotoImg(null);
     setSelected(null);
     setBgImg(null);
+    setInvitationLinkQr(null);
     if (template.bgImage) {
       let cancelled = false;
       loadImage(template.bgImage).then((img) => {
@@ -1093,6 +1138,29 @@ export function InvitationGenerator({
     a.download = "invitacion.png";
     a.click();
     renderInvitation(ctx, template, data, textLayout, qrLayout, photoLayout, bgImg, qrImg, photoImg, selected);
+  }
+
+  async function handleGenerateInvitationLink() {
+    setGeneratingLink(true);
+    try {
+      const state: InvitationLinkState = {
+        t: templateId,
+        n: albumName,
+        d: date.trim() || undefined,
+        h: time.trim() || undefined,
+        l: location.trim() || undefined,
+        o: hosts.trim() || undefined,
+        r: rsvp.trim() || undefined,
+        u: shareUrl,
+        tx: textLayout,
+        q: qrLayout,
+      };
+      const url = `${window.location.origin}/invitacion?d=${encodeInvitationLink(state)}`;
+      const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 480 });
+      setInvitationLinkQr(qrDataUrl);
+    } finally {
+      setGeneratingLink(false);
+    }
   }
 
   return (
@@ -1334,6 +1402,36 @@ export function InvitationGenerator({
                     <ImagePlus size={14} /> Añadir una foto
                     <input type="file" accept="image/*" className="hidden" onChange={handlePhotoFile} />
                   </label>
+                )}
+              </div>
+
+              <div className="mt-3 rounded-xl border border-tinta/15 bg-white/60 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-tinta/50">
+                  QR de la invitación
+                </p>
+                <p className="mt-1 text-xs text-tinta/60">
+                  Un código distinto al de las fotos: al escanearlo se abre esta invitación en el
+                  celular (no el álbum).
+                </p>
+                <button
+                  onClick={handleGenerateInvitationLink}
+                  disabled={generatingLink || !ready}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-tinta/20 bg-white py-2 text-sm font-semibold text-tinta transition hover:bg-arena disabled:opacity-50"
+                >
+                  <QrCode size={14} /> {generatingLink ? "Generando…" : "Generar QR de la invitación"}
+                </button>
+                {invitationLinkQr && (
+                  <div className="mt-3 flex flex-col items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={invitationLinkQr} alt="QR de la invitación" className="h-32 w-32" />
+                    <a
+                      href={invitationLinkQr}
+                      download="qr-invitacion.png"
+                      className="text-xs font-semibold text-teja underline"
+                    >
+                      Descargar este QR
+                    </a>
+                  </div>
                 )}
               </div>
 
