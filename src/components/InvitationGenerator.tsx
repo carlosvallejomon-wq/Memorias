@@ -359,7 +359,7 @@ function qrCaptionFootprint(qrSize: number) {
 
 function clampTextLayout(l: TextLayout, canvasW: number, canvasH: number): TextLayout {
   const halfW = l.maxWidth / 2;
-  const estH = l.fontSize * 4.6;
+  const estH = l.fontSize * 6.4;
   return {
     ...l,
     x: clamp(l.x, halfW, canvasW - halfW),
@@ -389,22 +389,22 @@ function drawTextBlock(ctx: CanvasRenderingContext2D, l: TextLayout, data: Invit
 
   const host = hostLine(data);
   if (host) {
-    y += l.fontSize * 0.5;
-    ctx.font = `italic ${Math.round(l.fontSize * 0.42)}px ${l.fontFamily}`;
+    y += l.fontSize * 0.55;
+    ctx.font = `italic ${Math.round(l.fontSize * 0.55)}px ${l.fontFamily}`;
     ctx.globalAlpha = 0.85;
     ctx.fillText(host, l.x, y);
     ctx.globalAlpha = 1;
   }
 
-  y += l.fontSize * 0.55;
-  ctx.font = `${Math.round(l.fontSize * 0.38)}px ${l.fontFamily}`;
+  y += l.fontSize * 0.6;
+  ctx.font = `${Math.round(l.fontSize * 0.5)}px ${l.fontFamily}`;
   ctx.globalAlpha = 0.85;
   const lines = data.rsvp
     ? [...detailLines(data), `Confirma tu asistencia: ${data.rsvp}`]
     : detailLines(data);
   for (const line of lines) {
     ctx.fillText(line, l.x, y);
-    y += l.fontSize * 0.5;
+    y += l.fontSize * 0.68;
   }
   ctx.globalAlpha = 1;
 }
@@ -1211,7 +1211,7 @@ export function InvitationGenerator({
                   <input
                     type="range"
                     min={20}
-                    max={70}
+                    max={90}
                     value={textLayout.fontSize}
                     onChange={(e) =>
                       setTextLayout((l) =>
