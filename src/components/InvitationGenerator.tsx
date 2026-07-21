@@ -952,6 +952,889 @@ const TEMPLATES: Template[] = [
       }
     },
   },
+  {
+    id: "quince-ventana",
+    label: "15 Años (bienvenidas beige)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-ventana.jpg",
+    canvasW: 1080,
+    canvasH: 1440,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 1010;
+      ctx.fillStyle = "#4a4a44";
+      ctx.font = nameFont(data.albumName, 38, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 780, 44);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 22;
+        ctx.font = "italic 21px Georgia, serif";
+        ctx.fillStyle = "#5b7fa6";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 28;
+      ctx.font = "19px Georgia, serif";
+      ctx.fillStyle = "#5a5a52";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 27;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 12;
+      const qrSize = 110;
+      drawCard(ctx, cx, y, qrSize + 36, qrSize + 36, "rgba(255,255,255,0.92)", "#5b7fa6");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 18, qrSize, qrSize);
+      y += qrSize + 36 + 26;
+
+      ctx.font = "600 14px Georgia, serif";
+      ctx.fillStyle = "#4a4a44";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 20;
+        ctx.font = "13px Georgia, serif";
+        ctx.fillStyle = "#5b7fa6";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-corona",
+    label: "15 Años (corona rosa)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-corona.jpg",
+    canvasW: 1080,
+    canvasH: 1440,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 800;
+      ctx.fillStyle = "#8a5a52";
+      ctx.font = nameFont(data.albumName, 38, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 620, 44);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 22;
+        ctx.font = "italic 21px Georgia, serif";
+        ctx.fillStyle = "#b07a6e";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 28;
+      ctx.font = "19px Georgia, serif";
+      ctx.fillStyle = "#6b4a44";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 27;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 12;
+      const qrSize = 110;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 24;
+
+      ctx.font = "600 14px Georgia, serif";
+      ctx.fillStyle = "#8a5a52";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 20;
+        ctx.font = "13px Georgia, serif";
+        ctx.fillStyle = "#b07a6e";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-salvia",
+    label: "15 Años (salvia acuarela)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-salvia.jpg",
+    canvasW: 810,
+    canvasH: 1440,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 570;
+      ctx.fillStyle = "#3f5539";
+      ctx.font = nameFont(data.albumName, 32, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 580, 38);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 20;
+        ctx.font = "italic 18px Georgia, serif";
+        ctx.fillStyle = "#5a7a52";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 26;
+      ctx.font = "17px Georgia, serif";
+      ctx.fillStyle = "#3f5539";
+      ctx.globalAlpha = 0.8;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 25;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 16;
+      const qrSize = 110;
+      drawCard(ctx, cx, y, qrSize + 32, qrSize + 32, "rgba(255,255,255,0.85)", "#5a7a52");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 16, qrSize, qrSize);
+      y += qrSize + 32 + 24;
+
+      ctx.font = "600 13px Georgia, serif";
+      ctx.fillStyle = "#3f5539";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 18;
+        ctx.font = "12px Georgia, serif";
+        ctx.fillStyle = "#5a7a52";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-mostaza",
+    label: "15 Años (floral mostaza)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-mostaza.jpg",
+    canvasW: 810,
+    canvasH: 1440,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 500;
+      ctx.fillStyle = "#7a5a1e";
+      ctx.font = nameFont(data.albumName, 32, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 600, 38);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 20;
+        ctx.font = "italic 18px Georgia, serif";
+        ctx.fillStyle = "#a67c2e";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 26;
+      ctx.font = "17px Georgia, serif";
+      ctx.fillStyle = "#5a4212";
+      ctx.globalAlpha = 0.8;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 25;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 16;
+      const qrSize = 110;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 24;
+
+      ctx.font = "600 13px Georgia, serif";
+      ctx.fillStyle = "#7a5a1e";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 18;
+        ctx.font = "12px Georgia, serif";
+        ctx.fillStyle = "#a67c2e";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-guirnalda",
+    label: "15 Años (guirnalda verde)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-guirnalda.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 540;
+      ctx.fillStyle = "#6b7a4a";
+      ctx.font = nameFont(data.albumName, 30, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 400, 34);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 18;
+        ctx.font = "italic 17px Georgia, serif";
+        ctx.fillStyle = "#8a9a6a";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 22;
+      ctx.font = "15px Georgia, serif";
+      ctx.fillStyle = "#4a5a34";
+      ctx.globalAlpha = 0.8;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 22;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 14;
+      const qrSize = 100;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 22;
+
+      ctx.font = "600 13px Georgia, serif";
+      ctx.fillStyle = "#6b7a4a";
+      ctx.fillText("Escanea para tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 18;
+        ctx.font = "12px Georgia, serif";
+        ctx.fillStyle = "#8a9a6a";
+        ctx.fillText(`Confirma: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-hortensia",
+    label: "15 Años (hortensias azules)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-hortensia.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 480;
+      ctx.fillStyle = "#1a3a5f";
+      ctx.font = nameFont(data.albumName, 40, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 760, 46);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 24;
+        ctx.font = "italic 22px Georgia, serif";
+        ctx.fillStyle = "#4a72a0";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 32;
+      ctx.font = "21px Georgia, serif";
+      ctx.fillStyle = "#2c4a68";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 30;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 25;
+      const qrSize = 140;
+      drawCard(ctx, cx, y, qrSize + 44, qrSize + 44, "rgba(255,255,255,0.95)", "#1a3a5f");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 22, qrSize, qrSize);
+      y += qrSize + 44 + 34;
+
+      ctx.font = "600 17px Georgia, serif";
+      ctx.fillStyle = "#1a3a5f";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 24;
+        ctx.font = "15px Georgia, serif";
+        ctx.fillStyle = "#4a72a0";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-teal",
+    label: "15 Años (guirnalda azul-teal)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-teal.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 400;
+      ctx.fillStyle = "#2c4a68";
+      ctx.font = nameFont(data.albumName, 40, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 780, 46);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 24;
+        ctx.font = "italic 22px Georgia, serif";
+        ctx.fillStyle = "#5a7a95";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 32;
+      ctx.font = "21px Georgia, serif";
+      ctx.fillStyle = "#3c5a75";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 30;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 25;
+      const qrSize = 150;
+      drawCard(ctx, cx, y, qrSize + 44, qrSize + 44, "rgba(255,255,255,0.9)", "#5a7a95");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 22, qrSize, qrSize);
+      y += qrSize + 44 + 34;
+
+      ctx.font = "600 17px Georgia, serif";
+      ctx.fillStyle = "#2c4a68";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 24;
+        ctx.font = "15px Georgia, serif";
+        ctx.fillStyle = "#5a7a95";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-rosas",
+    label: "15 Años (rosas rosadas)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-rosas.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 450;
+      ctx.fillStyle = "#a24a5a";
+      ctx.font = nameFont(data.albumName, 38, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 640, 44);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 22;
+        ctx.font = "italic 21px Georgia, serif";
+        ctx.fillStyle = "#c97a8a";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 30;
+      ctx.font = "20px Georgia, serif";
+      ctx.fillStyle = "#6a3540";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 29;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 20;
+      const qrSize = 130;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 26;
+
+      ctx.font = "600 16px Georgia, serif";
+      ctx.fillStyle = "#a24a5a";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 22;
+        ctx.font = "14px Georgia, serif";
+        ctx.fillStyle = "#c97a8a";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-rosasdoradas",
+    label: "15 Años (rosas doradas)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-rosasdoradas.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 530;
+      ctx.fillStyle = "#1a1a1a";
+      ctx.font = nameFont(data.albumName, 38, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 780, 44);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 24;
+        ctx.font = "italic 21px Georgia, serif";
+        ctx.fillStyle = "#b8912e";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 30;
+      ctx.font = "20px Georgia, serif";
+      ctx.fillStyle = "#3a3a3a";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 29;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 20;
+      const qrSize = 140;
+      drawCard(ctx, cx, y, qrSize + 40, qrSize + 40, "rgba(255,255,255,0.95)", "#b8912e");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 20, qrSize, qrSize);
+      y += qrSize + 40 + 32;
+
+      ctx.font = "600 16px Georgia, serif";
+      ctx.fillStyle = "#1a1a1a";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 22;
+        ctx.font = "14px Georgia, serif";
+        ctx.fillStyle = "#b8912e";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-menta",
+    label: "15 Años (menta minimal)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-menta.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 660;
+      ctx.fillStyle = "#4a5238";
+      ctx.font = nameFont(data.albumName, 32, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 640, 38);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 20;
+        ctx.font = "italic 19px Georgia, serif";
+        ctx.fillStyle = "#6b7550";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 26;
+      ctx.font = "18px Georgia, serif";
+      ctx.fillStyle = "#3a4028";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 26;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 18;
+      const qrSize = 120;
+      drawCard(ctx, cx, y, qrSize + 36, qrSize + 36, "rgba(255,255,255,0.85)", "#4a5238");
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 18, qrSize, qrSize);
+      y += qrSize + 36 + 28;
+
+      ctx.font = "600 15px Georgia, serif";
+      ctx.fillStyle = "#4a5238";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 20;
+        ctx.font = "13px Georgia, serif";
+        ctx.fillStyle = "#6b7550";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-olivo",
+    label: "15 Años (bloque olivo)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-olivo.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 530;
+      ctx.fillStyle = "#f5f0e0";
+      ctx.font = nameFont(data.albumName, 38, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 720, 44);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 24;
+        ctx.font = "italic 21px Georgia, serif";
+        ctx.fillStyle = "#d9a8b0";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 30;
+      ctx.font = "20px Georgia, serif";
+      ctx.fillStyle = "#eee7d0";
+      ctx.globalAlpha = 0.9;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 29;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 20;
+      const qrSize = 130;
+      ctx.fillStyle = "#ffffff";
+      roundRectPath(ctx, cx - qrSize / 2 - 16, y, qrSize + 32, qrSize + 32, 14);
+      ctx.fill();
+      ctx.drawImage(qrImage, cx - qrSize / 2, y + 16, qrSize, qrSize);
+      y += qrSize + 32 + 30;
+
+      ctx.font = "600 16px Georgia, serif";
+      ctx.fillStyle = "#f5f0e0";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 22;
+        ctx.font = "14px Georgia, serif";
+        ctx.fillStyle = "#d9a8b0";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-minimal",
+    label: "15 Años (minimalista)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-minimal.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 520;
+      ctx.fillStyle = "#1f1f1f";
+      ctx.font = nameFont(data.albumName, 36, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 760, 42);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 22;
+        ctx.font = "italic 20px Georgia, serif";
+        ctx.fillStyle = "#5a5a5a";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 30;
+      ctx.font = "19px Georgia, serif";
+      ctx.fillStyle = "#2a2a2a";
+      ctx.globalAlpha = 0.8;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 27;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 20;
+      const qrSize = 130;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 26;
+
+      ctx.font = "600 15px Georgia, serif";
+      ctx.fillStyle = "#1f1f1f";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 20;
+        ctx.font = "13px Georgia, serif";
+        ctx.fillStyle = "#5a5a5a";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-tiara",
+    label: "15 Años (tiara lavanda)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-tiara.jpg",
+    canvasW: 1085,
+    canvasH: 1530,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 700;
+      ctx.fillStyle = "#6a4a8a";
+      ctx.font = nameFont(data.albumName, 36, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 760, 42);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 22;
+        ctx.font = "italic 20px Georgia, serif";
+        ctx.fillStyle = "#a8862e";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 30;
+      ctx.font = "19px Georgia, serif";
+      ctx.fillStyle = "#4a3560";
+      ctx.globalAlpha = 0.8;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 27;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 22;
+      const qrSize = 130;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 28;
+
+      ctx.font = "600 15px Georgia, serif";
+      ctx.fillStyle = "#6a4a8a";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 20;
+        ctx.font = "13px Georgia, serif";
+        ctx.fillStyle = "#a8862e";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-mariposas",
+    label: "15 Años (mariposas azules)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-mariposas.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 500;
+      ctx.fillStyle = "#3c4f7a";
+      ctx.font = nameFont(data.albumName, 34, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 660, 40);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 22;
+        ctx.font = "italic 20px Georgia, serif";
+        ctx.fillStyle = "#6a80a8";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 28;
+      ctx.font = "19px Georgia, serif";
+      ctx.fillStyle = "#2c3a5a";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 27;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 20;
+      const qrSize = 130;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 26;
+
+      ctx.font = "600 15px Georgia, serif";
+      ctx.fillStyle = "#3c4f7a";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 20;
+        ctx.font = "13px Georgia, serif";
+        ctx.fillStyle = "#6a80a8";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-peonias",
+    label: "15 Años (peonías moradas)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-peonias.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = 690;
+      ctx.textAlign = "center";
+      let y = 420;
+      ctx.fillStyle = "#6b5266";
+      ctx.font = nameFont(data.albumName, 32, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 580, 38);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 20;
+        ctx.font = "italic 19px Georgia, serif";
+        ctx.fillStyle = "#8a6a86";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 26;
+      ctx.font = "18px Georgia, serif";
+      ctx.fillStyle = "#4a3846";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 26;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 20;
+      const qrSize = 120;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 26;
+
+      ctx.font = "600 15px Georgia, serif";
+      ctx.fillStyle = "#6b5266";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 20;
+        ctx.font = "13px Georgia, serif";
+        ctx.fillStyle = "#8a6a86";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
+  {
+    id: "quince-glitter",
+    label: "15 Años (glitter morado)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-glitter.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 560;
+      ctx.fillStyle = "#5a3a70";
+      ctx.font = nameFont(data.albumName, 30, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 620, 36);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 18;
+        ctx.font = "italic 18px Georgia, serif";
+        ctx.fillStyle = "#8a6aa0";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 22;
+      ctx.font = "17px Georgia, serif";
+      ctx.fillStyle = "#4a2a5a";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 24;
+      }
+      ctx.globalAlpha = 1;
+
+      // El diseño trae un recuadro decorativo vacío: el QR va justo dentro.
+      const qrSize = 110;
+      const boxCenterY = 1015;
+      ctx.drawImage(qrImage, cx - qrSize / 2, boxCenterY - qrSize / 2, qrSize, qrSize);
+    },
+  },
+  {
+    id: "quince-margaritas",
+    label: "15 Años (margaritas doradas)",
+    swatch: "",
+    bgImage: "/invitation-templates/quince-margaritas.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    draw: (ctx, data, qrImage, bg) => {
+      const w = ctx.canvas.width;
+      if (bg) ctx.drawImage(bg, 0, 0, w, ctx.canvas.height);
+
+      const cx = w / 2;
+      ctx.textAlign = "center";
+      let y = 620;
+      ctx.fillStyle = "#5a6b3a";
+      ctx.font = nameFont(data.albumName, 32, "700", "Georgia, serif");
+      y = wrapText(ctx, data.albumName, cx, y, 700, 38);
+
+      const host = hostLine(data);
+      if (host) {
+        y += 20;
+        ctx.font = "italic 19px Georgia, serif";
+        ctx.fillStyle = "#c9922a";
+        ctx.fillText(host, cx, y);
+      }
+
+      y += 26;
+      ctx.font = "18px Georgia, serif";
+      ctx.fillStyle = "#3f4a28";
+      ctx.globalAlpha = 0.85;
+      for (const line of detailLines(data)) {
+        ctx.fillText(line, cx, y);
+        y += 26;
+      }
+      ctx.globalAlpha = 1;
+
+      y += 18;
+      const qrSize = 120;
+      ctx.drawImage(qrImage, cx - qrSize / 2, y, qrSize, qrSize);
+      y += qrSize + 24;
+
+      ctx.font = "600 15px Georgia, serif";
+      ctx.fillStyle = "#5a6b3a";
+      ctx.fillText("Escanea para compartir tus fotos y vídeos", cx, y);
+      if (data.rsvp) {
+        y += 20;
+        ctx.font = "13px Georgia, serif";
+        ctx.fillStyle = "#c9922a";
+        ctx.fillText(`Confirma tu asistencia: ${data.rsvp}`, cx, y);
+      }
+    },
+  },
 ];
 
 async function generateInvitation(template: Template, data: InvitationData): Promise<string> {
