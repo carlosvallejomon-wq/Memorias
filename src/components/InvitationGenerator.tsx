@@ -344,10 +344,18 @@ function clamp(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), Math.max(min, max));
 }
 
-// Tamaño fijo del texto "Escanea..." bajo el QR: no crece con el QR, así
-// agrandarlo no reduce igual el margen libre que queda debajo.
-const QR_CAPTION_SIZE = 15;
-const QR_CAPTION_GAP = 30 + QR_CAPTION_SIZE * 1.4;
+// El texto "Escanea..." bajo el QR crece con el QR (para que siga
+// leyéndose a cualquier tamaño), pero el hueco entre el QR y el texto
+// también crece con la letra, así el QR nunca queda encima del texto.
+function qrCaptionSize(qrSize: number) {
+  return Math.max(12, Math.round(qrSize * 0.12));
+}
+function qrCaptionGap(qrSize: number) {
+  return Math.round(qrCaptionSize(qrSize) * 1.3) + 14;
+}
+function qrCaptionFootprint(qrSize: number) {
+  return qrCaptionGap(qrSize) + Math.round(qrCaptionSize(qrSize) * 0.4);
+}
 
 function clampTextLayout(l: TextLayout, canvasW: number, canvasH: number): TextLayout {
   const halfW = l.maxWidth / 2;
@@ -364,7 +372,7 @@ function clampQrLayout(l: QrLayout, canvasW: number, canvasH: number): QrLayout 
   return {
     ...l,
     x: clamp(l.x, half + 14, canvasW - half - 14),
-    y: clamp(l.y, half + 14, canvasH - half - 14 - QR_CAPTION_GAP),
+    y: clamp(l.y, half + 14, canvasH - half - 14 - qrCaptionFootprint(l.size)),
   };
 }
 
@@ -420,12 +428,10 @@ function drawQrBlock(
   ctx.globalAlpha = 1;
   ctx.drawImage(qrImage, left, top, l.size, l.size);
 
-  // El texto no crece con el QR (si no, un QR grande empuja igual de fuerte
-  // hacia lo que haya debajo, sin importar dónde quede el QR en sí).
   ctx.textAlign = "center";
   ctx.fillStyle = accent;
-  ctx.font = `600 ${QR_CAPTION_SIZE}px Georgia, serif`;
-  ctx.fillText("Escanea para tus fotos y vídeos", l.x, top + l.size + 30);
+  ctx.font = `600 ${qrCaptionSize(l.size)}px Georgia, serif`;
+  ctx.fillText("Escanea para tus fotos y vídeos", l.x, top + l.size + qrCaptionGap(l.size));
 }
 
 function drawPhotoBlock(ctx: CanvasRenderingContext2D, l: PhotoLayout, img: HTMLImageElement) {
