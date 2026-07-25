@@ -2,7 +2,12 @@
 
 import { useTransition } from "react";
 import { Trash2, Check, X, Loader2 } from "lucide-react";
-import { approveMedia, deleteAlbum, deleteMedia } from "@/app/dashboard/actions";
+import {
+  approveMedia,
+  deleteAlbum,
+  deleteGuestbookEntry,
+  deleteMedia,
+} from "@/app/dashboard/actions";
 
 export function DeleteAlbumButton({
   albumId,
@@ -46,6 +51,25 @@ export function DeleteMediaButton({ mediaId }: { mediaId: string }) {
       }}
       title="Borrar"
       className="rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 disabled:opacity-50"
+    >
+      {pending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+    </button>
+  );
+}
+
+export function DeleteGuestbookEntryButton({ entryId }: { entryId: string }) {
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <button
+      disabled={pending}
+      onClick={() => {
+        if (confirm("¿Borrar este mensaje del muro?")) {
+          startTransition(() => deleteGuestbookEntry(entryId));
+        }
+      }}
+      title="Borrar mensaje"
+      className="shrink-0 rounded-full p-1.5 text-tinta/30 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
     >
       {pending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
     </button>

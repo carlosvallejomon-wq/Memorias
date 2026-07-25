@@ -144,7 +144,8 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
               <Download size={16} /> Descargar Dotbook
             </a>
             <p className="mt-2 text-center text-xs text-tinta/50">
-              Un PDF con una página por cada foto y vídeo del álbum.
+              Un PDF con una página por cada foto y vídeo del álbum, y las
+              dedicatorias del muro de mensajes al final.
             </p>
           </div>
         </div>

@@ -7,12 +7,16 @@ vídeos desde el móvil **sin instalar nada y sin registrarse**.
 ## Qué incluye
 
 - **Panel del organizador** (`/dashboard`, con login de Clerk): crear álbumes,
-  ver el QR y el enlace para compartir, borrar contenido, borrar el álbum,
-  descargar todo en un ZIP y generar un **Dotbook digital en PDF** (una
-  página por recuerdo; los vídeos y formatos no incrustables llevan un QR
-  que enlaza al original).
+  ver el QR y el enlace para compartir, **resumen del evento** (recuerdos,
+  personas, reacciones, quién ha compartido más y el recuerdo más querido),
+  proponer **retos fotográficos**, leer el **muro de mensajes**, borrar
+  contenido, borrar el álbum, descargar todo en un ZIP y generar un **Dotbook
+  digital en PDF** (una página por recuerdo, más las dedicatorias del muro;
+  los vídeos y formatos no incrustables llevan un QR que enlaza al original).
 - **Página del invitado** (`/a/<código>`, sin login): subir fotos y vídeos,
-  galería, vista agrupada por días, reacciones (❤️ 😂 😮 👏) y comentarios.
+  galería, vista agrupada por días, **retos** que completar, **muro de
+  mensajes**, filtros (mías, vídeos, más queridas, por persona), visor con
+  navegación y descarga, reacciones (❤️ 😂 😮 👏) y comentarios.
 - Una sola app **Next.js**, desplegada en **Vercel**, con base de datos en
   **Neon** (Postgres) y archivos en **Vercel Blob**.
 
@@ -48,6 +52,11 @@ En el proyecto de Vercel → **Settings → Environment Variables**, añade:
    `{"ok":true,"mensaje":"Base de datos lista..."}`.
    (Se puede visitar más veces sin peligro: no borra nada.)
 
+> **Importante:** hay que volver a visitar `/api/setup` después de cada
+> actualización que añada funciones nuevas (por ejemplo los retos y el muro de
+> mensajes), porque es lo que crea las tablas nuevas. Si algo aparece vacío o
+> da error tras actualizar, esa visita casi siempre lo arregla.
+
 ### 5. Probar
 
 1. Abre `https://TU-APP.vercel.app` → **Entrar al panel** → inicia sesión.
@@ -71,6 +80,7 @@ src/app/dashboard/                Panel del organizador (Clerk)
 src/app/a/[code]/                 Página pública del invitado
 src/app/api/blob-upload/          Tokens de subida directa a Vercel Blob
 src/app/api/guest/[code]/media/   Listar y registrar contenido (público)
+src/app/api/guest/[code]/…        Retos y muro de mensajes (público)
 src/app/api/media/[id]/…          Comentarios y reacciones (público)
 src/app/api/albums/[id]/download/ ZIP del álbum (solo el dueño)
 src/app/api/albums/[id]/dotbook/  Dotbook digital en PDF (solo el dueño)

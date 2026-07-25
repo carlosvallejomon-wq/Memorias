@@ -2,14 +2,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
-import { and, desc, eq } from "drizzle-orm";
-import { ArrowLeft, Download, MonitorPlay, Hourglass, ExternalLink } from "lucide-react";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
+import {
+  ArrowLeft,
+  Download,
+  MonitorPlay,
+  Hourglass,
+  ExternalLink,
+  Images,
+} from "lucide-react";
 import { db } from "@/db";
-import { albums, media } from "@/db/schema";
+import { albums, challenges, comments, guestbookEntries, media, reactions } from "@/db/schema";
 import { ShareCard } from "@/components/ShareCard";
 import { ModerationToggle } from "@/components/ModerationToggle";
 import { InvitationGenerator } from "@/components/InvitationGenerator";
 import { DotbookGenerator } from "@/components/DotbookGenerator";
+import { AlbumStats, type AlbumStatsData } from "@/components/AlbumStats";
+import { ChallengeManager } from "@/components/ChallengeManager";
+import { GuestbookPanel } from "@/components/GuestbookPanel";
 import {
   ApproveMediaButton,
   DeleteAlbumButton,
@@ -41,6 +51,86 @@ export default async function AlbumAdminPage({
 
   const pendingItems = allItems.filter((i) => !i.approved);
   const items = allItems.filter((i) => i.approved);
+
+  const [challengeRows, guestbookRows, reactionRows, commentRows] = await Promise.all([
+    db()
+      .select({
+        id: challenges.id,
+        title: challenges.title,
+        emoji: challenges.emoji,
+        photoCount: sql<number>`count(${media.id})::int`,
+      })
+      .from(challenges)
+      .leftJoin(media, and(eq(media.challengeId, challenges.id), eq(media.approved, true)))
+      .where(eq(challenges.albumId, albumId))
+      .groupBy(challenges.id)
+      .orderBy(asc(challenges.position), asc(challenges.createdAt)),
+    db()
+      .select({
+        id: guestbookEntries.id,
+        authorName: guestbookEntries.authorName,
+        body: guestbookEntries.body,
+        createdAt: guestbookEntries.createdAt,
+      })
+      .from(guestbookEntries)
+      .where(eq(guestbookEntries.albumId, albumId))
+      .orderBy(desc(guestbookEntries.createdAt)),
+    db()
+      .select({ mediaId: reactions.mediaId, n: sql<number>`count(*)::int` })
+      .from(reactions)
+      .innerJoin(media, eq(reactions.mediaId, media.id))
+      .where(eq(media.albumId, albumId))
+      .groupBy(reactions.mediaId),
+    db()
+      .select({ mediaId: comments.mediaId, n: sql<number>`count(*)::int` })
+      .from(comments)
+      .innerJoin(media, eq(comments.mediaId, media.id))
+      .where(eq(media.albumId, albumId))
+      .groupBy(comments.mediaId),
+  ]);
+
+  // Resumen del evento: se calcula sobre el contenido ya publicado.
+  const reactionsById = new Map(reactionRows.map((r) => [r.mediaId, r.n]));
+  const commentsById = new Map(commentRows.map((r) => [r.mediaId, r.n]));
+  const byUploader = new Map<string, number>();
+  for (const item of items) {
+    const name = item.uploaderName?.trim();
+    if (name) byUploader.set(name, (byUploader.get(name) ?? 0) + 1);
+  }
+  const topScored = items
+    .map((item) => ({
+      item,
+      score: (reactionsById.get(item.id) ?? 0) + (commentsById.get(item.id) ?? 0),
+    }))
+    .sort((a, b) => b.score - a.score)[0];
+
+  const stats: AlbumStatsData = {
+    mediaCount: items.length,
+    photoCount: items.filter((i) => i.type === "image").length,
+    videoCount: items.filter((i) => i.type === "video").length,
+    peopleCount: new Set(
+      items.map((i) => i.uploaderId || i.uploaderName || "anónimo"),
+    ).size,
+    dayCount: new Set(
+      items.map((i) => (i.takenAt ?? i.createdAt).toISOString().slice(0, 10)),
+    ).size,
+    reactionCount: reactionRows.reduce((sum, r) => sum + r.n, 0),
+    commentCount: commentRows.reduce((sum, r) => sum + r.n, 0),
+    messageCount: guestbookRows.length,
+    topContributors: [...byUploader.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3),
+    topMedia:
+      topScored && topScored.score > 0
+        ? {
+            url: topScored.item.url,
+            type: topScored.item.type,
+            uploaderName: topScored.item.uploaderName,
+            score: topScored.score,
+          }
+        : null,
+  };
 
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "https";
@@ -133,6 +223,8 @@ export default async function AlbumAdminPage({
         </div>
       </section>
 
+      {items.length > 0 && <AlbumStats stats={stats} />}
+
       {pendingItems.length > 0 && (
         <section className="mt-8 animate-fade-in rounded-2xl border border-teja/20 bg-teja/5 p-5">
           <h2 className="flex items-center gap-2 font-semibold text-teja-oscuro">
@@ -161,8 +253,17 @@ export default async function AlbumAdminPage({
         </section>
       )}
 
+      <ChallengeManager albumId={album.id} challenges={challengeRows} />
+
+      <GuestbookPanel entries={guestbookRows} />
+
       <section className="mt-8">
-        <h2 className="font-semibold">Contenido del álbum</h2>
+        <h2 className="flex items-center gap-2 font-semibold">
+          <Images size={18} className="text-teja" /> Contenido del álbum
+          {items.length > 0 && (
+            <span className="font-normal text-tinta/40">({items.length})</span>
+          )}
+        </h2>
         {items.length === 0 ? (
           <p className="mt-3 text-tinta/50">
             Todavía no hay fotos. Comparte el enlace o el QR de arriba con tus

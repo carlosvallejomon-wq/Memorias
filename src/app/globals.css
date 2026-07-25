@@ -19,6 +19,29 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Foco visible y coherente en toda la app: imprescindible para quien navega
+   con teclado, y evita el halo azul por defecto que rompe la paleta. */
+:focus-visible {
+  outline: 2px solid var(--color-teja);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Respeta a quien pide menos animación en su sistema (mareos, migrañas). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 body {
@@ -145,4 +168,161 @@ body::before {
 }
 .animate-crossfade {
   animation: crossfade 1.2s ease both;
+}
+
+/* ---------------------------------------------------------------------------
+   Piezas reutilizables. Antes cada botón repetía la misma ristra de clases
+   de Tailwind y se iban desviando entre pantallas; estas clases fijan el
+   mismo aspecto en toda la app.
+   ------------------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.625rem 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease,
+    box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background-color: var(--color-teja);
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-teja-oscuro);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Botón claro sobre fondo crema: el secundario de siempre. */
+.btn-soft {
+  background-color: #fff;
+  color: var(--color-tinta);
+  border: 1px solid rgba(43, 33, 24, 0.15);
+  box-shadow: var(--shadow-soft);
+}
+.btn-soft:hover:not(:disabled) {
+  background-color: var(--color-arena);
+}
+
+/* Botón sin fondo, para acciones terciarias. */
+.btn-ghost {
+  color: rgba(43, 33, 24, 0.7);
+}
+.btn-ghost:hover:not(:disabled) {
+  background-color: rgba(43, 33, 24, 0.06);
+  color: var(--color-tinta);
+}
+
+/* Botón claro sobre fondo oscuro (visor de fotos, modo pantalla). */
+.btn-on-dark {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.btn-on-dark:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+/* Píldoras de filtro / pestañas. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background-color: var(--color-arena);
+  color: rgba(43, 33, 24, 0.7);
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.chip:hover {
+  background-color: rgba(43, 33, 24, 0.1);
+}
+.chip-active {
+  background-color: var(--color-tinta);
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+.chip-active:hover {
+  background-color: var(--color-tinta);
+}
+
+.field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(43, 33, 24, 0.2);
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 0.625rem 0.875rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.field:focus {
+  border-color: var(--color-teja);
+  box-shadow: 0 0 0 3px rgba(194, 87, 27, 0.18);
+  outline: none;
+}
+
+/* Para campos que no deben ocupar todo el ancho (el selector de icono). Va
+   después de .field a propósito: así gana sin necesidad de !important. */
+.field-auto {
+  width: auto;
+}
+
+/* Bloques grises que "respiran" mientras carga el contenido: se percibe
+   mucho más rápido que un texto de «Cargando…». */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.skeleton {
+  background-color: var(--color-arena);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+/* Fila con desplazamiento horizontal sin barra visible (retos en el móvil). */
+.scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* Al enfocar una píldora que está fuera de la vista, el navegador la
+     desplaza dejando este margen: si no, la última quedaba pegada al borde y
+     su contador se veía cortado. */
+  scroll-padding-inline: 1rem;
+}
+.scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* Papelito de nota manuscrita para el muro de mensajes. */
+.nota {
+  background: linear-gradient(170deg, #fffdf8, #fdf6e9);
+  border: 1px solid rgba(43, 33, 24, 0.08);
+  box-shadow: var(--shadow-soft);
+}
+
+.text-balance {
+  text-wrap: balance;
 }

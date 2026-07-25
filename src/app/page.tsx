@@ -11,6 +11,8 @@ import {
   ArrowRight,
   Play,
   Lock,
+  Target,
+  PenLine,
 } from "lucide-react";
 
 const FEATURES = [
@@ -20,6 +22,16 @@ const FEATURES = [
     text: "Tus invitados escanean o abren un enlace y suben fotos al momento — sin instalar nada ni crear cuenta.",
   },
   {
+    icon: Target,
+    title: "Retos fotográficos",
+    text: "Propón misiones («el brindis», «el mejor baile») y tus invitados las van completando. Nadie se queda sin saber qué fotografiar.",
+  },
+  {
+    icon: PenLine,
+    title: "Muro de mensajes",
+    text: "Dedicatorias escritas por los invitados, como un libro de firmas — y salen impresas en el Dotbook.",
+  },
+  {
     icon: Heart,
     title: "Reacciones y comentarios",
     text: "Todo el mundo puede reaccionar y dejar comentarios en cada foto, como en redes sociales.",
@@ -27,7 +39,7 @@ const FEATURES = [
   {
     icon: CalendarDays,
     title: "Organizado por días",
-    text: "El contenido se ordena solo por fecha, con una vista especial para revivir el evento día a día.",
+    text: "El contenido se ordena solo por fecha, con filtros por persona y una vista para revivir el evento día a día.",
   },
   {
     icon: ShieldCheck,

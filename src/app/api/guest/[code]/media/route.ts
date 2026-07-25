@@ -34,6 +34,7 @@ export async function GET(
       type: media.type,
       uploaderName: media.uploaderName,
       uploaderId: media.uploaderId,
+      challengeId: media.challengeId,
       approved: media.approved,
       takenAt: media.takenAt,
       createdAt: media.createdAt,
@@ -110,6 +111,7 @@ export async function POST(
     uploaderName?: string;
     uploaderId?: string;
     takenAt?: number;
+    challengeId?: string | null;
   };
 
   if (!body.url || !isAllowedBlobUrl(body.url)) {
@@ -124,6 +126,7 @@ export async function POST(
     uploaderName: body.uploaderName ?? null,
     uploaderId: body.uploaderId ?? null,
     takenAt: body.takenAt ?? null,
+    challengeId: body.challengeId ?? null,
     approved: !album.moderationEnabled,
   });
 

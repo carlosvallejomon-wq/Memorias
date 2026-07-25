@@ -1,45 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import {
   Camera,
   CalendarDays,
+  Heart,
   LayoutGrid,
   X,
-  Trash2,
   Hourglass,
-  Sprout,
+  Images,
   MessageCircle,
+  PenLine,
   Play,
   Loader2,
+  Sparkles,
+  Target,
   Upload,
-  ChevronLeft,
+  User,
+  Users,
+  Video,
 } from "lucide-react";
 import { computeJustifiedRows, useElementWidth } from "@/lib/justified-layout";
+import {
+  type ChallengeItem,
+  type MediaItem,
+  avatarColor,
+  initial,
+  reactionTotal,
+} from "@/lib/guest-types";
+import { GuestChallenges } from "@/components/GuestChallenges";
+import { GuestLightbox } from "@/components/GuestLightbox";
+import { GuestMessageWall } from "@/components/GuestMessageWall";
 
-type MediaItem = {
-  id: string;
-  url: string;
-  type: "image" | "video";
-  uploaderName: string | null;
-  uploaderId: string | null;
-  approved: boolean;
-  takenAt: string | null;
-  createdAt: string;
-  commentCount: number;
-  reactions: Record<string, number>;
-  myReactions: string[];
-};
-
-type Comment = {
-  id: string;
-  authorName: string | null;
-  body: string;
-  createdAt: string;
-};
-
-const EMOJIS = ["❤️", "😂", "😮", "👏"];
+type View = "galeria" | "dias" | "retos" | "mensajes";
+type Filter = "todos" | "mias" | "videos" | "queridas";
 
 function useLocalValue(key: string, generate?: () => string) {
   const [value, setValue] = useState("");
@@ -92,11 +87,18 @@ export function GuestAlbum({
   const [guestName, setGuestName] = useLocalValue("mv_guest_name");
   const [askName, setAskName] = useState(false);
   const [items, setItems] = useState<MediaItem[] | null>(null);
-  const [view, setView] = useState<"galeria" | "dias">("galeria");
+  const [challenges, setChallenges] = useState<ChallengeItem[] | null>(null);
+  const [messageCount, setMessageCount] = useState<number | null>(null);
+  const [view, setView] = useState<View>("galeria");
+  const [filter, setFilter] = useState<Filter>("todos");
+  const [person, setPerson] = useState<string | null>(null);
+  const [challengeFilter, setChallengeFilter] = useState<string | null>(null);
   const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
-  const [selected, setSelected] = useState<MediaItem | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
   const [pendingDate, setPendingDate] = useState(eventDate ?? "");
+  const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(null);
+  const nextChallengeId = useRef<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const [galleryRef, galleryWidth] = useElementWidth<HTMLDivElement>();
@@ -113,15 +115,26 @@ export function GuestAlbum({
     if (res.ok) {
       const data = (await res.json()) as { items: MediaItem[] };
       setItems(data.items);
-      setSelected((prev) =>
-        prev ? (data.items.find((i) => i.id === prev.id) ?? null) : null,
-      );
     }
   }, [code, guestId]);
+
+  const refreshChallenges = useCallback(async () => {
+    const res = await fetch(`/api/guest/${code}/challenges`);
+    if (res.ok) {
+      const data = (await res.json()) as { items: ChallengeItem[] };
+      setChallenges(data.items);
+    } else {
+      setChallenges([]);
+    }
+  }, [code]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    refreshChallenges();
+  }, [refreshChallenges]);
 
   useEffect(() => {
     if (guestId && !localStorage.getItem("mv_guest_name_asked")) {
@@ -129,13 +142,68 @@ export function GuestAlbum({
     }
   }, [guestId]);
 
+  const all = items ?? [];
+  const challengeById = useMemo(
+    () => new Map((challenges ?? []).map((c) => [c.id, c])),
+    [challenges],
+  );
+
+  // Personas que han subido algo, para poder filtrar «lo que trajo la tía
+  // Marta» sin buscar a mano entre cientos de fotos.
+  const people = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const it of all) {
+      const n = it.uploaderName?.trim();
+      if (n) counts.set(n, (counts.get(n) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([n, count]) => ({ name: n, count }));
+  }, [all]);
+
+  const mineCount = all.filter((i) => !!guestId && i.uploaderId === guestId).length;
+  const videoCount = all.filter((i) => i.type === "video").length;
+
+  // Lista que se está mostrando: sobre ella actúan también las flechas del
+  // visor, para que «siguiente» signifique lo mismo que se ve en pantalla.
+  const visible = useMemo(() => {
+    let list = all;
+    if (challengeFilter) list = list.filter((i) => i.challengeId === challengeFilter);
+    if (person) list = list.filter((i) => i.uploaderName?.trim() === person);
+    if (filter === "mias") list = list.filter((i) => !!guestId && i.uploaderId === guestId);
+    else if (filter === "videos") list = list.filter((i) => i.type === "video");
+    else if (filter === "queridas")
+      list = [...list].sort(
+        (a, b) =>
+          reactionTotal(b) + b.commentCount - (reactionTotal(a) + a.commentCount),
+      );
+    return list;
+  }, [all, challengeFilter, person, filter, guestId]);
+
+  const selectedIndex = selectedId ? visible.findIndex((i) => i.id === selectedId) : -1;
+  const selected = selectedIndex >= 0 ? visible[selectedIndex] : null;
+
+  // Si la foto abierta desaparece del filtro (o se borra), se cierra el visor
+  // en vez de quedarse en un estado imposible.
+  useEffect(() => {
+    if (selectedId && selectedIndex < 0) setSelectedId(null);
+  }, [selectedId, selectedIndex]);
+
+  function askForFiles(challengeId: string | null) {
+    nextChallengeId.current = challengeId;
+    fileInput.current?.click();
+  }
+
   function selectFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
+    setPendingChallengeId(nextChallengeId.current);
     setPendingFiles(Array.from(files));
   }
 
   function cancelUpload() {
     setPendingFiles(null);
+    setPendingChallengeId(null);
+    nextChallengeId.current = null;
     if (fileInput.current) fileInput.current.value = "";
   }
 
@@ -145,7 +213,10 @@ export function GuestAlbum({
     // Si el invitado elige una fecha, se aplica a todo el lote (lo normal es
     // subir varias fotos del mismo momento a la vez). Si la deja en blanco,
     // se usa la fecha del propio archivo como respaldo.
-    const overrideTakenAt = pendingDate ? new Date(`${pendingDate}T12:00:00`).getTime() : null;
+    const overrideTakenAt = pendingDate
+      ? new Date(`${pendingDate}T12:00:00`).getTime()
+      : null;
+    const challengeId = pendingChallengeId;
     setPendingFiles(null);
     setUploading({ done: 0, total: list.length });
     for (const file of list) {
@@ -159,6 +230,7 @@ export function GuestAlbum({
             uploaderName: guestName || null,
             uploaderId: guestId || null,
             takenAt,
+            challengeId,
           }),
         });
         await fetch(`/api/guest/${code}/media`, {
@@ -171,6 +243,7 @@ export function GuestAlbum({
             uploaderName: guestName || null,
             uploaderId: guestId || null,
             takenAt,
+            challengeId,
           }),
         });
       } catch (err) {
@@ -181,8 +254,10 @@ export function GuestAlbum({
       setUploading((u) => (u ? { ...u, done: u.done + 1 } : u));
     }
     setUploading(null);
+    setPendingChallengeId(null);
+    nextChallengeId.current = null;
     if (fileInput.current) fileInput.current.value = "";
-    await refresh();
+    await Promise.all([refresh(), refreshChallenges()]);
   }
 
   async function toggleReaction(item: MediaItem, emoji: string) {
@@ -202,7 +277,6 @@ export function GuestAlbum({
             },
           };
     setItems((prev) => (prev ? prev.map(patch) : prev));
-    setSelected((prev) => (prev ? patch(prev) : prev));
     await fetch(`/api/media/${item.id}/reactions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -213,13 +287,14 @@ export function GuestAlbum({
   async function deleteOwn(item: MediaItem) {
     if (!confirm("¿Borrar esta foto que subiste?")) return;
     setItems((prev) => (prev ? prev.filter((i) => i.id !== item.id) : prev));
-    setSelected(null);
+    setSelectedId(null);
     await fetch(`/api/media/${item.id}?guestId=${encodeURIComponent(guestId)}`, {
       method: "DELETE",
     });
+    refreshChallenges();
   }
 
-  const grouped = (items ?? []).reduce<Map<string, MediaItem[]>>((map, it) => {
+  const grouped = visible.reduce<Map<string, MediaItem[]>>((map, it) => {
     const key = dayKey(itemDate(it));
     map.set(key, [...(map.get(key) ?? []), it]);
     return map;
@@ -231,22 +306,37 @@ export function GuestAlbum({
   // ve ordenada aunque las fotos y vídeos no tengan todos el mismo tamaño.
   const rowHeight = galleryWidth < 480 ? 110 : 160;
   const gap = galleryWidth < 480 ? 6 : 8;
-  const galleryRows = computeJustifiedRows(items ?? [], ratios, galleryWidth, rowHeight, gap);
+  const galleryRows = computeJustifiedRows(visible, ratios, galleryWidth, rowHeight, gap);
+
+  const dayCount = new Set(all.map((i) => dayKey(itemDate(i)))).size;
+  const peopleCount = new Set(all.map((i) => i.uploaderId || i.uploaderName || "?")).size;
+  const isGallery = view === "galeria" || view === "dias";
+
+  const tabs: { id: View; icon: typeof LayoutGrid; label: string; badge?: number | null }[] = [
+    { id: "galeria", icon: LayoutGrid, label: "Galería" },
+    { id: "dias", icon: CalendarDays, label: "Días" },
+    {
+      id: "retos",
+      icon: Target,
+      label: "Retos",
+      badge: challenges && challenges.length > 0 ? challenges.length : null,
+    },
+    { id: "mensajes", icon: PenLine, label: "Mensajes", badge: messageCount || null },
+  ];
+
+  const activeChallenge = challengeFilter ? challengeById.get(challengeFilter) : null;
 
   return (
-    <main className="mx-auto max-w-4xl px-4 pb-28 pt-6">
-      <a
-        href="/"
-        className="inline-flex items-center gap-1 text-sm text-tinta/40 transition hover:text-tinta/70"
-      >
-        <ChevronLeft size={15} /> Memorias Vivas
-      </a>
-      <header className="text-center">
-        <p className="flex items-center justify-center gap-1.5 text-sm text-tinta/50">
+    <main className="mx-auto max-w-4xl px-4 pb-28">
+      <header className="pt-6 text-center">
+        <a
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"
+        >
           <Camera size={14} /> Memorias Vivas
-        </p>
+        </a>
         <h1
-          className="mt-1 text-3xl font-semibold sm:text-4xl"
+          className="text-balance mt-2 text-3xl font-semibold sm:text-4xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
           {name}
@@ -260,154 +350,345 @@ export function GuestAlbum({
             })}
           </p>
         )}
+        {all.length > 0 && (
+          <p className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-tinta/50">
+            <span className="flex items-center gap-1.5">
+              <Images size={14} /> {all.length} {all.length === 1 ? "recuerdo" : "recuerdos"}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Users size={14} /> {peopleCount} {peopleCount === 1 ? "persona" : "personas"}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CalendarDays size={14} /> {dayCount} {dayCount === 1 ? "día" : "días"}
+            </span>
+          </p>
+        )}
       </header>
 
-      <div className="mt-5 flex items-center justify-center gap-2">
-        <button
-          onClick={() => setView("galeria")}
-          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-            view === "galeria" ? "bg-tinta text-white shadow-soft" : "bg-arena text-tinta/70"
-          }`}
-        >
-          <LayoutGrid size={15} /> Galería
-        </button>
-        <button
-          onClick={() => setView("dias")}
-          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-            view === "dias" ? "bg-tinta text-white shadow-soft" : "bg-arena text-tinta/70"
-          }`}
-        >
-          <CalendarDays size={15} /> Por días
-        </button>
-      </div>
+      {/* Barra de pestañas pegajosa: en el móvil se navega con el pulgar sin
+          tener que volver arriba del todo. */}
+      <nav className="sticky top-0 z-20 -mx-4 mt-5 border-b border-tinta/8 bg-crema/85 px-4 py-2.5 backdrop-blur-md">
+        <div className="scroll-x flex items-center gap-2">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setView(t.id)}
+              className={`chip ${view === t.id ? "chip-active" : ""}`}
+            >
+              <t.icon size={15} /> {t.label}
+              {t.badge ? (
+                <span
+                  className={`rounded-full px-1.5 text-xs ${
+                    view === t.id ? "bg-white/20" : "bg-tinta/10"
+                  }`}
+                >
+                  {t.badge}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </nav>
 
-      <div ref={galleryRef}>
-        {items === null ? (
-          <p className="mt-12 text-center text-tinta/50">Cargando recuerdos…</p>
-        ) : items.length === 0 ? (
-          <div className="mt-12 flex flex-col items-center gap-2 text-center text-tinta/60">
-            <Sprout size={36} className="text-teja/60" />
-            <p>
-              Este álbum está esperando su primer recuerdo.
-              <br />
-              ¡Sube tú la primera foto!
-            </p>
+      {/* Filtros de la galería */}
+      {isGallery && all.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <div className="scroll-x flex items-center gap-2">
+            <button
+              onClick={() => setFilter("todos")}
+              className={`chip ${filter === "todos" ? "chip-active" : ""}`}
+            >
+              <Sparkles size={14} /> Todo
+            </button>
+            {mineCount > 0 && (
+              <button
+                onClick={() => setFilter("mias")}
+                className={`chip ${filter === "mias" ? "chip-active" : ""}`}
+              >
+                <User size={14} /> Mías ({mineCount})
+              </button>
+            )}
+            {videoCount > 0 && (
+              <button
+                onClick={() => setFilter("videos")}
+                className={`chip ${filter === "videos" ? "chip-active" : ""}`}
+              >
+                <Video size={14} /> Vídeos ({videoCount})
+              </button>
+            )}
+            <button
+              onClick={() => setFilter("queridas")}
+              className={`chip ${filter === "queridas" ? "chip-active" : ""}`}
+            >
+              <Heart size={14} /> Más queridas
+            </button>
           </div>
-        ) : view === "galeria" ? (
-          <div className="mt-6 flex flex-col" style={{ gap }}>
-            {galleryRows.map((row, i) => (
-              <div key={i} className="flex" style={{ gap }}>
-                {row.map(({ item, width, height }) => (
-                  <Thumb
-                    key={item.id}
-                    item={item}
-                    width={width}
-                    height={height}
-                    mine={!!guestId && item.uploaderId === guestId}
-                    onClick={() => setSelected(item)}
-                    onRatio={(ratio) => handleRatio(item.id, ratio)}
-                  />
-                ))}
+
+          {people.length > 1 && (
+            <div className="scroll-x flex items-center gap-2">
+              {people.map((p) => (
+                <button
+                  key={p.name}
+                  onClick={() => setPerson(person === p.name ? null : p.name)}
+                  className={`chip ${person === p.name ? "chip-active" : ""}`}
+                >
+                  <span
+                    className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    style={{ backgroundColor: avatarColor(p.name) }}
+                  >
+                    {initial(p.name)}
+                  </span>
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeChallenge && (
+            <button
+              onClick={() => setChallengeFilter(null)}
+              className="chip chip-active"
+            >
+              {activeChallenge.emoji || "📸"} {activeChallenge.title}
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      )}
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        hidden
+        onChange={(e) => selectFiles(e.target.files)}
+      />
+
+      {view === "retos" ? (
+        <GuestChallenges
+          challenges={challenges}
+          onUpload={(c) => askForFiles(c.id)}
+          onSee={(c) => {
+            setChallengeFilter(c.id);
+            setFilter("todos");
+            setPerson(null);
+            setView("galeria");
+          }}
+        />
+      ) : view === "mensajes" ? (
+        <GuestMessageWall
+          code={code}
+          guestId={guestId}
+          guestName={guestName}
+          onCountChange={setMessageCount}
+        />
+      ) : (
+        <div ref={galleryRef}>
+          {items === null ? (
+            // Esqueleto de la galería: se percibe más rápido que un «Cargando…».
+            <div className="mt-6 space-y-2">
+              <div className="flex gap-2">
+                <div className="skeleton h-32 flex-1 rounded-xl" />
+                <div className="skeleton h-32 w-1/3 rounded-xl" />
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-6 space-y-8">
-            {dayKeys.map((key) => {
-              const dayItems = grouped.get(key)!;
-              const dayRows = computeJustifiedRows(dayItems, ratios, galleryWidth, rowHeight, gap);
-              return (
-                <section key={key}>
-                  <h2 className="text-sm font-semibold capitalize text-tinta/70">
-                    {dayLabel(key)}{" "}
-                    <span className="font-normal text-tinta/40">· {dayItems.length}</span>
-                  </h2>
-                  <div className="mt-2 flex flex-col" style={{ gap }}>
-                    {dayRows.map((row, i) => (
-                      <div key={i} className="flex" style={{ gap }}>
-                        {row.map(({ item, width, height }) => (
-                          <Thumb
-                            key={item.id}
-                            item={item}
-                            width={width}
-                            height={height}
-                            mine={!!guestId && item.uploaderId === guestId}
-                            onClick={() => setSelected(item)}
-                            onRatio={(ratio) => handleRatio(item.id, ratio)}
-                          />
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              <div className="flex gap-2">
+                <div className="skeleton h-32 w-1/4 rounded-xl" />
+                <div className="skeleton h-32 flex-1 rounded-xl" />
+              </div>
+            </div>
+          ) : all.length === 0 ? (
+            <div className="glass animate-fade-in mt-8 flex flex-col items-center gap-3 rounded-2xl p-8 text-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-teja/25 to-teja/5 text-teja">
+                <Camera size={28} />
+              </span>
+              <h2
+                className="text-xl font-semibold"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                Este álbum espera su primer recuerdo
+              </h2>
+              <p className="max-w-sm text-tinta/60">
+                Sube una foto o un vídeo desde tu móvil. No hace falta instalar
+                nada ni crear ninguna cuenta.
+              </p>
+              <button
+                onClick={() => askForFiles(null)}
+                className="btn btn-primary shimmer mt-1"
+              >
+                <Camera size={17} /> Subir la primera foto
+              </button>
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="mt-10 flex flex-col items-center gap-3 text-center text-tinta/60">
+              <Images size={32} className="text-teja/50" />
+              <p>No hay recuerdos que encajen con este filtro.</p>
+              <button
+                onClick={() => {
+                  setFilter("todos");
+                  setPerson(null);
+                  setChallengeFilter(null);
+                }}
+                className="btn btn-soft"
+              >
+                Ver todo el álbum
+              </button>
+            </div>
+          ) : view === "galeria" ? (
+            <div className="mt-4 flex flex-col" style={{ gap }}>
+              {galleryRows.map((row, i) => (
+                <div key={i} className="flex" style={{ gap }}>
+                  {row.map(({ item, width, height }) => (
+                    <Thumb
+                      key={item.id}
+                      item={item}
+                      width={width}
+                      height={height}
+                      mine={!!guestId && item.uploaderId === guestId}
+                      challenge={item.challengeId ? challengeById.get(item.challengeId) : undefined}
+                      onClick={() => setSelectedId(item.id)}
+                      onRatio={(ratio) => handleRatio(item.id, ratio)}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 space-y-8">
+              {dayKeys.map((key) => {
+                const dayItems = grouped.get(key)!;
+                const dayRows = computeJustifiedRows(
+                  dayItems,
+                  ratios,
+                  galleryWidth,
+                  rowHeight,
+                  gap,
+                );
+                return (
+                  <section key={key}>
+                    <h2 className="flex items-center gap-2 text-sm font-semibold capitalize text-tinta/70">
+                      <span className="h-px flex-1 bg-tinta/10" />
+                      {dayLabel(key)}
+                      <span className="font-normal text-tinta/40">· {dayItems.length}</span>
+                      <span className="h-px flex-1 bg-tinta/10" />
+                    </h2>
+                    <div className="mt-3 flex flex-col" style={{ gap }}>
+                      {dayRows.map((row, i) => (
+                        <div key={i} className="flex" style={{ gap }}>
+                          {row.map(({ item, width, height }) => (
+                            <Thumb
+                              key={item.id}
+                              item={item}
+                              width={width}
+                              height={height}
+                              mine={!!guestId && item.uploaderId === guestId}
+                              challenge={
+                                item.challengeId ? challengeById.get(item.challengeId) : undefined
+                              }
+                              onClick={() => setSelectedId(item.id)}
+                              onRatio={(ratio) => handleRatio(item.id, ratio)}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Botón flotante de subida */}
-      <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-crema via-crema/90 to-transparent px-4 pb-5 pt-8">
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/*,video/*"
-          multiple
-          hidden
-          onChange={(e) => selectFiles(e.target.files)}
-        />
-        <button
-          disabled={!!uploading}
-          onClick={() => fileInput.current?.click()}
-          className="shimmer flex items-center gap-2 rounded-full bg-teja px-8 py-3.5 text-lg font-semibold text-white shadow-lift transition hover:bg-teja-oscuro disabled:opacity-70"
-        >
-          {uploading ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              Subiendo {Math.min(uploading.done + 1, uploading.total)} de {uploading.total}…
-            </>
-          ) : (
-            <>
-              <Camera size={18} /> Subir fotos o vídeos
-            </>
-          )}
-        </button>
-      </div>
+      {view !== "mensajes" && (
+        <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-crema via-crema/90 to-transparent px-4 pb-5 pt-8">
+          <button
+            disabled={!!uploading}
+            onClick={() => askForFiles(null)}
+            className="btn btn-primary shimmer relative overflow-hidden px-8 py-3.5 text-lg"
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                Subiendo {Math.min(uploading.done + 1, uploading.total)} de{" "}
+                {uploading.total}…
+                <span
+                  className="absolute bottom-0 left-0 h-1 bg-white/70 transition-[width] duration-300"
+                  style={{ width: `${(uploading.done / uploading.total) * 100}%` }}
+                />
+              </>
+            ) : (
+              <>
+                <Camera size={18} /> Subir fotos o vídeos
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
-      {/* Confirmación antes de subir: permite corregir la fecha, para que el
-          Dotbook y la vista por días queden bien organizados aunque el
-          archivo no traiga la fecha real (frecuente en fotos reenviadas por
-          WhatsApp). */}
+      {/* Confirmación antes de subir: permite corregir la fecha y elegir a qué
+          reto pertenece la foto, para que el Dotbook y la vista por días
+          queden bien organizados aunque el archivo no traiga la fecha real
+          (frecuente en fotos reenviadas por WhatsApp). */}
       {pendingFiles && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
           <div className="glass animate-fade-in w-full max-w-sm rounded-2xl p-6">
-            <h2 className="flex items-center gap-2 text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+            <h2
+              className="flex items-center gap-2 text-lg font-semibold"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
               <Upload size={18} className="text-teja" />
-              {pendingFiles.length} {pendingFiles.length === 1 ? "archivo" : "archivos"}
+              {pendingFiles.length}{" "}
+              {pendingFiles.length === 1 ? "archivo" : "archivos"}
             </h2>
-            <label className="mt-4 block text-sm font-semibold text-tinta/70">
+
+            {challenges && challenges.length > 0 && (
+              <>
+                <label
+                  htmlFor="mv-reto"
+                  className="mt-4 block text-sm font-semibold text-tinta/70"
+                >
+                  ¿Es para algún reto?
+                </label>
+                <select
+                  id="mv-reto"
+                  value={pendingChallengeId ?? ""}
+                  onChange={(e) => setPendingChallengeId(e.target.value || null)}
+                  className="field mt-2"
+                >
+                  <option value="">Ninguno en concreto</option>
+                  {challenges.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {(c.emoji || "📸") + " " + c.title}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+
+            <label
+              htmlFor="mv-fecha"
+              className="mt-4 block text-sm font-semibold text-tinta/70"
+            >
               ¿De qué día son estas fotos?
             </label>
             <p className="mt-0.5 text-xs text-tinta/50">
-              Opcional, pero ayuda a que se organicen bien en la galería y en el Dotbook.
+              Opcional, pero ayuda a que se organicen bien en la galería y en el
+              Dotbook.
             </p>
             <input
+              id="mv-fecha"
               type="date"
               value={pendingDate}
               onChange={(e) => setPendingDate(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
+              className="field mt-2"
             />
             <div className="mt-4 flex gap-2">
-              <button
-                onClick={cancelUpload}
-                className="flex-1 rounded-lg border border-tinta/15 bg-white/70 py-2.5 font-semibold text-tinta/70 transition hover:bg-white"
-              >
+              <button onClick={cancelUpload} className="btn btn-soft flex-1">
                 Cancelar
               </button>
-              <button
-                onClick={confirmUpload}
-                className="shimmer flex-1 rounded-lg bg-teja py-2.5 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro"
-              >
+              <button onClick={confirmUpload} className="btn btn-primary shimmer flex-1">
                 Subir
               </button>
             </div>
@@ -419,7 +700,10 @@ export function GuestAlbum({
       {askName && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
           <div className="glass animate-fade-in w-full max-w-sm rounded-2xl p-6">
-            <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+            <h2
+              className="text-lg font-semibold"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
               ¡Hola! 👋
             </h2>
             <p className="mt-1 text-sm text-tinta/60">
@@ -439,12 +723,9 @@ export function GuestAlbum({
                 onChange={(e) => setGuestName(e.target.value)}
                 placeholder="Tu nombre"
                 maxLength={100}
-                className="mt-4 w-full rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
+                className="field mt-4"
               />
-              <button
-                type="submit"
-                className="shimmer mt-3 w-full rounded-lg bg-teja py-2.5 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro"
-              >
+              <button type="submit" className="btn btn-primary shimmer mt-3 w-full">
                 Continuar
               </button>
             </form>
@@ -453,11 +734,24 @@ export function GuestAlbum({
       )}
 
       {selected && (
-        <Lightbox
+        <GuestLightbox
           item={selected}
+          index={selectedIndex}
+          total={visible.length}
           guestId={guestId}
           guestName={guestName}
-          onClose={() => setSelected(null)}
+          challengeLabel={
+            selected.challengeId
+              ? (challengeById.get(selected.challengeId)?.title ?? null)
+              : null
+          }
+          onClose={() => setSelectedId(null)}
+          onPrev={() =>
+            setSelectedId(
+              visible[(selectedIndex - 1 + visible.length) % visible.length].id,
+            )
+          }
+          onNext={() => setSelectedId(visible[(selectedIndex + 1) % visible.length].id)}
           onReact={(emoji) => toggleReaction(selected, emoji)}
           onDelete={() => deleteOwn(selected)}
           onCommentAdded={refresh}
@@ -470,6 +764,7 @@ export function GuestAlbum({
 function Thumb({
   item,
   mine,
+  challenge,
   width,
   height,
   onClick,
@@ -477,12 +772,13 @@ function Thumb({
 }: {
   item: MediaItem;
   mine: boolean;
+  challenge?: ChallengeItem;
   width: number;
   height: number;
   onClick: () => void;
   onRatio: (ratio: number) => void;
 }) {
-  const reactionTotal = Object.values(item.reactions).reduce((a, b) => a + b, 0);
+  const total = reactionTotal(item);
   const pending = !item.approved;
   return (
     <button
@@ -518,23 +814,31 @@ function Thumb({
           className="h-full w-full object-cover"
           onLoad={(e) => {
             const img = e.currentTarget;
-            if (img.naturalWidth && img.naturalHeight) onRatio(img.naturalWidth / img.naturalHeight);
+            if (img.naturalWidth && img.naturalHeight)
+              onRatio(img.naturalWidth / img.naturalHeight);
           }}
         />
       )}
-      {pending && (
+      {pending ? (
         <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-tinta/80 px-2 py-0.5 text-[10px] font-semibold text-white">
           <Hourglass size={10} /> Pendiente
         </span>
-      )}
-      {mine && !pending && (
+      ) : mine ? (
         <span className="absolute left-1.5 top-1.5 rounded-full bg-teja/90 px-2 py-0.5 text-[10px] font-semibold text-white">
           Tuya
         </span>
+      ) : null}
+      {challenge && (
+        <span
+          title={challenge.title}
+          className="absolute right-1.5 bottom-1.5 rounded-full bg-black/50 px-1.5 py-0.5 text-[11px]"
+        >
+          {challenge.emoji || "📸"}
+        </span>
       )}
-      {(reactionTotal > 0 || item.commentCount > 0) && (
+      {(total > 0 || item.commentCount > 0) && (
         <span className="absolute bottom-1 left-1.5 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white">
-          {reactionTotal > 0 && <span>❤️ {reactionTotal}</span>}
+          {total > 0 && <span>❤️ {total}</span>}
           {item.commentCount > 0 && (
             <span className="flex items-center gap-0.5">
               <MessageCircle size={11} /> {item.commentCount}
@@ -543,181 +847,5 @@ function Thumb({
         </span>
       )}
     </button>
-  );
-}
-
-function Lightbox({
-  item,
-  guestId,
-  guestName,
-  onClose,
-  onReact,
-  onDelete,
-  onCommentAdded,
-}: {
-  item: MediaItem;
-  guestId: string;
-  guestName: string;
-  onClose: () => void;
-  onReact: (emoji: string) => void;
-  onDelete: () => void;
-  onCommentAdded: () => void;
-}) {
-  const [commentList, setCommentList] = useState<Comment[] | null>(null);
-  const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
-  const mine = !!guestId && item.uploaderId === guestId;
-
-  useEffect(() => {
-    fetch(`/api/media/${item.id}/comments`)
-      .then((r) => r.json())
-      .then((data: { items: Comment[] }) => setCommentList(data.items))
-      .catch(() => setCommentList([]));
-  }, [item.id]);
-
-  async function sendComment(e: React.FormEvent) {
-    e.preventDefault();
-    const text = draft.trim();
-    if (!text || sending) return;
-    setSending(true);
-    try {
-      const res = await fetch(`/api/media/${item.id}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ authorName: guestName || null, body: text }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { item: Comment };
-        setCommentList((prev) => [...(prev ?? []), data.item]);
-        setDraft("");
-        onCommentAdded();
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  return (
-    <div
-      className="animate-fade-in fixed inset-0 z-30 flex flex-col bg-black/90"
-      onClick={onClose}
-    >
-      <div className="flex items-center justify-between p-3 text-white">
-        <span className="flex items-center gap-2 text-sm opacity-80">
-          {item.uploaderName ? `Subida por ${item.uploaderName}` : "Anónimo"}
-          {!item.approved && (
-            <span className="flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-xs">
-              <Hourglass size={11} /> Pendiente de aprobación
-            </span>
-          )}
-        </span>
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          {mine && (
-            <button
-              onClick={onDelete}
-              className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm transition hover:bg-red-500/80"
-            >
-              <Trash2 size={14} /> Borrar
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm transition hover:bg-white/25"
-          >
-            <X size={14} /> Cerrar
-          </button>
-        </div>
-      </div>
-
-      <div
-        className="flex min-h-0 flex-1 items-center justify-center px-2"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {item.type === "video" ? (
-          <video
-            src={item.url}
-            controls
-            autoPlay
-            playsInline
-            className="max-h-full max-w-full rounded-lg"
-          />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.url}
-            alt=""
-            className="max-h-full max-w-full rounded-lg object-contain"
-          />
-        )}
-      </div>
-
-      <div
-        className="glass max-h-[45%] overflow-y-auto rounded-t-2xl p-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-center gap-2">
-          {EMOJIS.map((emoji) => {
-            const count = item.reactions[emoji] ?? 0;
-            const mineReacted = item.myReactions.includes(emoji);
-            return (
-              <button
-                key={emoji}
-                onClick={() => onReact(emoji)}
-                disabled={!guestId}
-                className={`rounded-full border px-3.5 py-1.5 text-lg transition ${
-                  mineReacted
-                    ? "border-teja bg-teja/10 shadow-soft"
-                    : "border-tinta/15 bg-white/70 hover:bg-white"
-                }`}
-              >
-                {emoji}
-                {count > 0 && (
-                  <span className="ml-1 text-sm text-tinta/60">{count}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-4">
-          {commentList === null ? (
-            <p className="text-center text-sm text-tinta/40">
-              Cargando comentarios…
-            </p>
-          ) : commentList.length === 0 ? (
-            <p className="flex items-center justify-center gap-1.5 text-center text-sm text-tinta/40">
-              <MessageCircle size={14} /> Sé el primero en comentar
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {commentList.map((c) => (
-                <li key={c.id} className="rounded-lg bg-white/70 px-3 py-2 text-sm">
-                  <span className="font-semibold">
-                    {c.authorName || "Anónimo"}:
-                  </span>{" "}
-                  {c.body}
-                </li>
-              ))}
-            </ul>
-          )}
-          <form onSubmit={sendComment} className="mt-3 flex gap-2">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Escribe un comentario…"
-              maxLength={1000}
-              className="flex-1 rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
-            />
-            <button
-              type="submit"
-              disabled={sending || !draft.trim()}
-              className="shimmer rounded-lg bg-teja px-4 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-teja-oscuro disabled:opacity-50"
-            >
-              Enviar
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
   );
 }
