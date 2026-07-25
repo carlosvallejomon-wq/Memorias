@@ -262,9 +262,18 @@ function dayKey(d: Date): string {
 type Album = typeof albums.$inferSelect;
 type MediaItem = typeof media.$inferSelect;
 
+export type DotbookMessage = {
+  authorName: string | null;
+  body: string;
+  createdAt: Date;
+};
+
 export type DotbookExtras = {
   commentsByMedia: Map<string, string[]>;
   reactionCountByMedia: Map<string, number>;
+  // Dedicatorias del muro de mensajes: se imprimen en sus propias páginas,
+  // justo antes del cierre del libro.
+  messages: DotbookMessage[];
   shareUrl: string;
   // Origen (protocolo+host) para poder buscar los diseños de portada reales
   // en /public/dotbook-templates — solo hace falta para los estilos
@@ -286,6 +295,31 @@ function drawCentered(
   page.drawText(text, { x: (PAGE_WIDTH - width) / 2, y, size, font, color });
 }
 
+// Parte un texto en líneas que caben en `maxWidth`, respetando los saltos de
+// línea que el autor haya escrito a mano.
+function wrapLines(
+  text: string,
+  maxWidth: number,
+  font: PDFFont,
+  size: number,
+): string[] {
+  const lines: string[] = [];
+  for (const paragraph of text.split(/\r?\n/)) {
+    let line = "";
+    for (const word of paragraph.split(" ")) {
+      const test = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(test, size) > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+
 // Envuelve texto a un ancho máximo; devuelve la posición y tras la última línea.
 function drawWrapped(
   page: PDFPage,
@@ -299,19 +333,7 @@ function drawWrapped(
   color: RGB,
   align: "left" | "center" = "left",
 ): number {
-  const words = text.split(" ");
-  let line = "";
-  const lines: string[] = [];
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
-    if (font.widthOfTextAtSize(test, size) > maxWidth && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = test;
-    }
-  }
-  lines.push(line);
+  const lines = wrapLines(text, maxWidth, font, size);
   lines.forEach((l, i) => {
     const lx = align === "center" ? x - font.widthOfTextAtSize(l, size) / 2 : x;
     page.drawText(l, { x: lx, y: y - i * lineHeight, size, font, color });
@@ -929,6 +951,113 @@ async function addPhotoPage(
   drawCentered(page, `${index} / ${total}`, 32, fonts.regular, 9, palette.inkFaint);
 }
 
+// Páginas de dedicatorias: los mensajes del muro impresos como notas, con la
+// firma de quien los escribió. Es la parte "de puño y letra" del libro, la que
+// no sale de ninguna foto.
+function addMessagePages(
+  pdf: PDFDocument,
+  fonts: Fonts,
+  messages: DotbookMessage[],
+  palette: Palette,
+) {
+  const cardW = PAGE_WIDTH - MARGIN * 2;
+  const textW = cardW - 44;
+  const lineHeight = 16;
+  const bodySize = 11.5;
+  const bottomLimit = MARGIN + 30;
+
+  let page: PDFPage | null = null;
+  let y = 0;
+
+  function startPage(first: boolean) {
+    page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+    drawBackground(page, palette);
+    y = PAGE_HEIGHT - MARGIN - 30;
+    drawCentered(
+      page,
+      first ? "Dedicatorias" : "Dedicatorias (continuación)",
+      y,
+      fonts.bold,
+      first ? 26 : 16,
+      palette.ink,
+    );
+    y -= first ? 20 : 16;
+    drawDivider(page, y, palette.accent);
+    y -= 34;
+  }
+
+  startPage(true);
+
+  for (const message of messages) {
+    const lines = wrapLines(message.body.slice(0, 900), textW, fonts.italic, bodySize);
+    const cardH = lines.length * lineHeight + 54;
+
+    if (y - cardH < bottomLimit) startPage(false);
+    const p = page!;
+
+    // Nota: papel claro con una pestaña de color al costado.
+    p.drawRectangle({
+      x: MARGIN + 4,
+      y: y - cardH - 4,
+      width: cardW,
+      height: cardH,
+      color: rgb(0.2, 0.17, 0.12),
+      opacity: 0.1,
+    });
+    p.drawRectangle({
+      x: MARGIN,
+      y: y - cardH,
+      width: cardW,
+      height: cardH,
+      color: rgb(1, 1, 0.995),
+      borderColor: palette.accent,
+      borderWidth: 0.8,
+    });
+    p.drawRectangle({
+      x: MARGIN,
+      y: y - cardH,
+      width: 5,
+      height: cardH,
+      color: palette.accent,
+      opacity: 0.75,
+    });
+
+    // Comilla de apertura, a modo de adorno.
+    p.drawText("“", {
+      x: MARGIN + 14,
+      y: y - 30,
+      size: 34,
+      font: fonts.bold,
+      color: palette.accent,
+      opacity: 0.35,
+    });
+
+    lines.forEach((line, i) => {
+      p.drawText(line, {
+        x: MARGIN + 30,
+        y: y - 26 - i * lineHeight,
+        size: bodySize,
+        font: fonts.italic,
+        color: palette.ink,
+      });
+    });
+
+    const signature = `— ${message.authorName?.trim() || "Anónimo"} · ${formatLongDate(
+      message.createdAt,
+    )}`;
+    const sigWidth = fonts.regular.widthOfTextAtSize(signature, 9.5);
+    p.drawText(signature, {
+      x: MARGIN + cardW - 18 - sigWidth,
+      y: y - cardH + 16,
+      size: 9.5,
+      font: fonts.regular,
+      color: palette.inkFaint,
+    });
+
+    y -= cardH + 18;
+  }
+}
+
 function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: PDFImage, palette: Palette) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bgClosing });
@@ -1014,6 +1143,10 @@ export async function buildDotbookPdf(
       i + 1,
       sorted.length,
     );
+  }
+
+  if (extras.messages.length > 0) {
+    addMessagePages(pdf, fonts, extras.messages, palette);
   }
 
   const closingQr = await embedQr(pdf, extras.shareUrl, 300);

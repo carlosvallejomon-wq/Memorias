@@ -29,10 +29,34 @@ repo, desplegada en **Vercel**, con:
   redirige a los invitados al handshake de Clerk y rompe la página.
 
 Rutas: `/` portada · `/dashboard` panel (crear/gestionar álbumes, QR, ZIP,
-Dotbook PDF) · `/a/[code]` página pública del invitado (galería, subida,
-vista por días, reacciones ❤️😂😮👏, comentarios). Los invitados se
-identifican con un UUID anónimo en localStorage (`mv_guest_id`) y un nombre
-opcional.
+Dotbook PDF, resumen del evento, retos, muro de mensajes) · `/a/[code]`
+página pública del invitado (galería, subida, vista por días, retos,
+mensajes, filtros, visor con navegación/descarga, reacciones ❤️😂😮👏,
+comentarios). Los invitados se identifican con un UUID anónimo en
+localStorage (`mv_guest_id`) y un nombre opcional.
+
+**Retos fotográficos** (tabla `challenges` + `media.challenge_id`): el
+organizador propone misiones ("el brindis", "el mejor baile") desde el panel,
+con una lista sugerida según el tipo de álbum (`SUGGESTED_CHALLENGES` en
+`dashboard/actions.ts`). El invitado sube directamente a un reto y la foto
+queda etiquetada; borrar un reto no borra las fotos (`ON DELETE SET NULL`).
+`registerMedia` valida que el reto pertenezca al álbum antes de asociarlo.
+
+**Muro de mensajes** (tabla `guestbook_entries`): dedicatorias sin foto. Cada
+invitado puede borrar solo la suya (`/api/guestbook/[entryId]` con su
+`guestId`); el organizador puede borrar cualquiera desde el panel. Se
+imprimen como páginas de "Dedicatorias" al final del Dotbook.
+
+**Estilos compartidos** (`globals.css`): clases `.btn`/`.btn-primary`/
+`.btn-soft`/`.btn-ghost`/`.btn-on-dark`, `.chip`, `.field`, `.skeleton`,
+`.nota`, `.scroll-x`, foco visible global y respeto de
+`prefers-reduced-motion`. Usarlas en pantallas nuevas en vez de repetir
+ristras de utilidades de Tailwind.
+
+Cuidado con `useElementWidth` (`src/lib/justified-layout.ts`): usa una ref de
+función a propósito, porque el contenedor de la galería se desmonta al
+cambiar de pestaña y con `useRef` + `useEffect` el observador se quedaba
+midiendo 0 y la galería salía vacía.
 
 **Dotbook digital** (`/api/albums/[id]/dotbook`, lógica en
 `src/lib/build-dotbook.ts`): genera un PDF con una página por recuerdo.
@@ -44,6 +68,10 @@ imprenta. Verificado end-to-end con un script que invoca `buildDotbookPdf`
 directamente contra Postgres local (sin pasar por Clerk) y renderizando el
 PDF resultante con el visor de Chromium vía Playwright, comprobando ambas
 rutas: imagen incrustada y QR de respaldo.
+
+Cada vez que se añada una tabla o columna hay que volver a visitar
+`/api/setup` en producción (el SQL es idempotente). Sin esa visita la app
+falla en cuanto toca las tablas nuevas — avisarlo siempre al usuario.
 
 Variables de entorno: `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`,
 `CLERK_SECRET_KEY`, `BLOB_READ_WRITE_TOKEN` (esta la inyecta Vercel al

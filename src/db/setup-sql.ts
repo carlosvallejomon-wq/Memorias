@@ -13,6 +13,15 @@ export const SETUP_STATEMENTS: string[] = [
   )`,
   `ALTER TABLE albums ADD COLUMN IF NOT EXISTS moderation_enabled boolean NOT NULL DEFAULT false`,
   `ALTER TABLE albums ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'evento'`,
+  `CREATE TABLE IF NOT EXISTS challenges (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    album_id uuid NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
+    title text NOT NULL,
+    emoji text,
+    position integer NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS challenges_album_idx ON challenges (album_id)`,
   `CREATE TABLE IF NOT EXISTS media (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     album_id uuid NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
@@ -27,6 +36,7 @@ export const SETUP_STATEMENTS: string[] = [
   )`,
   `ALTER TABLE media ADD COLUMN IF NOT EXISTS uploader_id text`,
   `ALTER TABLE media ADD COLUMN IF NOT EXISTS approved boolean NOT NULL DEFAULT true`,
+  `ALTER TABLE media ADD COLUMN IF NOT EXISTS challenge_id uuid REFERENCES challenges(id) ON DELETE SET NULL`,
   `CREATE INDEX IF NOT EXISTS media_album_idx ON media (album_id)`,
   `CREATE TABLE IF NOT EXISTS comments (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -44,4 +54,13 @@ export const SETUP_STATEMENTS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS reactions_unique_idx ON reactions (media_id, guest_id, emoji)`,
+  `CREATE TABLE IF NOT EXISTS guestbook_entries (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    album_id uuid NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
+    author_name text,
+    guest_id text,
+    body text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS guestbook_album_idx ON guestbook_entries (album_id)`,
 ];

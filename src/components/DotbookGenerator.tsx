@@ -57,7 +57,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
+        className="btn btn-soft shimmer px-4 py-2 text-sm"
       >
         <BookOpen size={16} /> Dotbook
       </button>
@@ -144,7 +144,8 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
               <Download size={16} /> Descargar Dotbook
             </a>
             <p className="mt-2 text-center text-xs text-tinta/50">
-              Un PDF con una página por cada foto y vídeo del álbum.
+              Un PDF con una página por cada foto y vídeo del álbum, y las
+              dedicatorias del muro de mensajes al final.
             </p>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { albums, comments, media, reactions } from "@/db/schema";
+import { albums, comments, guestbookEntries, media, reactions } from "@/db/schema";
 import { buildDotbookPdf, DOTBOOK_STYLES, type DotbookStyle } from "@/lib/build-dotbook";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +70,16 @@ export async function GET(
     reactionCountByMedia.set(r.mediaId, (reactionCountByMedia.get(r.mediaId) ?? 0) + 1);
   }
 
+  const messages = await db()
+    .select({
+      authorName: guestbookEntries.authorName,
+      body: guestbookEntries.body,
+      createdAt: guestbookEntries.createdAt,
+    })
+    .from(guestbookEntries)
+    .where(eq(guestbookEntries.albumId, albumId))
+    .orderBy(asc(guestbookEntries.createdAt));
+
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "https";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
@@ -79,7 +89,7 @@ export async function GET(
   const pdfBytes = await buildDotbookPdf(
     album,
     items,
-    { commentsByMedia, reactionCountByMedia, shareUrl, baseUrl },
+    { commentsByMedia, reactionCountByMedia, messages, shareUrl, baseUrl },
     style,
   );
 

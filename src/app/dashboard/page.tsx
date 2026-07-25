@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import { UserButton } from "@clerk/nextjs";
-import { desc, eq, sql } from "drizzle-orm";
-import { Camera, Sparkles, Images, Users, CalendarHeart, Plus } from "lucide-react";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { CalendarDays, Images, Plus, Sparkles, Users } from "lucide-react";
 import { db } from "@/db";
-import { albums, media } from "@/db/schema";
+import { albums, challenges, guestbookEntries, media } from "@/db/schema";
+import { AlbumCard, type AlbumCardData } from "@/components/AlbumCard";
+import { DashboardTopBar } from "@/components/DashboardTopBar";
 
 export const dynamic = "force-dynamic";
+
+// Cuántas fotos se piden por álbum para montar la portada de su tarjeta.
+const COVERS_PER_ALBUM = 3;
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -18,8 +22,11 @@ export default async function DashboardPage() {
       kind: albums.kind,
       eventDate: albums.eventDate,
       shareCode: albums.shareCode,
+      moderationEnabled: albums.moderationEnabled,
       createdAt: albums.createdAt,
-      mediaCount: sql<number>`count(${media.id})::int`,
+      mediaCount: sql<number>`count(case when ${media.approved} then 1 end)::int`,
+      pendingCount: sql<number>`count(case when not ${media.approved} then 1 end)::int`,
+      peopleCount: sql<number>`count(distinct coalesce(${media.uploaderId}, ${media.uploaderName}))::int`,
     })
     .from(albums)
     .leftJoin(media, eq(media.albumId, albums.id))
@@ -27,98 +34,158 @@ export default async function DashboardPage() {
     .groupBy(albums.id)
     .orderBy(desc(albums.createdAt));
 
+  const ids = rows.map((r) => r.id);
+
+  // Portadas, retos y mensajes en tres consultas para todos los álbumes a la
+  // vez (nada de una consulta por tarjeta).
+  const [coverRows, challengeRows, messageRows] = await Promise.all([
+    ids.length > 0
+      ? db()
+          .select({
+            albumId: media.albumId,
+            url: media.url,
+            type: media.type,
+            createdAt: media.createdAt,
+          })
+          .from(media)
+          .where(and(inArray(media.albumId, ids), eq(media.approved, true)))
+          .orderBy(desc(media.createdAt))
+          .limit(ids.length * 12)
+      : Promise.resolve([]),
+    ids.length > 0
+      ? db()
+          .select({ albumId: challenges.albumId, n: sql<number>`count(*)::int` })
+          .from(challenges)
+          .where(inArray(challenges.albumId, ids))
+          .groupBy(challenges.albumId)
+      : Promise.resolve([]),
+    ids.length > 0
+      ? db()
+          .select({ albumId: guestbookEntries.albumId, n: sql<number>`count(*)::int` })
+          .from(guestbookEntries)
+          .where(inArray(guestbookEntries.albumId, ids))
+          .groupBy(guestbookEntries.albumId)
+      : Promise.resolve([]),
+  ]);
+
+  const coversByAlbum = new Map<string, { url: string; type: string }[]>();
+  for (const c of coverRows) {
+    const list = coversByAlbum.get(c.albumId) ?? [];
+    if (list.length < COVERS_PER_ALBUM) {
+      list.push({ url: c.url, type: c.type });
+      coversByAlbum.set(c.albumId, list);
+    }
+  }
+  const challengesByAlbum = new Map(challengeRows.map((r) => [r.albumId, r.n]));
+  const messagesByAlbum = new Map(messageRows.map((r) => [r.albumId, r.n]));
+
+  const cards: AlbumCardData[] = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    kind: r.kind,
+    eventDate: r.eventDate,
+    moderationEnabled: r.moderationEnabled,
+    mediaCount: r.mediaCount,
+    pendingCount: r.pendingCount,
+    peopleCount: r.peopleCount,
+    challengeCount: challengesByAlbum.get(r.id) ?? 0,
+    messageCount: messagesByAlbum.get(r.id) ?? 0,
+    covers: coversByAlbum.get(r.id) ?? [],
+  }));
+
+  const totals = {
+    albums: cards.length,
+    media: cards.reduce((s, c) => s + c.mediaCount, 0),
+    people: cards.reduce((s, c) => s + c.peopleCount, 0),
+    pending: cards.reduce((s, c) => s + c.pendingCount, 0),
+  };
+
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-tinta/50 transition hover:text-tinta"
-          >
-            <Camera size={15} /> Memorias Vivas
-          </Link>
-          <h1 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-display)" }}>
-            Mis álbumes
-          </h1>
+    <>
+      <DashboardTopBar />
+      <main className="mx-auto max-w-5xl px-4 py-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1
+              className="text-3xl font-semibold"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Mis álbumes
+            </h1>
+            <p className="mt-1 text-tinta/60">
+              {totals.albums === 0
+                ? "Aquí aparecerán los álbumes que crees."
+                : totals.pending > 0
+                  ? `Tienes ${totals.pending} ${
+                      totals.pending === 1 ? "foto" : "fotos"
+                    } esperando tu aprobación.`
+                  : "Todo al día. Comparte el QR y deja que se llenen."}
+            </p>
+          </div>
+          {totals.albums > 0 && (
+            <dl className="flex gap-3 text-center">
+              {[
+                { icon: CalendarDays, value: totals.albums, label: "álbumes" },
+                { icon: Images, value: totals.media, label: "recuerdos" },
+                { icon: Users, value: totals.people, label: "personas" },
+              ].map((t) => (
+                <div
+                  key={t.label}
+                  className="min-w-[5.5rem] rounded-2xl border border-tinta/10 bg-white px-4 py-3 shadow-soft"
+                >
+                  <dt className="flex items-center justify-center gap-1 text-xs text-tinta/50">
+                    <t.icon size={12} /> {t.label}
+                  </dt>
+                  <dd
+                    className="text-2xl leading-tight font-semibold"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {t.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </div>
-        <UserButton />
-      </header>
 
-      <Link
-        href="/dashboard/nuevo"
-        className="card-interactive shimmer relative mt-8 flex items-center gap-4 overflow-hidden rounded-3xl border border-tinta/10 p-6 shadow-lift"
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-arena via-crema to-oro/10"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-teja/15 blur-3xl"
-        />
-        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teja/25 to-teja/10 text-teja-oscuro shadow-soft">
-          <Plus size={26} />
-        </div>
-        <div className="relative">
-          <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-display)" }}>
-            Crea tu álbum
-          </h2>
-          <p className="text-sm text-tinta/60">
-            Listo en menos de un minuto — comparte el QR y empieza a recibir fotos.
-          </p>
-        </div>
-      </Link>
-
-      <section className="mt-8">
-        {rows.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center text-tinta/50">
-            <Sparkles size={28} className="text-teja/60" />
-            <p>Aún no tienes álbumes. Crea el primero arriba.</p>
+        {cards.length === 0 ? (
+          <div className="mt-8 rounded-3xl border border-dashed border-tinta/20 bg-white/60 px-6 py-14 text-center">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-teja/25 to-teja/5 text-teja shadow-soft">
+              <Sparkles size={28} />
+            </span>
+            <h2
+              className="mt-4 text-xl font-semibold"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Crea tu primer álbum
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-tinta/60">
+              Ponle nombre y fecha, comparte el QR con tus invitados y las fotos
+              empezarán a llegar solas. Tarda menos de un minuto.
+            </p>
+            <Link href="/dashboard/nuevo" className="btn btn-primary shimmer mt-6">
+              <Plus size={18} /> Crear mi álbum
+            </Link>
           </div>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {rows.map((album) => {
-              const KindIcon = album.kind === "familia" ? Users : CalendarHeart;
-              return (
+          <>
+            <ul className="mt-8 grid gap-5 sm:grid-cols-2">
+              {cards.map((album) => (
                 <li key={album.id}>
-                  <Link
-                    href={`/dashboard/${album.id}`}
-                    className="card-interactive block rounded-2xl border border-tinta/10 bg-white p-5 shadow-soft"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br shadow-soft ${
-                          album.kind === "familia"
-                            ? "from-vino/20 to-vino/5 text-vino"
-                            : "from-teja/20 to-teja/5 text-teja-oscuro"
-                        }`}
-                      >
-                        <KindIcon size={17} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-lg font-semibold">{album.name}</h3>
-                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-tinta/60">
-                          {album.eventDate
-                            ? new Date(album.eventDate + "T00:00:00").toLocaleDateString(
-                                "es-ES",
-                                { day: "numeric", month: "long", year: "numeric" },
-                              )
-                            : album.kind === "familia"
-                              ? "Álbum continuo"
-                              : "Sin fecha"}
-                          {" · "}
-                          <Images size={14} />
-                          {album.mediaCount}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
+                  <AlbumCard album={album} />
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+
+            <Link
+              href="/dashboard/nuevo"
+              className="card-interactive mt-5 flex items-center justify-center gap-2.5 rounded-2xl border border-dashed border-tinta/25 bg-white/60 py-6 font-semibold text-tinta/70 transition hover:border-teja/40 hover:text-tinta"
+            >
+              <Plus size={20} /> Crear otro álbum
+            </Link>
+          </>
         )}
-      </section>
-    </main>
+      </main>
+    </>
   );
 }

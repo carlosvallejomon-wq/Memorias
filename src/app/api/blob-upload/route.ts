@@ -22,6 +22,7 @@ export async function POST(request: Request) {
           uploaderName?: string;
           uploaderId?: string;
           takenAt?: number;
+          challengeId?: string | null;
         };
         if (!payload.code) throw new Error("Falta el código del álbum");
 
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
             uploaderName: payload.uploaderName ?? null,
             uploaderId: payload.uploaderId ?? null,
             takenAt: payload.takenAt ?? null,
+            challengeId: payload.challengeId ?? null,
             approved: !album.moderationEnabled,
           }),
         };
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
           uploaderName?: string | null;
           uploaderId?: string | null;
           takenAt?: number | null;
+          challengeId?: string | null;
           approved?: boolean;
         };
         if (!payload.albumId) return;
@@ -65,6 +68,7 @@ export async function POST(request: Request) {
           uploaderName: payload.uploaderName ?? null,
           uploaderId: payload.uploaderId ?? null,
           takenAt: payload.takenAt ?? null,
+          challengeId: payload.challengeId ?? null,
           approved: payload.approved ?? true,
         });
       },

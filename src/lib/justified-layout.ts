@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 // Relación de aspecto de respaldo mientras no se conoce la real (la imagen o
 // el vídeo todavía no ha cargado sus dimensiones naturales).
@@ -11,19 +11,31 @@ export type JustifiedItem<T> = { item: T; width: number; height: number };
 // ninguna foto — a diferencia de una cuadrícula o un masonry por columnas,
 // aquí cada fila tiene una altura común y el ancho de cada foto es
 // proporcional a su relación de aspecto real.
+// Se usa una "ref de función" en vez de useRef + useEffect a propósito: el
+// contenedor de la galería se desmonta al cambiar de pestaña (retos,
+// mensajes) y con un efecto de una sola ejecución el observador se quedaba
+// mirando el nodo antiguo, midiendo 0 de ancho — y la galería aparecía vacía
+// al volver.
 export function useElementWidth<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
   const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
+  const observerRef = useRef<ResizeObserver | null>(null);
+
+  const ref = useCallback((el: T | null) => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
-      setWidth(entries[0].contentRect.width);
+      const w = entries[0].contentRect.width;
+      // Un ancho de 0 solo ocurre mientras el nodo está oculto o saliendo del
+      // árbol; conservar el último ancho válido evita el parpadeo.
+      if (w > 0) setWidth(w);
     });
     observer.observe(el);
-    setWidth(el.getBoundingClientRect().width);
-    return () => observer.disconnect();
+    observerRef.current = observer;
+    const initial = el.getBoundingClientRect().width;
+    if (initial > 0) setWidth(initial);
   }, []);
+
   return [ref, width] as const;
 }
 
