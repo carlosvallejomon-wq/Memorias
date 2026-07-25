@@ -37,10 +37,14 @@ const EVENTS = [
   { label: "Bodas", src: "/decor/boda.jpg" },
   { label: "Cumpleaños", src: "/decor/cumple.jpg" },
   { label: "15 años", src: "/decor/quince.jpg" },
+  { label: "Comuniones", src: "/decor/comunion.jpg" },
+  { label: "Bautizos", src: "/decor/bautizo.jpg" },
+  { label: "Graduaciones", src: "/decor/graduacion.jpg" },
+  { label: "Fiestas infantiles", src: "/decor/fiestainfantil.jpg" },
+  { label: "Baby shower", src: "/decor/babyshower.jpg" },
   { label: "Familia", src: "/decor/familia.jpg" },
   { label: "Viajes", src: "/decor/viaje.jpg" },
   { label: "Navidad", src: "/decor/navidad.jpg" },
-  { label: "Baby shower", src: "/decor/babyshower.jpg" },
   { label: "Fin de año", src: "/decor/anonuevo.jpg" },
 ];
 
