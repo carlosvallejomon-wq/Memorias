@@ -57,7 +57,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
+        className="btn btn-soft shimmer px-4 py-2 text-sm"
       >
         <BookOpen size={16} /> Dotbook
       </button>

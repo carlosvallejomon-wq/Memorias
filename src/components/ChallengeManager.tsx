@@ -131,7 +131,7 @@ export function ChallengeManager({
           aria-label="Icono del reto"
           value={emoji}
           onChange={(e) => setEmoji(e.target.value)}
-          className="field field-auto text-lg"
+          className="field w-auto text-lg"
         >
           {EMOJI_CHOICES.map((e) => (
             <option key={e} value={e}>

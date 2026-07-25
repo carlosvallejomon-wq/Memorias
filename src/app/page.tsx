@@ -13,7 +13,30 @@ import {
   Lock,
   Target,
   PenLine,
+  Check,
+  Download,
+  Users,
+  Infinity as InfinityIcon,
+  WifiOff,
 } from "lucide-react";
+import { SiteNav } from "@/components/SiteNav";
+
+const TRUST = [
+  { icon: WifiOff, title: "Nada que instalar", text: "Se abre en el navegador del móvil" },
+  { icon: Users, title: "Sin crear cuenta", text: "Solo tú necesitas registrarte" },
+  { icon: InfinityIcon, title: "Sin límite de invitados", text: "Comparte el QR con quien quieras" },
+];
+
+const EVENTS = [
+  { label: "Bodas", src: "/decor/boda.jpg" },
+  { label: "Cumpleaños", src: "/decor/cumple.jpg" },
+  { label: "15 años", src: "/decor/quince.jpg" },
+  { label: "Comuniones", src: "/decor/familia.jpg" },
+  { label: "Viajes", src: "/decor/viaje.jpg" },
+  { label: "Navidad", src: "/decor/navidad.jpg" },
+  { label: "Baby shower", src: "/decor/babyshower.jpg" },
+  { label: "Fin de año", src: "/decor/anonuevo.jpg" },
+];
 
 const FEATURES = [
   {
@@ -22,24 +45,14 @@ const FEATURES = [
     text: "Tus invitados escanean o abren un enlace y suben fotos al momento — sin instalar nada ni crear cuenta.",
   },
   {
-    icon: Target,
-    title: "Retos fotográficos",
-    text: "Propón misiones («el brindis», «el mejor baile») y tus invitados las van completando. Nadie se queda sin saber qué fotografiar.",
-  },
-  {
-    icon: PenLine,
-    title: "Muro de mensajes",
-    text: "Dedicatorias escritas por los invitados, como un libro de firmas — y salen impresas en el Dotbook.",
-  },
-  {
     icon: Heart,
     title: "Reacciones y comentarios",
-    text: "Todo el mundo puede reaccionar y dejar comentarios en cada foto, como en redes sociales.",
+    text: "Todo el mundo puede reaccionar y comentar cada foto, como en redes sociales.",
   },
   {
     icon: CalendarDays,
-    title: "Organizado por días",
-    text: "El contenido se ordena solo por fecha, con filtros por persona y una vista para revivir el evento día a día.",
+    title: "Se ordena solo",
+    text: "El contenido se coloca por fecha, con filtros por persona y una vista para revivir el evento día a día.",
   },
   {
     icon: ShieldCheck,
@@ -47,9 +60,9 @@ const FEATURES = [
     text: "Si quieres, revisa cada foto antes de que se publique — tú decides qué se comparte.",
   },
   {
-    icon: BookOpen,
-    title: "Dotbook digital",
-    text: "Convierte el álbum en un PDF con una página por recuerdo, listo para guardar o imprimir.",
+    icon: Download,
+    title: "Todo descargable",
+    text: "Bájate el álbum entero en un ZIP, o deja que cada invitado guarde las fotos que le gusten.",
   },
 ];
 
@@ -71,18 +84,42 @@ const STEPS = [
   },
 ];
 
-// Fotos decorativas de muestra (no son de un evento real) — solo para que
-// la vista previa de la galería se sienta llena en vez de vacía.
-const TILES = [
-  "/decor/familia.jpg",
-  "/decor/cumple.jpg",
-  "/decor/viaje.jpg",
-  "/decor/quince.jpg",
-  "/decor/navidad.jpg",
-  "/decor/boda.jpg",
+const FAQ = [
+  {
+    q: "¿Mis invitados tienen que instalar algo o registrarse?",
+    a: "No. Escanean el QR o abren el enlace y ya están dentro: pueden ver el álbum, subir fotos, reaccionar y comentar. Solo se les pide el nombre —y es opcional— para que se sepa quién compartió cada recuerdo.",
+  },
+  {
+    q: "¿Funciona igual en iPhone y en Android?",
+    a: "Sí. Es una página web normal, así que funciona en cualquier móvil, tablet u ordenador con navegador. También en móviles antiguos.",
+  },
+  {
+    q: "¿Puedo revisar las fotos antes de que se vean?",
+    a: "Sí. Activa la moderación en tu álbum y cada foto quedará en espera hasta que tú la apruebes. Quien la subió sí la ve, marcada como pendiente.",
+  },
+  {
+    q: "¿Qué pasa si alguien sube algo que no quiero?",
+    a: "Puedes borrar cualquier foto, vídeo o mensaje del álbum desde tu panel. Además, cada invitado puede borrar lo que él mismo subió.",
+  },
+  {
+    q: "¿Puedo quedarme con todas las fotos?",
+    a: "Sí: descarga el álbum completo en un ZIP, o genera el Dotbook en PDF con una página por recuerdo y las dedicatorias del muro de mensajes.",
+  },
+  {
+    q: "¿Los vídeos también valen?",
+    a: "Sí, fotos y vídeos. En el Dotbook los vídeos aparecen con un código QR que lleva al vídeo original, porque un PDF no puede reproducirlos.",
+  },
 ];
 
 function PhoneMockup() {
+  const tiles = [
+    "/decor/familia.jpg",
+    "/decor/cumple.jpg",
+    "/decor/viaje.jpg",
+    "/decor/quince.jpg",
+    "/decor/navidad.jpg",
+    "/decor/boda.jpg",
+  ];
   return (
     <div className="relative mx-auto w-full max-w-[300px]">
       {/* Marco realista de teléfono con barra de navegador, para que se
@@ -99,7 +136,7 @@ function PhoneMockup() {
               <Camera size={13} /> Boda de Ana y Luis
             </div>
             <div className="grid grid-cols-3 gap-1.5">
-              {TILES.map((src, i) => (
+              {tiles.map((src, i) => (
                 <div
                   key={i}
                   className="aspect-square overflow-hidden rounded-lg shadow-soft"
@@ -150,16 +187,17 @@ function TvMockup() {
   return (
     <div className="relative mx-auto w-full max-w-sm">
       <div className="glass-dark animate-fade-in rounded-2xl p-3">
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-vino via-tinta to-black">
-          <div className="aspect-video w-full" />
-          <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/40 px-2 py-1 text-[10px] text-white">
+        <div className="relative overflow-hidden rounded-lg">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/decor/boda.jpg" alt="" className="aspect-video w-full object-cover" />
+          <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-1 text-[10px] text-white">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teja opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teja" />
             </span>
             Boda de Ana y Luis
           </div>
-          <div className="absolute bottom-2 left-2 rounded-lg bg-black/40 px-2.5 py-1.5 text-[11px] text-white">
+          <div className="absolute bottom-2 left-2 rounded-lg bg-black/50 px-2.5 py-1.5 text-[11px] text-white">
             Foto de Marta
           </div>
           <div className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-lg bg-white p-1">
@@ -174,156 +212,473 @@ function TvMockup() {
   );
 }
 
+function RetosMockup() {
+  const retos = [
+    { emoji: "🥂", title: "El brindis", n: 6 },
+    { emoji: "💃", title: "El mejor momento de baile", n: 3 },
+    { emoji: "🤳", title: "Un selfie en tu mesa", n: 0 },
+  ];
+  return (
+    <div className="glass w-full max-w-sm rounded-2xl p-4 shadow-lift">
+      <div className="flex items-baseline justify-between">
+        <p className="flex items-center gap-2 font-semibold">
+          <Target size={16} className="text-teja" /> Retos del evento
+        </p>
+        <span className="text-sm font-semibold text-tinta/60">2 de 3</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-tinta/10">
+        <div className="h-full w-2/3 rounded-full bg-teja" />
+      </div>
+      <ul className="mt-3 space-y-2">
+        {retos.map((r) => (
+          <li
+            key={r.title}
+            className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-sm ${
+              r.n > 0 ? "border-teja/30 bg-teja/5" : "border-tinta/10 bg-white"
+            }`}
+          >
+            <span className="text-lg">{r.emoji}</span>
+            <span className="min-w-0 flex-1 truncate font-medium">{r.title}</span>
+            {r.n > 0 ? (
+              <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-teja-oscuro">
+                <Check size={13} /> {r.n}
+              </span>
+            ) : (
+              <span className="shrink-0 rounded-full bg-teja px-2.5 py-1 text-xs font-semibold text-white">
+                Subir
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function MuroMockup() {
+  const notas = [
+    { name: "Abuela Carmen", text: "Que la vida os regale muchos días como este. Con todo mi cariño.", rot: "-1.8deg" },
+    { name: "Javi", text: "Gracias por dejarnos ser parte de vuestro día. ¡A por los próximos cincuenta años!", rot: "1.4deg" },
+    { name: "Marta", text: "La tarta estaba espectacular y el baile mejor todavía.", rot: "-0.8deg" },
+  ];
+  return (
+    <div className="w-full max-w-sm space-y-3">
+      {notas.map((n) => (
+        <div
+          key={n.name}
+          className="nota rounded-2xl p-4"
+          style={{ transform: `rotate(${n.rot})` }}
+        >
+          <p className="text-sm leading-relaxed">{n.text}</p>
+          <p className="mt-2.5 border-t border-tinta/8 pt-2.5 text-xs">
+            <span className="font-semibold">{n.name}</span>{" "}
+            <span className="text-tinta/40">· firmado en el muro</span>
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DotbookMockup() {
+  return (
+    <div className="relative mx-auto w-full max-w-xs">
+      {/* Dos libros: uno detrás asomando y la portada delante. */}
+      <div
+        className="absolute left-6 top-4 h-full w-full rounded-r-xl rounded-l-sm bg-arena shadow-soft"
+        style={{ transform: "rotate(4deg)" }}
+      />
+      <div className="relative overflow-hidden rounded-r-xl rounded-l-sm bg-white shadow-lift">
+        <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-tinta/25 to-transparent" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/dotbook-templates/thumbs/boda.jpg"
+          alt="Portada de ejemplo del Dotbook"
+          className="aspect-[3/4] w-full object-cover"
+        />
+      </div>
+      <div className="glass absolute -bottom-5 -right-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold shadow-lift">
+        <BookOpen size={15} className="text-teja" /> 12 diseños de portada
+      </div>
+    </div>
+  );
+}
+
+function Showcase({
+  eyebrow,
+  title,
+  text,
+  bullets,
+  mockup,
+  flip,
+}: {
+  eyebrow: string;
+  title: string;
+  text: string;
+  bullets: string[];
+  mockup: React.ReactNode;
+  flip?: boolean;
+}) {
+  return (
+    <div className="grid items-center gap-10 lg:grid-cols-2">
+      <div className={flip ? "lg:order-2" : ""}>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teja">
+          {eyebrow}
+        </p>
+        <h3
+          className="text-balance mt-2 text-2xl font-semibold sm:text-3xl"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {title}
+        </h3>
+        <p className="mt-3 text-tinta/70">{text}</p>
+        <ul className="mt-5 space-y-2.5">
+          {bullets.map((b) => (
+            <li key={b} className="flex items-start gap-2.5 text-tinta/80">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teja/15 text-teja-oscuro">
+                <Check size={12} />
+              </span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className={`flex justify-center ${flip ? "lg:order-1" : ""}`}>{mockup}</div>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
-    <main className="relative z-[1] overflow-hidden">
-      <section className="relative mx-auto flex max-w-6xl flex-col items-center gap-16 px-6 pb-20 pt-16 lg:flex-row lg:pt-24">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-teja/20 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 top-40 h-72 w-72 rounded-full bg-vino/10 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute right-10 -bottom-10 h-56 w-56 rounded-full bg-oro/10 blur-3xl"
-        />
+    <div className="relative z-[1] overflow-hidden">
+      <SiteNav />
 
-        <div className="relative flex-1 text-center lg:text-left">
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-arena px-3 py-1 text-sm font-semibold text-teja-oscuro">
-            <Sparkles size={14} /> Para bodas, cumpleaños, viajes y familias
-          </p>
-          <h1
-            className="mt-5 text-4xl leading-tight font-semibold sm:text-5xl lg:text-6xl"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Todas las fotos de tu evento, en un solo sitio
-          </h1>
-          <p className="mx-auto mt-5 max-w-lg text-lg text-tinta/70 lg:mx-0">
-            Crea un álbum, comparte el código QR y deja que tus invitados suban
-            sus fotos y vídeos desde el móvil —{" "}
-            <strong>sin instalar nada y sin registrarse</strong>.
-          </p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
-            <Link
-              href="/dashboard"
-              className="shimmer flex items-center gap-2 rounded-full bg-teja px-8 py-3.5 text-lg font-semibold text-white shadow-lift transition hover:bg-teja-oscuro"
-            >
-              Crear mi álbum <ArrowRight size={18} />
-            </Link>
-            <a
-              href="#como-funciona"
-              className="flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-8 py-3.5 text-lg font-semibold text-tinta shadow-soft transition hover:bg-arena"
-            >
-              <Play size={16} /> Cómo funciona
-            </a>
-          </div>
-          <p className="mt-6 text-sm text-tinta/50">
-            ¿Te han invitado a un álbum? Abre el enlace o escanea el QR que te
-            haya pasado el organizador: no necesitas cuenta.
-          </p>
-        </div>
+      <main>
+        <section className="relative mx-auto flex max-w-6xl flex-col items-center gap-16 px-6 pb-20 pt-10 lg:flex-row lg:pt-16">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-teja/20 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-24 top-40 h-72 w-72 rounded-full bg-vino/10 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute right-10 -bottom-10 h-56 w-56 rounded-full bg-oro/10 blur-3xl"
+          />
 
-        <div className="relative flex-1 pt-10">
-          <PhoneMockup />
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 py-16">
-        <div className="text-center">
-          <h2
-            className="text-3xl font-semibold sm:text-4xl"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Todo lo que necesitas, nada de lo que sobra
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-tinta/60">
-            Pensado para que cualquier invitado, sin importar la edad o la
-            destreza con el móvil, participe en menos de 10 segundos.
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {/* Tarjeta destacada del modo pantalla, con su propio mockup de TV. */}
-          <div className="card-interactive rounded-2xl border border-tinta/10 bg-white p-6 shadow-soft lg:col-span-2 lg:row-span-2">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja shadow-soft">
-              <MonitorPlay size={24} />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold">Modo pantalla en vivo</h3>
-            <p className="mt-1.5 text-sm text-tinta/60">
-              Conecta una TV o proyector en el evento y ve aparecer las fotos
-              de los invitados en tiempo real, con música de fondo mientras
-              la fiesta sigue.
+          <div className="relative flex-1 text-center lg:text-left">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-arena px-3 py-1 text-sm font-semibold text-teja-oscuro">
+              <Sparkles size={14} /> Para bodas, cumpleaños y viajes
             </p>
-            <div className="mt-5">
-              <TvMockup />
+            <h1
+              className="text-balance mt-5 text-4xl leading-[1.08] font-semibold sm:text-5xl lg:text-6xl"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Todas las fotos de tu evento, en un solo sitio
+            </h1>
+            <p className="mx-auto mt-5 max-w-lg text-lg text-tinta/70 lg:mx-0">
+              Crea un álbum, comparte el código QR y deja que tus invitados suban
+              sus fotos y vídeos desde el móvil —{" "}
+              <strong>sin instalar nada y sin registrarse</strong>.
+            </p>
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+              <Link href="/dashboard" className="btn btn-primary shimmer px-8 py-3.5 text-lg">
+                Crear mi álbum <ArrowRight size={18} />
+              </Link>
+              <a href="#como-funciona" className="btn btn-soft px-8 py-3.5 text-lg">
+                <Play size={16} /> Cómo funciona
+              </a>
             </div>
+
+            <ul className="mt-10 grid gap-4 text-left sm:grid-cols-3">
+              {TRUST.map((t) => (
+                <li key={t.title} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-teja shadow-soft">
+                    <t.icon size={15} />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold">{t.title}</span>
+                    <span className="block text-xs text-tinta/50">{t.text}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-8 text-sm text-tinta/50">
+              ¿Te han invitado a un álbum? Abre el enlace o escanea el QR que te
+              haya pasado el organizador: no necesitas cuenta.
+            </p>
           </div>
 
-          {FEATURES.map((f) => (
-            <div
-              key={f.title}
-              className="card-interactive rounded-2xl border border-tinta/10 bg-white p-6 shadow-soft"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja shadow-soft">
-                <f.icon size={22} />
-              </div>
-              <h3 className="mt-4 font-semibold">{f.title}</h3>
-              <p className="mt-1.5 text-sm text-tinta/60">{f.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+          <div className="relative flex-1 pt-10">
+            <PhoneMockup />
+          </div>
+        </section>
 
-      <section id="como-funciona" className="bg-arena/60 py-20">
-        <div className="mx-auto max-w-5xl px-6">
+        {/* Tira de tipos de celebración: pone cara a "cualquier evento". */}
+        <section className="border-y border-tinta/8 bg-arena/40 py-12">
+          <div className="mx-auto max-w-6xl px-6">
+            <p className="text-center text-sm font-semibold uppercase tracking-[0.14em] text-tinta/50">
+              Un álbum para cada celebración
+            </p>
+            <div className="scroll-x mt-6 flex gap-4 pb-2">
+              {EVENTS.map((e, i) => (
+                <figure
+                  key={e.label}
+                  className="card-interactive w-36 shrink-0 sm:w-44"
+                  style={{ transform: `rotate(${i % 2 ? 1.2 : -1.2}deg)` }}
+                >
+                  <div className="polaroid overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={e.src}
+                      alt=""
+                      className="aspect-[4/5] w-full rounded-sm object-cover"
+                    />
+                    <figcaption className="pt-2 text-center text-sm font-semibold text-tinta/70">
+                      {e.label}
+                    </figcaption>
+                  </div>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="herramientas" className="mx-auto max-w-6xl px-6 py-20">
+          <div className="text-center">
+            <h2
+              className="text-balance text-3xl font-semibold sm:text-4xl"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Todo lo que necesitas, nada de lo que sobra
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-tinta/60">
+              Pensado para que cualquier invitado, sin importar la edad o la
+              destreza con el móvil, participe en menos de 10 segundos.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+            {/* Tarjeta destacada del modo pantalla, con su propio mockup de TV. */}
+            <div className="card-interactive rounded-2xl border border-tinta/10 bg-white p-6 shadow-soft lg:col-span-2 lg:row-span-2">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja shadow-soft">
+                <MonitorPlay size={24} />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">Modo pantalla en vivo</h3>
+              <p className="mt-1.5 text-sm text-tinta/60">
+                Conecta una TV o un proyector en el evento y ve aparecer las fotos
+                de los invitados en tiempo real, con el QR siempre visible para
+                que se anime quien todavía no ha subido nada.
+              </p>
+              <div className="mt-5">
+                <TvMockup />
+              </div>
+            </div>
+
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="card-interactive rounded-2xl border border-tinta/10 bg-white p-6 shadow-soft"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja shadow-soft">
+                  <f.icon size={22} />
+                </div>
+                <h3 className="mt-4 font-semibold">{f.title}</h3>
+                <p className="mt-1.5 text-sm text-tinta/60">{f.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="bg-arena/40 py-20">
+          <div className="mx-auto max-w-6xl space-y-24 px-6">
+            <Showcase
+              eyebrow="Retos fotográficos"
+              title="Nadie se queda mirando el móvil sin saber qué hacer"
+              text="Propón pequeñas misiones y tus invitados las van completando. Es la forma más fácil de conseguir fotos de todos los momentos, no solo veinte del mismo baile."
+              bullets={[
+                "Empieza con una lista de retos ya preparada y cámbiala a tu gusto",
+                "Cada invitado ve su progreso y sube la foto directamente al reto",
+                "Tú ves desde el panel qué retos ya tienen fotos y cuáles no",
+              ]}
+              mockup={<RetosMockup />}
+            />
+            <Showcase
+              flip
+              eyebrow="Muro de mensajes"
+              title="El libro de firmas, sin libro que perder"
+              text="Los invitados dejan dedicatorias escritas: una anécdota, una felicitación, un recuerdo. Se guardan en el álbum y se imprimen al final del Dotbook."
+              bullets={[
+                "Cada persona firma con su nombre, o en anónimo si lo prefiere",
+                "Puedes borrar cualquier mensaje que no te encaje",
+                "Salen impresos como dedicatorias en el PDF del álbum",
+              ]}
+              mockup={<MuroMockup />}
+            />
+          </div>
+        </section>
+
+        <section id="dotbook" className="mx-auto max-w-6xl px-6 py-20">
+          <Showcase
+            flip
+            eyebrow="Dotbook digital"
+            title="Tu álbum convertido en un libro de recuerdos"
+            text="Con un clic se genera un PDF con portada a elegir, una página por cada recuerdo con sus comentarios, y las dedicatorias del muro al final. Listo para guardar o llevar a imprimir."
+            bullets={[
+              "12 diseños de portada, más 6 estilos dibujados",
+              "Los vídeos llevan un QR que abre el original",
+              "Se descarga al momento, sin esperar ni encargar nada",
+            ]}
+            mockup={<DotbookMockup />}
+          />
+        </section>
+
+        <section id="como-funciona" className="border-y border-tinta/8 bg-arena/60 py-20">
+          <div className="mx-auto max-w-5xl px-6">
+            <h2
+              className="text-center text-3xl font-semibold sm:text-4xl"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Cómo funciona
+            </h2>
+            <div className="relative mt-12 grid gap-8 sm:grid-cols-3">
+              {/* Línea que une los tres pasos en escritorio. */}
+              <div
+                aria-hidden
+                className="absolute left-[16%] right-[16%] top-7 hidden border-t-2 border-dashed border-teja/25 sm:block"
+              />
+              {STEPS.map((s) => (
+                <div key={s.n} className="relative text-center">
+                  <div
+                    className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-teja text-2xl font-semibold text-white shadow-lift"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {s.n}
+                  </div>
+                  <h3 className="mt-4 font-semibold">{s.title}</h3>
+                  <p className="mt-1.5 text-sm text-tinta/60">{s.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="preguntas" className="mx-auto max-w-3xl px-6 py-20">
           <h2
             className="text-center text-3xl font-semibold sm:text-4xl"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Cómo funciona
+            Preguntas frecuentes
           </h2>
-          <div className="mt-12 grid gap-8 sm:grid-cols-3">
-            {STEPS.map((s) => (
-              <div key={s.n} className="text-center">
-                <div
-                  className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-teja text-2xl font-semibold text-white shadow-lift"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  {s.n}
-                </div>
-                <h3 className="mt-4 font-semibold">{s.title}</h3>
-                <p className="mt-1.5 text-sm text-tinta/60">{s.text}</p>
-              </div>
+          <div className="mt-10 space-y-3">
+            {FAQ.map((f) => (
+              <details
+                key={f.q}
+                className="group rounded-2xl border border-tinta/10 bg-white px-5 py-4 shadow-soft"
+              >
+                <summary className="flex cursor-pointer items-center justify-between gap-4 font-semibold marker:content-none">
+                  {f.q}
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-arena text-teja-oscuro transition group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 text-tinta/70">{f.a}</p>
+              </details>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <h2
-          className="text-3xl font-semibold sm:text-4xl"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          Tu próximo evento merece algo mejor que un chat lleno de fotos
-        </h2>
-        <div className="mt-8">
-          <Link
-            href="/dashboard"
-            className="shimmer inline-flex items-center gap-2 rounded-full bg-teja px-8 py-3.5 text-lg font-semibold text-white shadow-lift transition hover:bg-teja-oscuro"
-          >
-            Crear mi álbum gratis <ArrowRight size={18} />
-          </Link>
-        </div>
-      </section>
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <div className="relative overflow-hidden rounded-3xl bg-tinta px-6 py-16 text-center text-crema shadow-lift">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-teja/30 blur-3xl"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-24 -right-16 h-72 w-72 rounded-full bg-oro/20 blur-3xl"
+            />
+            <h2
+              className="text-balance relative text-3xl font-semibold sm:text-4xl"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Tu próximo evento merece algo mejor que un chat lleno de fotos
+            </h2>
+            <p className="relative mx-auto mt-4 max-w-xl text-crema/70">
+              Crea el álbum hoy, comparte el QR el día de la fiesta y quédate con
+              todos los recuerdos —también los que tú no viste.
+            </p>
+            <div className="relative mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Link href="/dashboard" className="btn btn-primary shimmer px-8 py-3.5 text-lg">
+                Crear mi álbum <ArrowRight size={18} />
+              </Link>
+              <a
+                href="#herramientas"
+                className="btn btn-on-dark px-8 py-3.5 text-lg"
+              >
+                Ver todo lo que incluye
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
 
-      <footer className="border-t border-tinta/10 px-6 py-8 text-center text-sm text-tinta/40">
-        <p className="flex items-center justify-center gap-1.5">
-          <Camera size={14} /> Memorias Vivas
+      <footer className="border-t border-tinta/10 px-6 py-12">
+        <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
+          <div>
+            <p className="flex items-center gap-2 font-semibold">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-tinta text-crema">
+                <Camera size={15} />
+              </span>
+              <span style={{ fontFamily: "var(--font-display)" }}>Memorias Vivas</span>
+            </p>
+            <p className="mt-3 max-w-xs text-sm text-tinta/50">
+              Álbumes compartidos para bodas, cumpleaños, viajes y todo lo que
+              merezca recordarse.
+            </p>
+          </div>
+          <div className="text-sm">
+            <p className="font-semibold text-tinta/70">La app</p>
+            <ul className="mt-3 space-y-2 text-tinta/50">
+              <li>
+                <a href="#herramientas" className="hover:text-tinta">Qué incluye</a>
+              </li>
+              <li>
+                <a href="#como-funciona" className="hover:text-tinta">Cómo funciona</a>
+              </li>
+              <li>
+                <a href="#dotbook" className="hover:text-tinta">Dotbook digital</a>
+              </li>
+              <li>
+                <a href="#preguntas" className="hover:text-tinta">Preguntas frecuentes</a>
+              </li>
+            </ul>
+          </div>
+          <div className="text-sm">
+            <p className="font-semibold text-tinta/70">Empezar</p>
+            <ul className="mt-3 space-y-2 text-tinta/50">
+              <li>
+                <Link href="/dashboard" className="hover:text-tinta">Crear un álbum</Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className="hover:text-tinta">Entrar en mi panel</Link>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <PenLine size={13} /> Muro de mensajes
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Target size={13} /> Retos fotográficos
+              </li>
+            </ul>
+          </div>
+        </div>
+        <p className="mx-auto mt-10 max-w-6xl border-t border-tinta/8 pt-6 text-center text-xs text-tinta/40">
+          Memorias Vivas · Hecho para guardar recuerdos, no para coleccionar datos.
         </p>
       </footer>
-    </main>
+    </div>
   );
 }

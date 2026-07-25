@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { createAlbum } from "../actions";
 import { AlbumKindPicker } from "@/components/AlbumKindPicker";
+import { DashboardTopBar } from "@/components/DashboardTopBar";
 
 function slugify(name: string): string {
   const base = name
@@ -46,7 +47,9 @@ export default function NewAlbumPage() {
   const [name, setName] = useState("");
 
   return (
-    <main className="relative mx-auto min-h-screen max-w-5xl overflow-hidden px-4 py-8">
+    <>
+      <DashboardTopBar />
+      <main className="relative mx-auto min-h-screen max-w-5xl overflow-hidden px-4 py-8">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-teja/15 blur-3xl"
@@ -182,6 +185,7 @@ export default function NewAlbumPage() {
           ))}
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }

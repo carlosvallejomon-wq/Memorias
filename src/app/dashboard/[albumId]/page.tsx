@@ -5,11 +5,14 @@ import { auth } from "@clerk/nextjs/server";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import {
   ArrowLeft,
+  CalendarHeart,
   Download,
   MonitorPlay,
   Hourglass,
   ExternalLink,
   Images,
+  Settings,
+  ShieldCheck,
 } from "lucide-react";
 import { db } from "@/db";
 import { albums, challenges, comments, guestbookEntries, media, reactions } from "@/db/schema";
@@ -18,6 +21,7 @@ import { ModerationToggle } from "@/components/ModerationToggle";
 import { InvitationGenerator } from "@/components/InvitationGenerator";
 import { DotbookGenerator } from "@/components/DotbookGenerator";
 import { AlbumStats, type AlbumStatsData } from "@/components/AlbumStats";
+import { DashboardTopBar } from "@/components/DashboardTopBar";
 import { ChallengeManager } from "@/components/ChallengeManager";
 import { GuestbookPanel } from "@/components/GuestbookPanel";
 import {
@@ -144,155 +148,203 @@ export default async function AlbumAdminPage({
       })
     : null;
 
+  const covers = items.slice(0, 5);
+
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8">
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-tinta/50 transition hover:text-tinta"
-      >
-        <ArrowLeft size={15} /> Mis álbumes
-      </Link>
+    <>
+      <DashboardTopBar />
+      <main className="mx-auto max-w-4xl px-4 py-6">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-tinta/50 transition hover:text-tinta"
+        >
+          <ArrowLeft size={15} /> Mis álbumes
+        </Link>
 
-      <section className="relative mt-4 overflow-hidden rounded-3xl border border-tinta/10 p-6 shadow-lift sm:p-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-arena via-crema to-oro/10"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-teja/15 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-vino/10 blur-3xl"
-        />
+        <section className="relative mt-3 overflow-hidden rounded-3xl border border-tinta/10 shadow-lift">
+          {/* Franja de portada con las últimas fotos del álbum: identifica el
+              álbum de un vistazo en vez de una cabecera de color plano. */}
+          <div className="relative h-32 bg-arena sm:h-40">
+            {covers.length > 0 ? (
+              <div className="flex h-full gap-0.5">
+                {covers.map((item) => (
+                  <div key={item.id} className="relative h-full flex-1 overflow-hidden">
+                    {item.type === "video" ? (
+                      <video
+                        src={item.url}
+                        className="h-full w-full object-cover"
+                        preload="metadata"
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.url}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-arena via-crema to-oro/20" />
+            )}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-crema via-crema/70 to-transparent" />
+          </div>
 
-        <div className="relative flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="relative -mt-10 px-6 pb-6 sm:px-8">
             <h1
-              className="text-3xl font-semibold"
+              className="text-balance text-3xl font-semibold"
               style={{ fontFamily: "var(--font-display)" }}
             >
               {album.name}
             </h1>
-            <p className="mt-1 text-sm text-tinta/60">
-              {eventDateLabel ?? (album.kind === "familia" ? "Álbum de familia" : "Sin fecha")}
-              {" · "}
-              {items.length} {items.length === 1 ? "recuerdo" : "recuerdos"}
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-tinta/60">
+              <span className="flex items-center gap-1.5">
+                <CalendarHeart size={14} />
+                {eventDateLabel ??
+                  (album.kind === "familia" ? "Álbum de familia" : "Sin fecha")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Images size={14} /> {items.length}{" "}
+                {items.length === 1 ? "recuerdo" : "recuerdos"}
+              </span>
+              {album.moderationEnabled && (
+                <span className="flex items-center gap-1.5 rounded-full bg-arena px-2 py-0.5 text-xs font-semibold">
+                  <ShieldCheck size={12} /> Moderación activada
+                </span>
+              )}
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`/a/${album.shareCode}`}
-              target="_blank"
-              rel="noreferrer"
-              className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
-            >
-              <ExternalLink size={16} /> Ver álbum
-            </a>
-            <a
-              href={`/a/${album.shareCode}/pantalla`}
-              target="_blank"
-              rel="noreferrer"
-              className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
-            >
-              <MonitorPlay size={16} /> Modo pantalla
-            </a>
-            <InvitationGenerator
-              albumName={album.name}
-              eventDateLabel={eventDateLabel}
-              shareUrl={shareUrl}
-            />
-            <a
-              href={`/api/albums/${album.id}/download`}
-              className="shimmer flex items-center gap-2 rounded-full border border-tinta/15 bg-white px-4 py-2 text-sm font-semibold shadow-soft transition hover:bg-arena"
-            >
-              <Download size={16} /> ZIP
-            </a>
-            <DotbookGenerator albumId={album.id} />
-            <DeleteAlbumButton albumId={album.id} albumName={album.name} />
-          </div>
-        </div>
 
-        <div className="relative">
-          <ShareCard shareUrl={shareUrl} />
-        </div>
+            {/* Acciones agrupadas por para qué sirven, en vez de una fila
+                larga de botones todos iguales. */}
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <a
+                href={`/a/${album.shareCode}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-primary shimmer px-4 py-2 text-sm"
+              >
+                <ExternalLink size={16} /> Ver álbum
+              </a>
+              <a
+                href={`/a/${album.shareCode}/pantalla`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-soft shimmer px-4 py-2 text-sm"
+              >
+                <MonitorPlay size={16} /> Modo pantalla
+              </a>
+              <span aria-hidden className="mx-1 hidden h-6 w-px bg-tinta/10 sm:block" />
+              <InvitationGenerator
+                albumName={album.name}
+                eventDateLabel={eventDateLabel}
+                shareUrl={shareUrl}
+              />
+              <DotbookGenerator albumId={album.id} />
+              <a
+                href={`/api/albums/${album.id}/download`}
+                className="btn btn-soft shimmer px-4 py-2 text-sm"
+              >
+                <Download size={16} /> Descargar ZIP
+              </a>
+            </div>
+          </div>
+        </section>
 
-        <div className="relative mt-6 flex justify-center sm:justify-start">
+        <ShareCard shareUrl={shareUrl} />
+
+        <div className="mt-4 flex justify-center sm:justify-start">
           <ModerationToggle albumId={album.id} enabled={album.moderationEnabled} />
         </div>
-      </section>
 
-      {items.length > 0 && <AlbumStats stats={stats} />}
+        {items.length > 0 && <AlbumStats stats={stats} />}
 
-      {pendingItems.length > 0 && (
-        <section className="mt-8 animate-fade-in rounded-2xl border border-teja/20 bg-teja/5 p-5">
-          <h2 className="flex items-center gap-2 font-semibold text-teja-oscuro">
-            <Hourglass size={18} />
-            Pendientes de aprobar ({pendingItems.length})
-          </h2>
-          <ul className="mt-3 columns-2 gap-3 sm:columns-3 md:columns-4">
-            {pendingItems.map((item) => (
-              <li
-                key={item.id}
-                className="card-interactive mb-3 break-inside-avoid overflow-hidden rounded-xl bg-white shadow-soft"
-              >
-                {item.type === "video" ? (
-                  <video src={item.url} className="block w-full" preload="metadata" muted playsInline />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.url} alt="" loading="lazy" className="block w-full" />
-                )}
-                <div className="flex items-center justify-between gap-1 p-2">
-                  <ApproveMediaButton mediaId={item.id} />
-                  <RejectMediaButton mediaId={item.id} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <ChallengeManager albumId={album.id} challenges={challengeRows} />
-
-      <GuestbookPanel entries={guestbookRows} />
-
-      <section className="mt-8">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <Images size={18} className="text-teja" /> Contenido del álbum
-          {items.length > 0 && (
-            <span className="font-normal text-tinta/40">({items.length})</span>
-          )}
-        </h2>
-        {items.length === 0 ? (
-          <p className="mt-3 text-tinta/50">
-            Todavía no hay fotos. Comparte el enlace o el QR de arriba con tus
-            invitados para que empiecen a subir recuerdos.
-          </p>
-        ) : (
-          <ul className="mt-3 columns-2 gap-3 sm:columns-3 md:columns-4">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="card-interactive group relative mb-3 break-inside-avoid overflow-hidden rounded-xl bg-arena shadow-soft"
-              >
-                {item.type === "video" ? (
-                  <video src={item.url} className="block w-full" preload="metadata" muted playsInline />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.url} alt="" loading="lazy" className="block w-full" />
-                )}
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-2">
-                  <span className="truncate text-xs text-white">
-                    {item.uploaderName || "Anónimo"}
-                  </span>
-                  <DeleteMediaButton mediaId={item.id} />
-                </div>
-              </li>
-            ))}
-          </ul>
+        {pendingItems.length > 0 && (
+          <section className="mt-8 animate-fade-in rounded-2xl border border-teja/20 bg-teja/5 p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-teja-oscuro">
+              <Hourglass size={18} />
+              Pendientes de aprobar ({pendingItems.length})
+            </h2>
+            <ul className="mt-3 columns-2 gap-3 sm:columns-3 md:columns-4">
+              {pendingItems.map((item) => (
+                <li
+                  key={item.id}
+                  className="card-interactive mb-3 break-inside-avoid overflow-hidden rounded-xl bg-white shadow-soft"
+                >
+                  {item.type === "video" ? (
+                    <video src={item.url} className="block w-full" preload="metadata" muted playsInline />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.url} alt="" loading="lazy" className="block w-full" />
+                  )}
+                  <div className="flex items-center justify-between gap-1 p-2">
+                    <ApproveMediaButton mediaId={item.id} />
+                    <RejectMediaButton mediaId={item.id} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
-      </section>
-    </main>
+
+        <ChallengeManager albumId={album.id} challenges={challengeRows} />
+
+        <GuestbookPanel entries={guestbookRows} />
+
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Images size={18} className="text-teja" /> Contenido del álbum
+            {items.length > 0 && (
+              <span className="font-normal text-tinta/40">({items.length})</span>
+            )}
+          </h2>
+          {items.length === 0 ? (
+            <p className="mt-3 text-tinta/50">
+              Todavía no hay fotos. Comparte el enlace o el QR de arriba con tus
+              invitados para que empiecen a subir recuerdos.
+            </p>
+          ) : (
+            <ul className="mt-3 columns-2 gap-3 sm:columns-3 md:columns-4">
+              {items.map((item) => (
+                <li
+                  key={item.id}
+                  className="card-interactive group relative mb-3 break-inside-avoid overflow-hidden rounded-xl bg-arena shadow-soft"
+                >
+                  {item.type === "video" ? (
+                    <video src={item.url} className="block w-full" preload="metadata" muted playsInline />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.url} alt="" loading="lazy" className="block w-full" />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-2">
+                    <span className="truncate text-xs text-white">
+                      {item.uploaderName || "Anónimo"}
+                    </span>
+                    <DeleteMediaButton mediaId={item.id} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section className="mt-10 rounded-2xl border border-tinta/10 bg-white p-5 shadow-soft">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Settings size={18} className="text-tinta/50" /> Ajustes del álbum
+          </h2>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="max-w-md text-sm text-tinta/60">
+              Borrar el álbum elimina también todas sus fotos, vídeos,
+              comentarios y mensajes. No se puede deshacer, así que descarga
+              antes el ZIP o el Dotbook si quieres conservarlos.
+            </p>
+            <DeleteAlbumButton albumId={album.id} albumName={album.name} />
+          </div>
+        </section>
+      </main>
+    </>
   );
 }
