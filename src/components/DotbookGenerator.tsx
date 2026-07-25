@@ -68,7 +68,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="glass flex w-full max-w-sm flex-col rounded-2xl p-5"
+            className="glass flex w-full max-w-md flex-col rounded-2xl p-5"
             style={{ maxHeight: "85vh" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -88,7 +88,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-tinta/50">
                 Diseño de portada
               </p>
-              <div className="mt-2 grid grid-cols-3 gap-2">
+              <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {REAL_STYLES.map((s) => (
                   <button
                     key={s.id}
@@ -98,7 +98,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
                       styleId === s.id ? "ring-2 ring-teja ring-offset-2" : "opacity-70"
                     }`}
                   >
-                    <div className="aspect-square overflow-hidden">
+                    <div className="aspect-[124/160] overflow-hidden bg-arena">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={`/dotbook-templates/thumbs/${THUMB_FILE[s.id]}`}
@@ -116,7 +116,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
               <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-tinta/50">
                 Estilos dibujados
               </p>
-              <div className="mt-2 grid grid-cols-3 gap-2">
+              <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {VECTOR_STYLES.map((s) => (
                   <button
                     key={s.id}
@@ -126,7 +126,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
                       styleId === s.id ? "ring-2 ring-teja ring-offset-2" : "opacity-70"
                     }`}
                   >
-                    <div className={`aspect-square bg-gradient-to-br ${s.swatch}`} />
+                    <div className={`aspect-[124/160] bg-gradient-to-br ${s.swatch}`} />
                     <p className="truncate px-1 py-1 text-[10px] font-medium leading-tight text-tinta/75">
                       {s.label}
                     </p>

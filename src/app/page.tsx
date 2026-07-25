@@ -20,6 +20,12 @@ import {
   WifiOff,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import {
+  CelebrationCarousel,
+  LiveScreenMockup,
+  Reveal,
+  RetosMockup,
+} from "@/components/LandingPieces";
 
 const TRUST = [
   { icon: WifiOff, title: "Nada que instalar", text: "Se abre en el navegador del móvil" },
@@ -31,7 +37,7 @@ const EVENTS = [
   { label: "Bodas", src: "/decor/boda.jpg" },
   { label: "Cumpleaños", src: "/decor/cumple.jpg" },
   { label: "15 años", src: "/decor/quince.jpg" },
-  { label: "Comuniones", src: "/decor/familia.jpg" },
+  { label: "Familia", src: "/decor/familia.jpg" },
   { label: "Viajes", src: "/decor/viaje.jpg" },
   { label: "Navidad", src: "/decor/navidad.jpg" },
   { label: "Baby shower", src: "/decor/babyshower.jpg" },
@@ -179,78 +185,6 @@ function PhoneMockup() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/decor/anonuevo.jpg" alt="" className="h-12 w-full rounded-sm object-cover" />
       </div>
-    </div>
-  );
-}
-
-function TvMockup() {
-  return (
-    <div className="relative mx-auto w-full max-w-sm">
-      <div className="glass-dark animate-fade-in rounded-2xl p-3">
-        <div className="relative overflow-hidden rounded-lg">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/decor/boda.jpg" alt="" className="aspect-video w-full object-cover" />
-          <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-1 text-[10px] text-white">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teja opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teja" />
-            </span>
-            Boda de Ana y Luis
-          </div>
-          <div className="absolute bottom-2 left-2 rounded-lg bg-black/50 px-2.5 py-1.5 text-[11px] text-white">
-            Foto de Marta
-          </div>
-          <div className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-lg bg-white p-1">
-            <QrCode size={22} className="text-tinta" />
-          </div>
-        </div>
-      </div>
-      {/* Peana */}
-      <div className="mx-auto h-3 w-24 rounded-b-xl bg-tinta/20" />
-      <div className="mx-auto h-1.5 w-40 rounded-full bg-tinta/10" />
-    </div>
-  );
-}
-
-function RetosMockup() {
-  const retos = [
-    { emoji: "🥂", title: "El brindis", n: 6 },
-    { emoji: "💃", title: "El mejor momento de baile", n: 3 },
-    { emoji: "🤳", title: "Un selfie en tu mesa", n: 0 },
-  ];
-  return (
-    <div className="glass w-full max-w-sm rounded-2xl p-4 shadow-lift">
-      <div className="flex items-baseline justify-between">
-        <p className="flex items-center gap-2 font-semibold">
-          <Target size={16} className="text-teja" /> Retos del evento
-        </p>
-        <span className="text-sm font-semibold text-tinta/60">2 de 3</span>
-      </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-tinta/10">
-        <div className="h-full w-2/3 rounded-full bg-teja" />
-      </div>
-      <ul className="mt-3 space-y-2">
-        {retos.map((r) => (
-          <li
-            key={r.title}
-            className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-sm ${
-              r.n > 0 ? "border-teja/30 bg-teja/5" : "border-tinta/10 bg-white"
-            }`}
-          >
-            <span className="text-lg">{r.emoji}</span>
-            <span className="min-w-0 flex-1 truncate font-medium">{r.title}</span>
-            {r.n > 0 ? (
-              <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-teja-oscuro">
-                <Check size={13} /> {r.n}
-              </span>
-            ) : (
-              <span className="shrink-0 rounded-full bg-teja px-2.5 py-1 text-xs font-semibold text-white">
-                Subir
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -423,26 +357,8 @@ export default function Home() {
             <p className="text-center text-sm font-semibold uppercase tracking-[0.14em] text-tinta/50">
               Un álbum para cada celebración
             </p>
-            <div className="scroll-x mt-6 flex gap-4 pb-2">
-              {EVENTS.map((e, i) => (
-                <figure
-                  key={e.label}
-                  className="card-interactive w-36 shrink-0 sm:w-44"
-                  style={{ transform: `rotate(${i % 2 ? 1.2 : -1.2}deg)` }}
-                >
-                  <div className="polaroid overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={e.src}
-                      alt=""
-                      className="aspect-[4/5] w-full rounded-sm object-cover"
-                    />
-                    <figcaption className="pt-2 text-center text-sm font-semibold text-tinta/70">
-                      {e.label}
-                    </figcaption>
-                  </div>
-                </figure>
-              ))}
+            <div className="mt-6">
+              <CelebrationCarousel items={EVENTS} />
             </div>
           </div>
         </section>
@@ -474,13 +390,14 @@ export default function Home() {
                 que se anime quien todavía no ha subido nada.
               </p>
               <div className="mt-5">
-                <TvMockup />
+                <LiveScreenMockup />
               </div>
             </div>
 
-            {FEATURES.map((f) => (
-              <div
+            {FEATURES.map((f, i) => (
+              <Reveal
                 key={f.title}
+                delay={i * 70}
                 className="card-interactive rounded-2xl border border-tinta/10 bg-white p-6 shadow-soft"
               >
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja shadow-soft">
@@ -488,13 +405,14 @@ export default function Home() {
                 </div>
                 <h3 className="mt-4 font-semibold">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-tinta/60">{f.text}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </section>
 
         <section className="bg-arena/40 py-20">
           <div className="mx-auto max-w-6xl space-y-24 px-6">
+            <Reveal>
             <Showcase
               eyebrow="Retos fotográficos"
               title="Nadie se queda mirando el móvil sin saber qué hacer"
@@ -506,6 +424,8 @@ export default function Home() {
               ]}
               mockup={<RetosMockup />}
             />
+            </Reveal>
+            <Reveal>
             <Showcase
               flip
               eyebrow="Muro de mensajes"
@@ -518,10 +438,12 @@ export default function Home() {
               ]}
               mockup={<MuroMockup />}
             />
+            </Reveal>
           </div>
         </section>
 
         <section id="dotbook" className="mx-auto max-w-6xl px-6 py-20">
+          <Reveal>
           <Showcase
             flip
             eyebrow="Dotbook digital"
@@ -534,6 +456,7 @@ export default function Home() {
             ]}
             mockup={<DotbookMockup />}
           />
+          </Reveal>
         </section>
 
         <section id="como-funciona" className="border-y border-tinta/8 bg-arena/60 py-20">
@@ -550,8 +473,8 @@ export default function Home() {
                 aria-hidden
                 className="absolute left-[16%] right-[16%] top-7 hidden border-t-2 border-dashed border-teja/25 sm:block"
               />
-              {STEPS.map((s) => (
-                <div key={s.n} className="relative text-center">
+              {STEPS.map((s, i) => (
+                <Reveal key={s.n} delay={i * 120} className="relative text-center">
                   <div
                     className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-teja text-2xl font-semibold text-white shadow-lift"
                     style={{ fontFamily: "var(--font-display)" }}
@@ -560,7 +483,7 @@ export default function Home() {
                   </div>
                   <h3 className="mt-4 font-semibold">{s.title}</h3>
                   <p className="mt-1.5 text-sm text-tinta/60">{s.text}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>

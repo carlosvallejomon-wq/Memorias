@@ -7,10 +7,15 @@ export const dynamic = "force-dynamic";
 
 export default async function GuestAlbumPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
+  searchParams: Promise<{ panel?: string }>;
 }) {
   const { code } = await params;
+  // El organizador llega aquí desde su panel con ?panel=1; solo en ese caso
+  // se le ofrece la vuelta atrás (un invitado normal no tiene panel).
+  const { panel } = await searchParams;
   const [album] = await db()
     .select({
       name: albums.name,
@@ -38,6 +43,7 @@ export default async function GuestAlbumPage({
       code={album.shareCode}
       name={album.name}
       eventDate={album.eventDate}
+      fromPanel={panel === "1"}
     />
   );
 }

@@ -9,7 +9,7 @@ import {
   Download,
   MonitorPlay,
   Hourglass,
-  ExternalLink,
+  ImagePlus,
   Images,
   Settings,
   ShieldCheck,
@@ -24,12 +24,8 @@ import { AlbumStats, type AlbumStatsData } from "@/components/AlbumStats";
 import { DashboardTopBar } from "@/components/DashboardTopBar";
 import { ChallengeManager } from "@/components/ChallengeManager";
 import { GuestbookPanel } from "@/components/GuestbookPanel";
-import {
-  ApproveMediaButton,
-  DeleteAlbumButton,
-  DeleteMediaButton,
-  RejectMediaButton,
-} from "@/components/OwnerActions";
+import { OwnerGallery } from "@/components/OwnerGallery";
+import { DeleteAlbumButton } from "@/components/OwnerActions";
 
 export const dynamic = "force-dynamic";
 
@@ -223,12 +219,10 @@ export default async function AlbumAdminPage({
                 larga de botones todos iguales. */}
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <a
-                href={`/a/${album.shareCode}`}
-                target="_blank"
-                rel="noreferrer"
+                href={`/a/${album.shareCode}?panel=1`}
                 className="btn btn-primary shimmer px-4 py-2 text-sm"
               >
-                <ExternalLink size={16} /> Ver álbum
+                <ImagePlus size={16} /> Ver álbum y añadir fotos
               </a>
               <a
                 href={`/a/${album.shareCode}/pantalla`}
@@ -269,25 +263,7 @@ export default async function AlbumAdminPage({
               <Hourglass size={18} />
               Pendientes de aprobar ({pendingItems.length})
             </h2>
-            <ul className="mt-3 columns-2 gap-3 sm:columns-3 md:columns-4">
-              {pendingItems.map((item) => (
-                <li
-                  key={item.id}
-                  className="card-interactive mb-3 break-inside-avoid overflow-hidden rounded-xl bg-white shadow-soft"
-                >
-                  {item.type === "video" ? (
-                    <video src={item.url} className="block w-full" preload="metadata" muted playsInline />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.url} alt="" loading="lazy" className="block w-full" />
-                  )}
-                  <div className="flex items-center justify-between gap-1 p-2">
-                    <ApproveMediaButton mediaId={item.id} />
-                    <RejectMediaButton mediaId={item.id} />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <OwnerGallery mode="pendientes" items={pendingItems} />
           </section>
         )}
 
@@ -308,27 +284,7 @@ export default async function AlbumAdminPage({
               invitados para que empiecen a subir recuerdos.
             </p>
           ) : (
-            <ul className="mt-3 columns-2 gap-3 sm:columns-3 md:columns-4">
-              {items.map((item) => (
-                <li
-                  key={item.id}
-                  className="card-interactive group relative mb-3 break-inside-avoid overflow-hidden rounded-xl bg-arena shadow-soft"
-                >
-                  {item.type === "video" ? (
-                    <video src={item.url} className="block w-full" preload="metadata" muted playsInline />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.url} alt="" loading="lazy" className="block w-full" />
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent p-2">
-                    <span className="truncate text-xs text-white">
-                      {item.uploaderName || "Anónimo"}
-                    </span>
-                    <DeleteMediaButton mediaId={item.id} />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <OwnerGallery items={items} />
           )}
         </section>
         <section className="mt-10 rounded-2xl border border-tinta/10 bg-white p-5 shadow-soft">
