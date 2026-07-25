@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import {
+  ArrowLeft,
   Camera,
   CalendarDays,
   Heart,
@@ -29,6 +30,7 @@ import {
   initial,
   reactionTotal,
 } from "@/lib/guest-types";
+import { ChallengeIcon } from "@/components/ChallengeIcon";
 import { GuestChallenges } from "@/components/GuestChallenges";
 import { GuestLightbox } from "@/components/GuestLightbox";
 import { GuestMessageWall } from "@/components/GuestMessageWall";
@@ -78,10 +80,12 @@ export function GuestAlbum({
   code,
   name,
   eventDate,
+  fromPanel = false,
 }: {
   code: string;
   name: string;
   eventDate: string | null;
+  fromPanel?: boolean;
 }) {
   const [guestId] = useLocalValue("mv_guest_id", () => crypto.randomUUID());
   const [guestName, setGuestName] = useLocalValue("mv_guest_name");
@@ -328,13 +332,25 @@ export function GuestAlbum({
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-28">
-      <header className="pt-6 text-center">
-        <a
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"
-        >
-          <Camera size={14} /> Memorias Vivas
-        </a>
+      {/* Al organizador que llega desde su panel se le deja una vuelta atrás
+          bien visible; el invitado normal solo ve la marca. */}
+      {fromPanel ? (
+        <div className="pt-4">
+          <a href="/dashboard" className="btn btn-soft px-4 py-2 text-sm">
+            <ArrowLeft size={16} /> Volver a mis álbumes
+          </a>
+        </div>
+      ) : null}
+
+      <header className={fromPanel ? "pt-4 text-center" : "pt-6 text-center"}>
+        {!fromPanel && (
+          <a
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"
+          >
+            <Camera size={14} /> Memorias Vivas
+          </a>
+        )}
         <h1
           className="text-balance mt-2 text-3xl font-semibold sm:text-4xl"
           style={{ fontFamily: "var(--font-display)" }}
@@ -449,7 +465,8 @@ export function GuestAlbum({
               onClick={() => setChallengeFilter(null)}
               className="chip chip-active"
             >
-              {activeChallenge.emoji || "📸"} {activeChallenge.title}
+              <ChallengeIcon icon={activeChallenge.emoji} size={14} />
+              {activeChallenge.title}
               <X size={14} />
             </button>
           )}
@@ -660,7 +677,7 @@ export function GuestAlbum({
                   <option value="">Ninguno en concreto</option>
                   {challenges.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {(c.emoji || "📸") + " " + c.title}
+                      {c.title}
                     </option>
                   ))}
                 </select>
@@ -831,9 +848,9 @@ function Thumb({
       {challenge && (
         <span
           title={challenge.title}
-          className="absolute right-1.5 bottom-1.5 rounded-full bg-black/50 px-1.5 py-0.5 text-[11px]"
+          className="absolute right-1.5 bottom-1.5 flex items-center rounded-full bg-black/55 p-1 text-white"
         >
-          {challenge.emoji || "📸"}
+          <ChallengeIcon icon={challenge.emoji} size={12} />
         </span>
       )}
       {(total > 0 || item.commentCount > 0) && (

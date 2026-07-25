@@ -7,6 +7,8 @@ import {
   createChallenge,
   deleteChallenge,
 } from "@/app/dashboard/actions";
+import { ChallengeIcon } from "@/components/ChallengeIcon";
+import { CHALLENGE_ICONS, DEFAULT_CHALLENGE_ICON } from "@/lib/challenge-icons";
 
 export type ChallengeRow = {
   id: string;
@@ -15,7 +17,25 @@ export type ChallengeRow = {
   photoCount: number;
 };
 
-const EMOJI_CHOICES = ["📸", "🥂", "💃", "😂", "❤️", "🎂", "🎁", "👟", "🐾", "🌅"];
+// Iconos que se ofrecen al crear un reto (los del catálogo, en este orden).
+const ICON_CHOICES = [
+  "camara",
+  "brindis",
+  "baile",
+  "grupo",
+  "tarta",
+  "regalo",
+  "detalles",
+  "amor",
+  "risa",
+  "fiesta",
+  "flores",
+  "mascota",
+  "amanecer",
+  "comida",
+  "viaje",
+  "zapatos",
+];
 
 function DeleteChallengeButton({ id, title }: { id: string; title: string }) {
   const [pending, startTransition] = useTransition();
@@ -46,7 +66,7 @@ export function ChallengeManager({
   albumId: string;
   challenges: ChallengeRow[];
 }) {
-  const [emoji, setEmoji] = useState("📸");
+  const [emoji, setEmoji] = useState(DEFAULT_CHALLENGE_ICON);
   const [pending, startTransition] = useTransition();
   const [suggesting, startSuggesting] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
@@ -98,7 +118,9 @@ export function ChallengeManager({
               key={c.id}
               className="flex items-center gap-3 rounded-xl border border-tinta/10 bg-crema px-3 py-2"
             >
-              <span className="text-xl">{c.emoji || "📸"}</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-teja shadow-soft">
+                <ChallengeIcon icon={c.emoji} size={17} />
+              </span>
               <span className="min-w-0 flex-1 truncate font-medium">{c.title}</span>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -121,37 +143,48 @@ export function ChallengeManager({
           startTransition(async () => {
             await createChallenge(albumId, formData);
             formRef.current?.reset();
-            setEmoji("📸");
+            setEmoji(DEFAULT_CHALLENGE_ICON);
           })
         }
-        className="mt-4 flex flex-wrap items-center gap-2"
+        className="mt-5 rounded-xl border border-tinta/10 bg-crema p-4"
       >
         <input type="hidden" name="emoji" value={emoji} />
-        <select
-          aria-label="Icono del reto"
-          value={emoji}
-          onChange={(e) => setEmoji(e.target.value)}
-          className="field w-auto text-lg"
-        >
-          {EMOJI_CHOICES.map((e) => (
-            <option key={e} value={e}>
-              {e}
-            </option>
+        <p className="text-xs font-semibold uppercase tracking-wide text-tinta/50">
+          Elige un icono
+        </p>
+        <div className="scroll-x mt-2 flex gap-1.5 pb-1">
+          {ICON_CHOICES.map((id) => (
+            <button
+              key={id}
+              type="button"
+              title={CHALLENGE_ICONS[id]?.label ?? id}
+              aria-pressed={emoji === id}
+              onClick={() => setEmoji(id)}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition ${
+                emoji === id
+                  ? "border-teja bg-teja text-white shadow-soft"
+                  : "border-tinta/10 bg-white text-tinta/60 hover:border-teja/40 hover:text-teja"
+              }`}
+            >
+              <ChallengeIcon icon={id} size={17} />
+            </button>
           ))}
-        </select>
-        {/* El ancho mínimo hace que en el móvil el campo salte a su propia
-            línea en vez de quedarse aplastado junto al botón. */}
-        <input
-          name="title"
-          required
-          maxLength={120}
-          placeholder="Nuevo reto — p. ej. «Una foto con los novios»"
-          className="field min-w-[14rem] flex-1"
-        />
-        <button disabled={pending} type="submit" className="btn btn-primary shimmer">
-          {pending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-          Añadir
-        </button>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {/* El ancho mínimo hace que en el móvil el campo salte a su propia
+              línea en vez de quedarse aplastado junto al botón. */}
+          <input
+            name="title"
+            required
+            maxLength={120}
+            placeholder="Nuevo reto — p. ej. «Una foto con los novios»"
+            className="field min-w-[14rem] flex-1"
+          />
+          <button disabled={pending} type="submit" className="btn btn-primary shimmer">
+            {pending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+            Añadir
+          </button>
+        </div>
       </form>
     </section>
   );

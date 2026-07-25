@@ -12,9 +12,11 @@
     "Helvetica Neue", Arial, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 
-  --shadow-soft: 0 1px 2px rgba(43, 33, 24, 0.04), 0 8px 24px -8px rgba(43, 33, 24, 0.12);
-  --shadow-lift: 0 4px 8px rgba(43, 33, 24, 0.06), 0 20px 40px -12px rgba(43, 33, 24, 0.22);
-  --shadow-glow: 0 8px 32px -8px rgba(194, 87, 27, 0.35);
+  /* Sombras con algo más de cuerpo: antes las tarjetas se fundían con el
+     fondo crema y todo se veía plano. */
+  --shadow-soft: 0 1px 2px rgba(43, 33, 24, 0.05), 0 10px 24px -10px rgba(43, 33, 24, 0.2);
+  --shadow-lift: 0 6px 12px rgba(43, 33, 24, 0.08), 0 26px 50px -16px rgba(43, 33, 24, 0.3);
+  --shadow-glow: 0 10px 32px -8px rgba(194, 87, 27, 0.45);
 }
 
 html {
@@ -45,7 +47,13 @@ html {
 }
 
 body {
+  /* Fondo con dos halos muy suaves en las esquinas: da profundidad sin
+     ensuciar el crema ni robar protagonismo a las fotos. */
   background-color: var(--color-crema);
+  background-image:
+    radial-gradient(60rem 40rem at 110% -10%, rgba(194, 87, 27, 0.09), transparent 60%),
+    radial-gradient(50rem 34rem at -10% 8%, rgba(107, 39, 55, 0.07), transparent 60%);
+  background-attachment: fixed;
   color: var(--color-tinta);
   position: relative;
 }
@@ -93,11 +101,21 @@ body::before {
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
 }
 .card-interactive:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-lift);
 }
 .card-interactive:active {
   transform: translateY(-1px);
+}
+
+/* Acercamiento lento de la foto al pasar por encima de su tarjeta. */
+.zoom-hover img,
+.zoom-hover video {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.zoom-hover:hover img,
+.zoom-hover:hover video {
+  transform: scale(1.05);
 }
 
 /* Brillo tipo cristal que recorre el elemento al pasar el cursor. */
@@ -320,6 +338,26 @@ body::before {
 
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+/* Aparición al desplazar: el bloque entra desde abajo la primera vez que se
+   ve. Con prefers-reduced-motion las transiciones quedan anuladas más
+   arriba, así que el contenido aparece ya colocado. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
   }
 }
 

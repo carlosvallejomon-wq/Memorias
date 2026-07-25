@@ -90,7 +90,7 @@ export function AlbumCard({ album }: { album: AlbumCardData }) {
       href={`/dashboard/${album.id}`}
       className="card-interactive group block overflow-hidden rounded-2xl border border-tinta/10 bg-white shadow-soft"
     >
-      <div className="relative h-40 sm:h-44">
+      <div className="zoom-hover relative h-40 overflow-hidden sm:h-44">
         <Cover covers={album.covers} />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-4 text-white">

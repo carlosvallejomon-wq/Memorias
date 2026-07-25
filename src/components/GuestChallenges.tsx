@@ -1,6 +1,7 @@
 "use client";
 
 import { Camera, Check, Target } from "lucide-react";
+import { ChallengeIcon } from "@/components/ChallengeIcon";
 import type { ChallengeItem } from "@/lib/guest-types";
 
 // Tablero de retos del invitado: cada tarjeta abre el selector de archivos ya
@@ -76,7 +77,15 @@ export function GuestChallenges({
                 complete ? "border-teja/30 bg-teja/5" : "border-tinta/10 bg-white"
               }`}
             >
-              <span className="text-2xl">{c.emoji || "📸"}</span>
+              <span
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+                  complete
+                    ? "bg-teja text-white shadow-soft"
+                    : "bg-gradient-to-br from-teja/20 to-teja/5 text-teja"
+                }`}
+              >
+                <ChallengeIcon icon={c.emoji} size={20} />
+              </span>
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{c.title}</p>
                 {complete ? (

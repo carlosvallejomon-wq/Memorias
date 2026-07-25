@@ -8,6 +8,7 @@ import { customAlphabet } from "nanoid";
 import { del } from "@vercel/blob";
 import { db } from "@/db";
 import { albums, challenges, guestbookEntries, media } from "@/db/schema";
+import { DEFAULT_CHALLENGE_ICON, isChallengeIconId } from "@/lib/challenge-icons";
 
 // Alfabeto sin caracteres ambiguos (0/O, 1/l/I) para códigos fáciles de leer.
 const makeCode = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 10);
@@ -125,22 +126,22 @@ export async function approveMedia(mediaId: string) {
 // que pensarlos desde cero (un clic y ya tiene la lista).
 export const SUGGESTED_CHALLENGES: Record<string, { emoji: string; title: string }[]> = {
   evento: [
-    { emoji: "🥂", title: "El brindis" },
-    { emoji: "💃", title: "El mejor momento de baile" },
-    { emoji: "👵", title: "Una foto con la persona más mayor de la fiesta" },
-    { emoji: "🤳", title: "Un selfie de grupo en tu mesa" },
-    { emoji: "👟", title: "Los zapatos más llamativos" },
-    { emoji: "😂", title: "La foto más divertida de la noche" },
-    { emoji: "🍰", title: "La tarta" },
-    { emoji: "🎁", title: "Los detalles de la decoración" },
+    { emoji: "brindis", title: "El brindis" },
+    { emoji: "baile", title: "El mejor momento de baile" },
+    { emoji: "amor", title: "Una foto con la persona más mayor de la fiesta" },
+    { emoji: "grupo", title: "Un selfie de grupo en tu mesa" },
+    { emoji: "zapatos", title: "Los zapatos más llamativos" },
+    { emoji: "risa", title: "La foto más divertida de la noche" },
+    { emoji: "tarta", title: "La tarta" },
+    { emoji: "detalles", title: "Los detalles de la decoración" },
   ],
   familia: [
-    { emoji: "🍳", title: "Un desayuno cualquiera" },
-    { emoji: "🐾", title: "La mascota de la casa" },
-    { emoji: "👨‍👩‍👧", title: "Toda la familia junta" },
-    { emoji: "🌅", title: "Un atardecer desde casa" },
-    { emoji: "😴", title: "Alguien dormido en el sofá" },
-    { emoji: "🎂", title: "Un cumpleaños del año" },
+    { emoji: "comida", title: "Un desayuno cualquiera" },
+    { emoji: "mascota", title: "La mascota de la casa" },
+    { emoji: "grupo", title: "Toda la familia junta" },
+    { emoji: "amanecer", title: "Un atardecer desde casa" },
+    { emoji: "risa", title: "El momento más tonto del día" },
+    { emoji: "tarta", title: "Un cumpleaños del año" },
   ],
 };
 
@@ -157,7 +158,10 @@ export async function createChallenge(albumId: string, formData: FormData) {
   if (!userId || !(await ownsAlbum(albumId, userId))) return;
 
   const title = String(formData.get("title") ?? "").trim().slice(0, 120);
-  const emoji = String(formData.get("emoji") ?? "").trim().slice(0, 8);
+  // El campo guarda la clave de un icono del catálogo; si llega cualquier
+  // otra cosa se usa el icono por defecto.
+  const iconRaw = String(formData.get("emoji") ?? "").trim();
+  const icon = isChallengeIconId(iconRaw) ? iconRaw : DEFAULT_CHALLENGE_ICON;
   if (!title) return;
 
   const [last] = await db()
@@ -172,7 +176,7 @@ export async function createChallenge(albumId: string, formData: FormData) {
     .values({
       albumId,
       title,
-      emoji: emoji || "📸",
+      emoji: icon,
       position: (last?.position ?? 0) + 1,
     });
 
