@@ -60,83 +60,87 @@ export type Celebration = { label: string; src: string };
 // hubiera más fotos detrás.
 export function CelebrationCarousel({ items }: { items: Celebration[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [atStart, setAtStart] = useState(true);
-  const [atEnd, setAtEnd] = useState(false);
   const [active, setActive] = useState(0);
-  // El carrusel avanza solo, pero se detiene mientras el visitante lo está
-  // usando (ratón encima, dedo sobre la tira o foco con el teclado).
-  const [paused, setPaused] = useState(false);
+  // El desplazamiento se detiene mientras el visitante lo está usando (ratón
+  // encima, dedo sobre la tira, foco con el teclado) y un momento después de
+  // tocar una flecha, para no pelearse con su propio desplazamiento.
+  const paused = useRef(false);
+  const pausedUntil = useRef(0);
 
-  function sync() {
-    const el = trackRef.current;
-    if (!el) return;
-    setAtStart(el.scrollLeft <= 4);
-    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
-    const card = el.firstElementChild as HTMLElement | null;
-    const step = card ? card.offsetWidth + 16 : 1;
-    setActive(Math.round(el.scrollLeft / step));
-  }
+  // Las tarjetas se pintan dos veces seguidas: al llegar a la mitad se salta
+  // hacia atrás esa misma distancia, así el movimiento no tiene costuras.
+  const loop = [...items, ...items];
+
+  // La posición se lleva aparte en un número con decimales: al leer
+  // `scrollLeft` el navegador devuelve un valor redondeado, así que sumarle
+  // fracciones de píxel no avanzaba nunca.
+  const posRef = useRef(0);
 
   useEffect(() => {
-    sync();
     const el = trackRef.current;
     if (!el) return;
-    el.addEventListener("scroll", sync, { passive: true });
-    window.addEventListener("resize", sync);
-    return () => {
-      el.removeEventListener("scroll", sync);
-      window.removeEventListener("resize", sync);
-    };
-  }, []);
+    const VELOCIDAD = 26; // píxeles por segundo
+    let raf = 0;
+    let anterior = performance.now();
 
-  function scrollByCards(dir: 1 | -1) {
-    const el = trackRef.current;
-    if (!el) return;
-    const card = el.firstElementChild as HTMLElement | null;
-    const step = card ? card.offsetWidth + 16 : 240;
-    el.scrollBy({ left: dir * step * 2, behavior: "smooth" });
-  }
+    const step = (ahora: number) => {
+      raf = requestAnimationFrame(step);
+      const dt = Math.min((ahora - anterior) / 1000, 0.05);
+      anterior = ahora;
 
-  // Avance automático: una tarjeta cada 3 segundos y, al llegar al final,
-  // vuelve al principio.
-  useEffect(() => {
-    if (paused) return;
-    const id = setInterval(() => {
-      const el = trackRef.current;
-      if (!el) return;
       const card = el.firstElementChild as HTMLElement | null;
-      const step = card ? card.offsetWidth + 16 : 240;
-      const fin = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
-      el.scrollTo({ left: fin ? 0 : el.scrollLeft + step, behavior: "smooth" });
-    }, 3000);
-    return () => clearInterval(id);
-  }, [paused]);
+      const cardStep = card ? card.offsetWidth + 16 : 240;
+      setActive(Math.round(el.scrollLeft / cardStep) % items.length);
+
+      if (paused.current || Date.now() < pausedUntil.current) {
+        posRef.current = el.scrollLeft; // el visitante manda
+        return;
+      }
+      const half = el.scrollWidth / 2;
+      if (half <= 0) return;
+      posRef.current += VELOCIDAD * dt;
+      if (posRef.current >= half) posRef.current -= half;
+      el.scrollLeft = posRef.current;
+    };
+
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [items.length]);
+
+  function nudge(dir: 1 | -1) {
+    const el = trackRef.current;
+    if (!el) return;
+    const card = el.firstElementChild as HTMLElement | null;
+    const cardStep = card ? card.offsetWidth + 16 : 240;
+    pausedUntil.current = Date.now() + 900;
+    el.scrollBy({ left: dir * cardStep * 2, behavior: "smooth" });
+  }
 
   function goTo(index: number) {
     const el = trackRef.current;
     if (!el) return;
     const card = el.firstElementChild as HTMLElement | null;
-    const step = card ? card.offsetWidth + 16 : 240;
-    el.scrollTo({ left: index * step, behavior: "smooth" });
+    const cardStep = card ? card.offsetWidth + 16 : 240;
+    pausedUntil.current = Date.now() + 900;
+    el.scrollTo({ left: index * cardStep, behavior: "smooth" });
   }
 
   return (
     <div
       className="relative"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
-      onTouchStart={() => setPaused(true)}
+      onMouseEnter={() => (paused.current = true)}
+      onMouseLeave={() => (paused.current = false)}
+      onFocusCapture={() => (paused.current = true)}
+      onBlurCapture={() => (paused.current = false)}
+      onTouchStart={() => (paused.current = true)}
+      onTouchEnd={() => (pausedUntil.current = Date.now() + 2500)}
     >
-      <div
-        ref={trackRef}
-        className="scroll-x flex snap-x snap-mandatory gap-4 px-1 pb-3"
-      >
-        {items.map((e, i) => (
+      <div ref={trackRef} className="scroll-x flex gap-4 px-1 pb-3">
+        {loop.map((e, i) => (
           <figure
-            key={e.label}
-            className="card-interactive zoom-hover w-40 shrink-0 snap-start sm:w-48"
+            key={`${e.label}-${i}`}
+            aria-hidden={i >= items.length}
+            className="card-interactive zoom-hover w-40 shrink-0 sm:w-48"
             style={{ transform: `rotate(${i % 2 ? 1.1 : -1.1}deg)` }}
           >
             <div className="polaroid overflow-hidden">
@@ -156,18 +160,16 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
       </div>
 
       <button
-        onClick={() => scrollByCards(-1)}
-        disabled={atStart}
+        onClick={() => nudge(-1)}
         aria-label="Ver celebraciones anteriores"
-        className="absolute -left-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white p-2.5 text-tinta shadow-lift transition hover:bg-arena disabled:pointer-events-none disabled:opacity-0 sm:block"
+        className="absolute -left-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white p-2.5 text-tinta shadow-lift transition hover:bg-arena sm:block"
       >
         <ChevronLeft size={20} />
       </button>
       <button
-        onClick={() => scrollByCards(1)}
-        disabled={atEnd}
+        onClick={() => nudge(1)}
         aria-label="Ver más celebraciones"
-        className="absolute -right-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white p-2.5 text-tinta shadow-lift transition hover:bg-arena disabled:pointer-events-none disabled:opacity-0 sm:block"
+        className="absolute -right-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white p-2.5 text-tinta shadow-lift transition hover:bg-arena sm:block"
       >
         <ChevronRight size={20} />
       </button>

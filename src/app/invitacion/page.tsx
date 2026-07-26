@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import {
   TEMPLATES,
   renderInvitation,
+  defaultDetailsLayout,
   loadImage,
   ensureInvitationFonts,
   decodeInvitationLink,
@@ -59,7 +60,21 @@ function InvitationView() {
         rsvp: state.r ?? "",
         shareUrl: state.u,
       };
-      renderInvitation(ctx, template, data, state.tx, state.q, null, bgImg, qrImg, null, null);
+      // Los enlaces creados antes de separar el bloque de datos no traen `dx`:
+      // en ese caso se coloca justo debajo del título, como estaba.
+      renderInvitation(
+        ctx,
+        template,
+        data,
+        state.tx,
+        state.dx ?? defaultDetailsLayout(state.tx),
+        state.q,
+        null,
+        bgImg,
+        qrImg,
+        null,
+        null,
+      );
       setShareUrl(state.u);
       setReady(true);
     })();
