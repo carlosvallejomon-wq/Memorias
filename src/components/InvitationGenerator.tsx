@@ -93,23 +93,41 @@ function loadStylesheet(id: string, href: string): Promise<void> {
   });
 }
 
+// Si la petición de las tipografías se queda colgada (red lenta, Google
+// Fonts bloqueado, sin conexión), no se puede dejar el editor esperando para
+// siempre: pasado este tiempo se dibuja con las tipografías de respaldo.
+const FONT_TIMEOUT_MS = 4000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | void> {
+  return Promise.race([
+    promise,
+    new Promise<void>((resolve) => setTimeout(resolve, ms)),
+  ]);
+}
+
 let fontsReady: Promise<void> | null = null;
 export function ensureInvitationFonts(): Promise<void> {
   if (!fontsReady) {
     fontsReady = (async () => {
-      await loadStylesheet(
-        "mv-invite-fonts",
-        "https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Poppins:ital,wght@0,600;0,700;0,800;1,500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap",
+      await withTimeout(
+        loadStylesheet(
+          "mv-invite-fonts",
+          "https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Poppins:ital,wght@0,600;0,700;0,800;1,500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap",
+        ),
+        FONT_TIMEOUT_MS,
       );
       try {
-        await Promise.all([
-          document.fonts.load('120px "Pinyon Script"'),
-          document.fonts.load('800 40px "Poppins"'),
-          document.fonts.load('600 24px "Poppins"'),
-          document.fonts.load('italic 500 20px "Poppins"'),
-          document.fonts.load('700 40px "Playfair Display"'),
-          document.fonts.load('italic 400 20px "Playfair Display"'),
-        ]);
+        await withTimeout(
+          Promise.all([
+            document.fonts.load('120px "Pinyon Script"'),
+            document.fonts.load('800 40px "Poppins"'),
+            document.fonts.load('600 24px "Poppins"'),
+            document.fonts.load('italic 500 20px "Poppins"'),
+            document.fonts.load('700 40px "Playfair Display"'),
+            document.fonts.load('italic 400 20px "Playfair Display"'),
+          ]),
+          FONT_TIMEOUT_MS,
+        );
       } catch {
         // sin conexión o fuente bloqueada: seguimos con las tipografías de respaldo
       }
@@ -905,7 +923,202 @@ export const TEMPLATES: Template[] = [
     defaultText: { x: 535, y: 620, fontSize: 32, fontFamily: "Georgia, serif", color: "#5a6b3a", maxWidth: 700 },
     defaultQr: { x: 535, y: defQrY(620, 1500), size: 120 },
   },
+  // --- Bodas ---------------------------------------------------------------
+  {
+    id: "boda-01",
+    label: "Boda (anillos y eucalipto)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-01.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    defaultText: { x: 535, y: 814, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(814, 1499), size: 150 },
+  },
+  {
+    id: "boda-02",
+    label: "Boda (novios ilustrados)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-02.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "boda-03",
+    label: "Nuestra boda (salvia)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-03.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 585, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(585, 1500), size: 150 },
+  },
+  {
+    id: "boda-04",
+    label: "Nuestra boda (corazón verde)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-04.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "boda-05",
+    label: "Boda (anillos dorados)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-05.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 885, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(885, 1500), size: 150 },
+  },
+  {
+    id: "boda-06",
+    label: "Boda (marco rosa)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-06.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    defaultText: { x: 535, y: 756, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(756, 1499), size: 150 },
+  },
+  {
+    id: "boda-07",
+    label: "Boda (girasoles)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-07.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    defaultText: { x: 535, y: 929, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(929, 1499), size: 150 },
+  },
+  {
+    id: "boda-08",
+    label: "Boda (rosas amarillas)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-08.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 735, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(735, 1500), size: 150 },
+  },
+  {
+    id: "boda-09",
+    label: "Boda (rosas azules)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-09.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 555, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(555, 1500), size: 150 },
+  },
+  {
+    id: "boda-10",
+    label: "Boda (azul noche y oro)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-10.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 40, fontFamily: "Georgia, serif", color: "#f6efe6", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "boda-11",
+    label: "Boda (novios y follaje)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-11.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 855, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(855, 1500), size: 150 },
+  },
+  {
+    id: "boda-12",
+    label: "Boda (girasoles y oro)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-12.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    defaultText: { x: 535, y: 929, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(929, 1499), size: 150 },
+  },
+  {
+    id: "boda-13",
+    label: "Boda (marco dorado)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-13.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 765, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(765, 1500), size: 150 },
+  },
+  {
+    id: "boda-14",
+    label: "Boda (corazón floral)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-14.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 795, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(795, 1500), size: 150 },
+  },
+  {
+    id: "boda-15",
+    label: "Boda (perlas y oro)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-15.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    defaultText: { x: 535, y: 785, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(785, 1499), size: 150 },
+  },
+  {
+    id: "boda-16",
+    label: "Boda (azul índigo)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-16.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "boda-17",
+    label: "Boda (rosa y oro)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-17.jpg",
+    canvasW: 1071,
+    canvasH: 1499,
+    defaultText: { x: 535, y: 698, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(698, 1499), size: 150 },
+  },
+  {
+    id: "boda-18",
+    label: "Boda (acuarela suave)",
+    swatch: "",
+    bgImage: "/invitation-templates/boda-18.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 40, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
 ];
+
+// Familias de plantillas, para no soltar las 46 de golpe en la rejilla.
+export const TEMPLATE_GROUPS = [
+  { id: "todas", label: "Todas" },
+  { id: "boda", label: "Bodas" },
+  { id: "quince", label: "15 años" },
+  { id: "otras", label: "Otras" },
+];
+
+export function templateGroup(id: string): string {
+  if (id.startsWith("boda-")) return "boda";
+  if (id.startsWith("quince-")) return "quince";
+  return "otras";
+}
 
 // --- Enlace compartible de la invitación (para un QR aparte del de fotos) --
 // Guarda el diseño completo (plantilla, textos y posiciones) en la propia
@@ -962,6 +1175,7 @@ export function InvitationGenerator({
 }) {
   const [open, setOpen] = useState(false);
   const [templateId, setTemplateId] = useState(TEMPLATES[0].id);
+  const [group, setGroup] = useState("todas");
   const [date, setDate] = useState(eventDateLabel ?? "");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
@@ -1030,6 +1244,9 @@ export function InvitationGenerator({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
+
+  const visibleTemplates =
+    group === "todas" ? TEMPLATES : TEMPLATES.filter((t) => templateGroup(t.id) === group);
 
   const ready = fontsLoaded && !!qrImg && (!template.bgImage || !!bgImg);
 
@@ -1197,8 +1414,19 @@ export function InvitationGenerator({
               <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-tinta/50">
                 Plantilla
               </p>
+              <div className="scroll-x mt-2 flex gap-1.5 pb-1">
+                {TEMPLATE_GROUPS.map((g) => (
+                  <button
+                    key={g.id}
+                    onClick={() => setGroup(g.id)}
+                    className={`chip ${group === g.id ? "chip-active" : ""}`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
               <div className="mt-2 grid grid-cols-4 gap-2">
-                {TEMPLATES.map((t) => (
+                {visibleTemplates.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setTemplateId(t.id)}

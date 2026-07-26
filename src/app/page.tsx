@@ -13,6 +13,8 @@ import {
   Lock,
   Target,
   PenLine,
+  Printer,
+  Link2,
   Check,
   Download,
   Users,
@@ -22,7 +24,9 @@ import {
 import { SiteNav } from "@/components/SiteNav";
 import {
   CelebrationCarousel,
+  InvitationDeck,
   LiveScreenMockup,
+  PhoneGrid,
   Reveal,
   RetosMockup,
 } from "@/components/LandingPieces";
@@ -76,6 +80,24 @@ const FEATURES = [
   },
 ];
 
+const INVITATION_WAYS = [
+  {
+    icon: Printer,
+    title: "Imprímela",
+    text: "Se descarga en alta calidad, lista para imprimir en casa o llevar a la imprenta.",
+  },
+  {
+    icon: Link2,
+    title: "Mándala por WhatsApp",
+    text: "Cada invitación tiene su propio enlace: se abre en el móvil sin instalar nada.",
+  },
+  {
+    icon: QrCode,
+    title: "O como código QR",
+    text: "Un QR que abre la invitación, y otro que lleva directo al álbum de fotos del evento.",
+  },
+];
+
 const STEPS = [
   {
     n: "1",
@@ -116,20 +138,16 @@ const FAQ = [
     a: "Sí: descarga el álbum completo en un ZIP, o genera el Dotbook en PDF con una página por recuerdo y las dedicatorias del muro de mensajes.",
   },
   {
+    q: "¿Las invitaciones se pueden imprimir?",
+    a: "Sí. La invitación se descarga como imagen en alta calidad, así que puedes imprimirla en casa o llevarla a una imprenta. Y si prefieres no imprimir nada, se manda por WhatsApp como enlace o como código QR.",
+  },
+  {
     q: "¿Los vídeos también valen?",
     a: "Sí, fotos y vídeos. En el Dotbook los vídeos aparecen con un código QR que lleva al vídeo original, porque un PDF no puede reproducirlos.",
   },
 ];
 
 function PhoneMockup() {
-  const tiles = [
-    "/decor/familia.jpg",
-    "/decor/cumple.jpg",
-    "/decor/viaje.jpg",
-    "/decor/quince.jpg",
-    "/decor/navidad.jpg",
-    "/decor/boda.jpg",
-  ];
   return (
     <div className="relative mx-auto w-full max-w-[300px]">
       {/* Marco realista de teléfono con barra de navegador, para que se
@@ -145,17 +163,7 @@ function PhoneMockup() {
             <div className="flex items-center gap-1.5 pb-2.5 text-xs font-semibold text-tinta/70">
               <Camera size={13} /> Boda de Ana y Luis
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {tiles.map((src, i) => (
-                <div
-                  key={i}
-                  className="aspect-square overflow-hidden rounded-lg shadow-soft"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt="" className="h-full w-full object-cover" />
-                </div>
-              ))}
-            </div>
+            <PhoneGrid />
             <div className="mt-3 flex justify-center">
               <div className="shimmer flex items-center gap-1.5 rounded-full bg-teja px-4 py-2 text-xs font-semibold text-white shadow-soft">
                 <Camera size={13} /> Subir fotos
@@ -446,6 +454,51 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="invitaciones" className="mx-auto max-w-6xl px-6 py-20">
+          <Reveal>
+            <div className="grid items-center gap-12 lg:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teja">
+                  Invitaciones
+                </p>
+                <h3
+                  className="text-balance mt-2 text-2xl font-semibold sm:text-3xl"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  La invitación también sale de aquí
+                </h3>
+                <p className="mt-3 text-tinta/70">
+                  Elige un diseño, escribe los datos de tu evento y arrastra el
+                  texto, la foto y el QR donde quieras. Más de 40 plantillas
+                  entre bodas, quinceañeras y otras celebraciones.
+                </p>
+
+                <ul className="mt-6 space-y-4">
+                  {INVITATION_WAYS.map((w) => (
+                    <li key={w.title} className="flex items-start gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja shadow-soft">
+                        <w.icon size={18} />
+                      </span>
+                      <span>
+                        <span className="block font-semibold">{w.title}</span>
+                        <span className="block text-sm text-tinta/60">{w.text}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link href="/dashboard" className="btn btn-primary shimmer mt-7">
+                  Crear mi invitación <ArrowRight size={17} />
+                </Link>
+              </div>
+
+              <div className="flex justify-center">
+                <InvitationDeck />
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
         <section id="dotbook" className="mx-auto max-w-6xl px-6 py-20">
           <Reveal>
           <Showcase
@@ -575,6 +628,9 @@ export default function Home() {
               </li>
               <li>
                 <a href="#como-funciona" className="hover:text-tinta">Cómo funciona</a>
+              </li>
+              <li>
+                <a href="#invitaciones" className="hover:text-tinta">Invitaciones</a>
               </li>
               <li>
                 <a href="#dotbook" className="hover:text-tinta">Dotbook digital</a>

@@ -7,6 +7,7 @@ import { Camera, Menu, X } from "lucide-react";
 const LINKS = [
   { href: "#como-funciona", label: "Cómo funciona" },
   { href: "#herramientas", label: "Qué incluye" },
+  { href: "#invitaciones", label: "Invitaciones" },
   { href: "#dotbook", label: "Dotbook" },
   { href: "#preguntas", label: "Preguntas" },
 ];
