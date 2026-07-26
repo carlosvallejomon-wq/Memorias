@@ -63,6 +63,9 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
   const [active, setActive] = useState(0);
+  // El carrusel avanza solo, pero se detiene mientras el visitante lo está
+  // usando (ratón encima, dedo sobre la tira o foco con el teclado).
+  const [paused, setPaused] = useState(false);
 
   function sync() {
     const el = trackRef.current;
@@ -94,6 +97,21 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
     el.scrollBy({ left: dir * step * 2, behavior: "smooth" });
   }
 
+  // Avance automático: una tarjeta cada 3 segundos y, al llegar al final,
+  // vuelve al principio.
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => {
+      const el = trackRef.current;
+      if (!el) return;
+      const card = el.firstElementChild as HTMLElement | null;
+      const step = card ? card.offsetWidth + 16 : 240;
+      const fin = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+      el.scrollTo({ left: fin ? 0 : el.scrollLeft + step, behavior: "smooth" });
+    }, 3000);
+    return () => clearInterval(id);
+  }, [paused]);
+
   function goTo(index: number) {
     const el = trackRef.current;
     if (!el) return;
@@ -103,7 +121,14 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
   }
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+    >
       <div
         ref={trackRef}
         className="scroll-x flex snap-x snap-mandatory gap-4 px-1 pb-3"
@@ -159,6 +184,56 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+const POOL = [
+  "/decor/familia.jpg",
+  "/decor/cumple.jpg",
+  "/decor/viaje.jpg",
+  "/decor/quince.jpg",
+  "/decor/navidad.jpg",
+  "/decor/boda.jpg",
+  "/decor/comunion.jpg",
+  "/decor/bautizo.jpg",
+  "/decor/graduacion.jpg",
+  "/decor/fiestainfantil.jpg",
+  "/decor/babyshower.jpg",
+  "/decor/anonuevo.jpg",
+];
+
+// Cuadrícula del móvil del hero: cada poco tiempo entra una foto nueva en una
+// casilla, como cuando los invitados van subiendo durante el evento.
+export function PhoneGrid() {
+  const [tiles, setTiles] = useState(POOL.slice(0, 6));
+  const next = useRef(6);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTiles((prev) => {
+        const copy = [...prev];
+        copy[next.current % 6] = POOL[next.current % POOL.length];
+        next.current += 1;
+        return copy;
+      });
+    }, 1600);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="grid grid-cols-3 gap-1.5">
+      {tiles.map((src, i) => (
+        <div key={i} className="aspect-square overflow-hidden rounded-lg shadow-soft">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            key={src}
+            src={src}
+            alt=""
+            className="animate-crossfade h-full w-full object-cover"
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -225,6 +300,73 @@ export function LiveScreenMockup() {
       {/* Peana */}
       <div className="mx-auto h-3 w-24 rounded-b-xl bg-tinta/20" />
       <div className="mx-auto h-1.5 w-40 rounded-full bg-tinta/10" />
+    </div>
+  );
+}
+
+// Ejemplos reales del generador de invitaciones (mismos archivos que usa el
+// editor del panel), para que lo que se ve aquí sea lo que luego se obtiene.
+const INVITACIONES = [
+  "/invitation-templates/boda-04.jpg",
+  "/invitation-templates/quince-rosasdoradas.jpg",
+  "/invitation-templates/boda-10.jpg",
+  "/invitation-templates/boda-14.jpg",
+  "/invitation-templates/quince-negrodorado.jpg",
+];
+
+// Baraja de invitaciones que se van pasando solas. Cada tarjeta ocupa una
+// posición fija (delante, un poco detrás, más detrás…) y al rotar el orden
+// las transiciones hacen el movimiento.
+export function InvitationDeck() {
+  const [order, setOrder] = useState(INVITACIONES);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => {
+      setOrder((prev) => [...prev.slice(1), prev[0]]);
+    }, 3200);
+    return () => clearInterval(id);
+  }, [paused]);
+
+  const POSES = [
+    { x: 0, y: 0, rot: -2, scale: 1, z: 50, op: 1 },
+    { x: 34, y: -14, rot: 4, scale: 0.95, z: 40, op: 0.95 },
+    { x: 66, y: -26, rot: 9, scale: 0.9, z: 30, op: 0.85 },
+    { x: 94, y: -36, rot: 13, scale: 0.86, z: 20, op: 0.6 },
+    { x: 116, y: -44, rot: 17, scale: 0.82, z: 10, op: 0.35 },
+  ];
+
+  return (
+    <div
+      className="relative mx-auto h-[22rem] w-full max-w-xs select-none sm:h-[26rem]"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {order.map((src, i) => {
+        const p = POSES[Math.min(i, POSES.length - 1)];
+        return (
+          <button
+            key={src}
+            onClick={() => setOrder((prev) => [...prev.slice(1), prev[0]])}
+            aria-label="Ver la siguiente invitación"
+            className="absolute left-0 top-0 h-full w-[74%] overflow-hidden rounded-xl bg-white shadow-lift transition-all duration-700 ease-out"
+            style={{
+              transform: `translate3d(${p.x}px, ${p.y}px, 0) rotate(${p.rot}deg) scale(${p.scale})`,
+              zIndex: p.z,
+              opacity: p.op,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt="Ejemplo de invitación"
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }
