@@ -28,7 +28,7 @@ export type TextLayout = {
 
 export type QrLayout = { x: number; y: number; size: number };
 type PhotoLayout = { x: number; y: number; size: number; shape: "circle" | "square" };
-type SelectedKey = "text" | "qr" | "photo" | null;
+type SelectedKey = "text" | "detalles" | "qr" | "photo" | null;
 
 export type Template = {
   id: string;
@@ -343,7 +343,22 @@ function defaultPhotoLayout(canvasW: number, canvasH: number): PhotoLayout {
 }
 
 function textBounds(l: TextLayout) {
-  return { x: l.x, y: l.y + l.fontSize * 1.6, w: l.maxWidth + 30, h: l.fontSize * 5.2 };
+  return { x: l.x, y: l.y + l.fontSize * 0.1, w: l.maxWidth + 30, h: l.fontSize * 2.2 };
+}
+
+function detailsBounds(l: TextLayout, lineCount: number) {
+  const h = Math.max(1, lineCount) * l.fontSize * 1.35;
+  return { x: l.x, y: l.y + h / 2 - l.fontSize * 0.6, w: l.maxWidth + 30, h: h + l.fontSize };
+}
+
+// Posición de partida de los datos: justo debajo del título, con la letra más
+// pequeña. Así una plantilla que solo define el título sigue funcionando.
+export function defaultDetailsLayout(t: TextLayout): TextLayout {
+  return {
+    ...t,
+    y: Math.round(t.y + t.fontSize * 1.55),
+    fontSize: Math.max(14, Math.round(t.fontSize * 0.5)),
+  };
 }
 function qrBounds(l: QrLayout) {
   return { x: l.x, y: l.y + 20, w: l.size + 50, h: l.size + 90 };
@@ -399,30 +414,38 @@ function clampPhotoLayout(l: PhotoLayout, canvasW: number, canvasH: number): Pho
   return { ...l, x: clamp(l.x, half, canvasW - half), y: clamp(l.y, half, canvasH - half) };
 }
 
-function drawTextBlock(ctx: CanvasRenderingContext2D, l: TextLayout, data: InvitationData) {
+function drawTitleBlock(ctx: CanvasRenderingContext2D, l: TextLayout, title: string) {
+  if (!title.trim()) return;
   ctx.textAlign = "center";
   ctx.fillStyle = l.color;
-  ctx.font = nameFont(data.albumName, l.fontSize, nameWeightFor(l.fontFamily), l.fontFamily);
-  let y = wrapText(ctx, data.albumName, l.x, l.y, l.maxWidth, l.fontSize * 1.12);
+  ctx.font = nameFont(title, l.fontSize, nameWeightFor(l.fontFamily), l.fontFamily);
+  wrapText(ctx, title, l.x, l.y, l.maxWidth, l.fontSize * 1.12);
+}
 
+// Fecha, hora, lugar, quién invita y confirmación: se dibujan como un bloque
+// independiente para poder colocarlo donde pida cada diseño.
+export function detailBlockLines(data: InvitationData): string[] {
   const host = hostLine(data);
-  if (host) {
-    y += l.fontSize * 0.55;
-    ctx.font = `italic ${Math.round(l.fontSize * 0.55)}px ${l.fontFamily}`;
-    ctx.globalAlpha = 0.85;
-    ctx.fillText(host, l.x, y);
-    ctx.globalAlpha = 1;
-  }
+  const lines = [...(host ? [host] : []), ...detailLines(data)];
+  if (data.rsvp.trim()) lines.push(`Confirma tu asistencia: ${data.rsvp}`);
+  return lines;
+}
 
-  y += l.fontSize * 0.6;
-  ctx.font = `${Math.round(l.fontSize * 0.5)}px ${l.fontFamily}`;
-  ctx.globalAlpha = 0.85;
-  const lines = data.rsvp
-    ? [...detailLines(data), `Confirma tu asistencia: ${data.rsvp}`]
-    : detailLines(data);
+function drawDetailsBlock(ctx: CanvasRenderingContext2D, l: TextLayout, data: InvitationData) {
+  const lines = detailBlockLines(data);
+  if (lines.length === 0) return;
+  ctx.textAlign = "center";
+  ctx.fillStyle = l.color;
+  ctx.globalAlpha = 0.9;
+  let y = l.y;
+  const host = hostLine(data);
   for (const line of lines) {
-    ctx.fillText(line, l.x, y);
-    y += l.fontSize * 0.68;
+    ctx.font =
+      host && line === host
+        ? `italic ${Math.round(l.fontSize * 1.05)}px ${l.fontFamily}`
+        : `${l.fontSize}px ${l.fontFamily}`;
+    y = wrapText(ctx, line, l.x, y, l.maxWidth, l.fontSize * 1.25);
+    y += l.fontSize * 1.35;
   }
   ctx.globalAlpha = 1;
 }
@@ -481,11 +504,14 @@ function drawSelectionOutline(
   ctx: CanvasRenderingContext2D,
   selected: SelectedKey,
   textLayout: TextLayout,
+  detailsLayout: TextLayout,
+  detailCount: number,
   qrLayout: QrLayout,
   photoLayout: PhotoLayout | null,
 ) {
   let b: { x: number; y: number; w: number; h: number } | null = null;
   if (selected === "text") b = textBounds(textLayout);
+  else if (selected === "detalles") b = detailsBounds(detailsLayout, detailCount);
   else if (selected === "qr") b = qrBounds(qrLayout);
   else if (selected === "photo" && photoLayout) b = photoBounds(photoLayout);
   if (!b) return;
@@ -502,6 +528,7 @@ export function renderInvitation(
   template: Template,
   data: InvitationData,
   textLayout: TextLayout,
+  detailsLayout: TextLayout,
   qrLayout: QrLayout,
   photoLayout: PhotoLayout | null,
   bgImg: HTMLImageElement | null,
@@ -515,9 +542,19 @@ export function renderInvitation(
   if (bgImg) ctx.drawImage(bgImg, 0, 0, w, h);
   template.decorate?.(ctx);
   if (photoLayout && photoImg) drawPhotoBlock(ctx, photoLayout, photoImg);
-  drawTextBlock(ctx, textLayout, data);
+  drawTitleBlock(ctx, textLayout, data.albumName);
+  drawDetailsBlock(ctx, detailsLayout, data);
   if (qrImg) drawQrBlock(ctx, qrLayout, qrImg, textLayout.color);
-  if (selected) drawSelectionOutline(ctx, selected, textLayout, qrLayout, photoLayout);
+  if (selected)
+    drawSelectionOutline(
+      ctx,
+      selected,
+      textLayout,
+      detailsLayout,
+      detailBlockLines(data).length,
+      qrLayout,
+      photoLayout,
+    );
 }
 
 // --- Decoraciones de las plantillas dibujadas (sin foto real) -------------
@@ -923,6 +960,207 @@ export const TEMPLATES: Template[] = [
     defaultText: { x: 535, y: 620, fontSize: 32, fontFamily: "Georgia, serif", color: "#5a6b3a", maxWidth: 700 },
     defaultQr: { x: 535, y: defQrY(620, 1500), size: 120 },
   },
+  // --- Baby shower ---------------------------------------------------------
+  {
+    id: "baby-01",
+    label: "Baby shower (globos rosa)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-01.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-02",
+    label: "Baby shower (osito y regalos)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-02.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 645, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(645, 1500), size: 150 },
+  },
+  {
+    id: "baby-03",
+    label: "Baby shower (ropita tendida)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-03.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-04",
+    label: "Baby shower (globos azules)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-04.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-05",
+    label: "Baby shower (osito celeste)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-05.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-06",
+    label: "Baby shower (globos aerostáticos)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-06.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 825, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(825, 1500), size: 150 },
+  },
+  {
+    id: "baby-07",
+    label: "Baby shower (animalitos)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-07.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 585, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(585, 1500), size: 150 },
+  },
+  {
+    id: "baby-08",
+    label: "Baby shower (osito beige)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-08.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-09",
+    label: "Baby shower (osita bailarina)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-09.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-10",
+    label: "Baby shower (osito abrazado)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-10.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 585, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(585, 1500), size: 150 },
+  },
+  {
+    id: "baby-11",
+    label: "Baby shower (conejita salvia)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-11.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 585, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(585, 1500), size: 150 },
+  },
+  {
+    id: "baby-12",
+    label: "Baby shower (osita entre flores)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-12.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 915, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(915, 1500), size: 150 },
+  },
+  {
+    id: "baby-13",
+    label: "Baby shower (zapatitos rosa)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-13.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-14",
+    label: "Baby shower (lazo rosa)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-14.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-15",
+    label: "Baby shower (selva verde)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-15.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 585, fontSize: 38, fontFamily: "Georgia, serif", color: "#f6efe6", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(585, 1500), size: 150 },
+  },
+  {
+    id: "baby-16",
+    label: "Baby shower (osito cactus)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-16.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 795, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(795, 1500), size: 150 },
+  },
+  {
+    id: "baby-17",
+    label: "Baby shower (osito aviador)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-17.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-18",
+    label: "Baby shower (tendal pastel)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-18.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
+  {
+    id: "baby-19",
+    label: "Baby shower (corazón rosa)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-19.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 765, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(765, 1500), size: 150 },
+  },
+  {
+    id: "baby-20",
+    label: "Baby shower (globo azul)",
+    swatch: "",
+    bgImage: "/invitation-templates/baby-20.jpg",
+    canvasW: 1071,
+    canvasH: 1500,
+    defaultText: { x: 535, y: 930, fontSize: 38, fontFamily: "Georgia, serif", color: "#2f2a24", maxWidth: 720 },
+    defaultQr: { x: 535, y: defQrY(930, 1500), size: 150 },
+  },
   // --- Bodas ---------------------------------------------------------------
   {
     id: "boda-01",
@@ -1111,12 +1349,14 @@ export const TEMPLATE_GROUPS = [
   { id: "todas", label: "Todas" },
   { id: "boda", label: "Bodas" },
   { id: "quince", label: "15 años" },
+  { id: "baby", label: "Baby shower" },
   { id: "otras", label: "Otras" },
 ];
 
 export function templateGroup(id: string): string {
   if (id.startsWith("boda-")) return "boda";
   if (id.startsWith("quince-")) return "quince";
+  if (id.startsWith("baby-")) return "baby";
   return "otras";
 }
 
@@ -1135,6 +1375,7 @@ export type InvitationLinkState = {
   r?: string;
   u: string;
   tx: TextLayout;
+  dx?: TextLayout;
   q: QrLayout;
 };
 
@@ -1177,6 +1418,7 @@ export function InvitationGenerator({
   const [templateId, setTemplateId] = useState(TEMPLATES[0].id);
   const [group, setGroup] = useState("todas");
   const [date, setDate] = useState(eventDateLabel ?? "");
+  const [title, setTitle] = useState(albumName);
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [hosts, setHosts] = useState("");
@@ -1184,7 +1426,7 @@ export function InvitationGenerator({
 
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
   const data: InvitationData = {
-    albumName,
+    albumName: title,
     eventDateLabel: date.trim() || null,
     time,
     location,
@@ -1194,6 +1436,9 @@ export function InvitationGenerator({
   };
 
   const [textLayout, setTextLayout] = useState<TextLayout>(() => ({ ...TEMPLATES[0].defaultText }));
+  const [detailsLayout, setDetailsLayout] = useState<TextLayout>(() =>
+    defaultDetailsLayout(TEMPLATES[0].defaultText),
+  );
   const [qrLayout, setQrLayout] = useState<QrLayout>(() => ({ ...TEMPLATES[0].defaultQr }));
   const [photoLayout, setPhotoLayout] = useState<PhotoLayout | null>(null);
   const [photoImg, setPhotoImg] = useState<HTMLImageElement | null>(null);
@@ -1205,7 +1450,11 @@ export function InvitationGenerator({
   const [generatingLink, setGeneratingLink] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dragRef = useRef<{ key: "text" | "qr" | "photo"; offX: number; offY: number } | null>(null);
+  const dragRef = useRef<{
+    key: "text" | "detalles" | "qr" | "photo";
+    offX: number;
+    offY: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -1227,6 +1476,7 @@ export function InvitationGenerator({
 
   useEffect(() => {
     setTextLayout({ ...template.defaultText });
+    setDetailsLayout(defaultDetailsLayout(template.defaultText));
     setQrLayout({ ...template.defaultQr });
     setPhotoLayout(null);
     setPhotoImg(null);
@@ -1245,6 +1495,12 @@ export function InvitationGenerator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
 
+  // El panel de texto actúa sobre el bloque seleccionado en el lienzo; si no
+  // hay ninguno, sobre el título.
+  const editing: "text" | "detalles" = selected === "detalles" ? "detalles" : "text";
+  const editingLayout = editing === "detalles" ? detailsLayout : textLayout;
+  const setEditingLayout = editing === "detalles" ? setDetailsLayout : setTextLayout;
+
   const visibleTemplates =
     group === "todas" ? TEMPLATES : TEMPLATES.filter((t) => templateGroup(t.id) === group);
 
@@ -1258,19 +1514,20 @@ export function InvitationGenerator({
     canvas.height = template.canvasH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    renderInvitation(ctx, template, data, textLayout, qrLayout, photoLayout, bgImg, qrImg, photoImg, selected);
+    renderInvitation(ctx, template, data, textLayout, detailsLayout, qrLayout, photoLayout, bgImg, qrImg, photoImg, selected);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     ready,
     template,
     textLayout,
+    detailsLayout,
     qrLayout,
     photoLayout,
     bgImg,
     qrImg,
     photoImg,
     selected,
-    albumName,
+    title,
     date,
     time,
     location,
@@ -1291,7 +1548,7 @@ export function InvitationGenerator({
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!ready) return;
     const p = getCanvasPoint(e);
-    let hit: "text" | "qr" | "photo" | null = null;
+    let hit: "text" | "detalles" | "qr" | "photo" | null = null;
     let anchor = { x: 0, y: 0 };
     if (photoLayout && inBounds(p, photoBounds(photoLayout))) {
       hit = "photo";
@@ -1299,7 +1556,13 @@ export function InvitationGenerator({
     } else if (inBounds(p, qrBounds(qrLayout))) {
       hit = "qr";
       anchor = qrLayout;
-    } else if (inBounds(p, textBounds(textLayout))) {
+    } else if (
+      detailBlockLines(data).length > 0 &&
+      inBounds(p, detailsBounds(detailsLayout, detailBlockLines(data).length))
+    ) {
+      hit = "detalles";
+      anchor = detailsLayout;
+    } else if (data.albumName.trim() && inBounds(p, textBounds(textLayout))) {
       hit = "text";
       anchor = textLayout;
     }
@@ -1319,6 +1582,7 @@ export function InvitationGenerator({
     const w = template.canvasW;
     const h = template.canvasH;
     if (key === "text") setTextLayout((l) => clampTextLayout({ ...l, x: nx, y: ny }, w, h));
+    if (key === "detalles") setDetailsLayout((l) => clampTextLayout({ ...l, x: nx, y: ny }, w, h));
     if (key === "qr") setQrLayout((l) => clampQrLayout({ ...l, x: nx, y: ny }, w, h));
     if (key === "photo")
       setPhotoLayout((l) => (l ? clampPhotoLayout({ ...l, x: nx, y: ny }, w, h) : l));
@@ -1348,13 +1612,13 @@ export function InvitationGenerator({
     if (!canvas || !ready) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    renderInvitation(ctx, template, data, textLayout, qrLayout, photoLayout, bgImg, qrImg, photoImg, null);
+    renderInvitation(ctx, template, data, textLayout, detailsLayout, qrLayout, photoLayout, bgImg, qrImg, photoImg, null);
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
     a.download = "invitacion.png";
     a.click();
-    renderInvitation(ctx, template, data, textLayout, qrLayout, photoLayout, bgImg, qrImg, photoImg, selected);
+    renderInvitation(ctx, template, data, textLayout, detailsLayout, qrLayout, photoLayout, bgImg, qrImg, photoImg, selected);
   }
 
   async function handleGenerateInvitationLink() {
@@ -1362,7 +1626,7 @@ export function InvitationGenerator({
     try {
       const state: InvitationLinkState = {
         t: templateId,
-        n: albumName,
+        n: title,
         d: date.trim() || undefined,
         h: time.trim() || undefined,
         l: location.trim() || undefined,
@@ -1370,6 +1634,7 @@ export function InvitationGenerator({
         r: rsvp.trim() || undefined,
         u: shareUrl,
         tx: textLayout,
+        dx: detailsLayout,
         q: qrLayout,
       };
       const url = `${window.location.origin}/invitacion?d=${encodeInvitationLink(state)}`;
@@ -1447,6 +1712,24 @@ export function InvitationGenerator({
               </p>
 
               <div className="mt-4 flex flex-col gap-3">
+                <label className="text-xs font-semibold uppercase tracking-wide text-tinta/50">
+                  Título de la invitación
+                </label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Título (déjalo vacío para no poner ninguno)"
+                  maxLength={120}
+                  className="rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
+                />
+                {title !== albumName && (
+                  <button
+                    onClick={() => setTitle(albumName)}
+                    className="self-start text-xs text-teja hover:underline"
+                  >
+                    Usar el nombre del álbum ({albumName})
+                  </button>
+                )}
                 <input
                   value={hosts}
                   onChange={(e) => setHosts(e.target.value)}
@@ -1485,15 +1768,46 @@ export function InvitationGenerator({
               </div>
 
               <div className="mt-4 rounded-xl border border-tinta/15 bg-white/60 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-tinta/50">Texto</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-tinta/50">
+                    Texto
+                  </p>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setSelected("text")}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                        editing === "text"
+                          ? "bg-tinta text-white"
+                          : "bg-arena text-tinta/70 hover:bg-tinta/10"
+                      }`}
+                    >
+                      Título
+                    </button>
+                    <button
+                      onClick={() => setSelected("detalles")}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                        editing === "detalles"
+                          ? "bg-tinta text-white"
+                          : "bg-arena text-tinta/70 hover:bg-tinta/10"
+                      }`}
+                    >
+                      Fecha y datos
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-1.5 text-xs text-tinta/50">
+                  {editing === "text"
+                    ? "Cambia el título; puedes arrastrarlo por la invitación."
+                    : "Fecha, hora, lugar y confirmación se mueven aparte del título."}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {FONT_CHOICES.map((f) => (
                     <button
                       key={f.id}
-                      onClick={() => setTextLayout((l) => ({ ...l, fontFamily: f.family }))}
+                      onClick={() => setEditingLayout((l) => ({ ...l, fontFamily: f.family }))}
                       style={{ fontFamily: f.family }}
                       className={`rounded-full border px-3 py-1 text-xs transition ${
-                        textLayout.fontFamily === f.family
+                        editingLayout.fontFamily === f.family
                           ? "border-teja bg-teja/10 font-semibold text-teja"
                           : "border-tinta/20 text-tinta/70"
                       }`}
@@ -1506,11 +1820,11 @@ export function InvitationGenerator({
                   <span className="text-xs text-tinta/50">Tamaño</span>
                   <input
                     type="range"
-                    min={20}
-                    max={90}
-                    value={textLayout.fontSize}
+                    min={editing === "text" ? 20 : 12}
+                    max={editing === "text" ? 90 : 48}
+                    value={editingLayout.fontSize}
                     onChange={(e) =>
-                      setTextLayout((l) =>
+                      setEditingLayout((l) =>
                         clampTextLayout(
                           { ...l, fontSize: Number(e.target.value) },
                           template.canvasW,
@@ -1525,17 +1839,17 @@ export function InvitationGenerator({
                   {COLOR_SWATCHES.map((c) => (
                     <button
                       key={c}
-                      onClick={() => setTextLayout((l) => ({ ...l, color: c }))}
+                      onClick={() => setEditingLayout((l) => ({ ...l, color: c }))}
                       style={{ backgroundColor: c }}
                       className={`h-6 w-6 rounded-full border-2 ${
-                        textLayout.color === c ? "border-teja" : "border-white/70"
+                        editingLayout.color === c ? "border-teja" : "border-white/70"
                       }`}
                     />
                   ))}
                   <input
                     type="color"
-                    value={textLayout.color}
-                    onChange={(e) => setTextLayout((l) => ({ ...l, color: e.target.value }))}
+                    value={editingLayout.color}
+                    onChange={(e) => setEditingLayout((l) => ({ ...l, color: e.target.value }))}
                     className="h-6 w-6 cursor-pointer rounded-full border-0 bg-transparent p-0"
                   />
                 </div>
