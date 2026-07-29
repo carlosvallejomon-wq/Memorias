@@ -469,8 +469,8 @@ export default function Home() {
                 </h3>
                 <p className="mt-3 text-tinta/70">
                   Elige un diseño, escribe los datos de tu evento y arrastra el
-                  texto, la foto y el QR donde quieras. Más de 40 plantillas
-                  entre bodas, quinceañeras y otras celebraciones.
+                  texto, la foto y el QR donde quieras. Más de 80 plantillas
+                  entre bodas, quinceañeras, baby shower y cumpleaños.
                 </p>
 
                 <ul className="mt-6 space-y-4">
