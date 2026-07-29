@@ -309,11 +309,11 @@ export function LiveScreenMockup() {
 // Ejemplos reales del generador de invitaciones (mismos archivos que usa el
 // editor del panel), para que lo que se ve aquí sea lo que luego se obtiene.
 const INVITACIONES = [
-  "/invitation-templates/boda-04.jpg",
-  "/invitation-templates/quince-rosasdoradas.jpg",
   "/invitation-templates/boda-10.jpg",
-  "/invitation-templates/boda-14.jpg",
-  "/invitation-templates/quince-negrodorado.jpg",
+  "/invitation-templates/quince-hortensia.jpg",
+  "/invitation-templates/boda-17.jpg",
+  "/invitation-templates/baby-09.jpg",
+  "/invitation-templates/cumple-18.jpg",
 ];
 
 // Baraja de invitaciones que se van pasando solas. Cada tarjeta ocupa una

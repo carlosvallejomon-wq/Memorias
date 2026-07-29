@@ -1882,7 +1882,7 @@ export function InvitationGenerator({
               <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-tinta/50">
                 Plantilla
               </p>
-              <div className="scroll-x mt-2 flex gap-1.5 pb-1">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {TEMPLATE_GROUPS.map((g) => (
                   <button
                     key={g.id}
