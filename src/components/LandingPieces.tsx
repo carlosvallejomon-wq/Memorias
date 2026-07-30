@@ -316,59 +316,62 @@ const INVITACIONES = [
   "/invitation-templates/cumple-18.jpg",
 ];
 
-// Baraja de invitaciones que se van pasando solas. Cada tarjeta ocupa una
-// posición fija (delante, un poco detrás, más detrás…) y al rotar el orden
-// las transiciones hacen el movimiento.
-// Muestrario de invitaciones: se ve una entera cada vez y van cambiando con
-// un fundido. Antes era una baraja en abanico y de las de atrás solo asomaba
-// una tira, que parecía que estuvieran cortadas.
+// Baraja de invitaciones que se pasan solas. Cada tarjeta guarda la
+// proporción real de una invitación (5:7) para que la muestra no se recorte, y
+// los desplazamientos van en porcentaje del ancho de la tarjeta para que el
+// abanico entero quepa dentro del hueco tanto en móvil como en escritorio —
+// antes se salía y la página, que recorta lo que sobresale, lo cortaba.
 export function InvitationDeck() {
-  const [actual, setActual] = useState(0);
+  const [order, setOrder] = useState(INVITACIONES);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     if (paused) return;
-    const id = setInterval(
-      () => setActual((i) => (i + 1) % INVITACIONES.length),
-      3200,
-    );
+    const id = setInterval(() => {
+      setOrder((prev) => [...prev.slice(1), prev[0]]);
+    }, 3200);
     return () => clearInterval(id);
   }, [paused]);
 
+  // x en % del ancho de la propia tarjeta; y en píxeles.
+  const POSES = [
+    { x: 0, y: 44, rot: -2.5, scale: 1, z: 50, op: 1 },
+    { x: 10, y: 33, rot: 2.5, scale: 0.975, z: 40, op: 0.97 },
+    { x: 19, y: 23, rot: 6, scale: 0.95, z: 30, op: 0.9 },
+    { x: 27, y: 14, rot: 9, scale: 0.93, z: 20, op: 0.72 },
+    { x: 34, y: 6, rot: 11.5, scale: 0.91, z: 10, op: 0.5 },
+  ];
+
   return (
     <div
-      className="mx-auto w-full max-w-[16rem] select-none sm:max-w-[19rem]"
+      className="relative mx-auto h-[24rem] w-full max-w-[21rem] select-none sm:h-[28rem] sm:max-w-sm"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* La tarjeta tiene la proporción real de una invitación (5:7), así la
-          muestra se ve completa y sin recortes. */}
-      <div className="relative aspect-[5/7] w-full overflow-hidden rounded-2xl bg-white shadow-lift">
-        {INVITACIONES.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={src}
-            src={src}
-            alt="Ejemplo de invitación"
-            loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
-            style={{ opacity: i === actual ? 1 : 0 }}
-          />
-        ))}
-      </div>
-
-      <div className="mt-4 flex justify-center gap-1.5">
-        {INVITACIONES.map((src, i) => (
+      {order.map((src, i) => {
+        const p = POSES[Math.min(i, POSES.length - 1)];
+        return (
           <button
             key={src}
-            onClick={() => setActual(i)}
-            aria-label={`Ver el diseño ${i + 1}`}
-            className={`h-1.5 rounded-full transition-all ${
-              i === actual ? "w-6 bg-teja" : "w-1.5 bg-tinta/20 hover:bg-tinta/40"
-            }`}
-          />
-        ))}
-      </div>
+            onClick={() => setOrder((prev) => [...prev.slice(1), prev[0]])}
+            aria-label="Ver la siguiente invitación"
+            className="absolute left-0 top-0 h-[calc(100%-3rem)] aspect-[5/7] origin-bottom-left overflow-hidden rounded-xl bg-white shadow-lift transition-all duration-700 ease-out"
+            style={{
+              transform: `translate3d(${p.x}%, ${p.y}px, 0) rotate(${p.rot}deg) scale(${p.scale})`,
+              zIndex: p.z,
+              opacity: p.op,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt="Ejemplo de invitación"
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }
