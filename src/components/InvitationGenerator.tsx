@@ -2402,23 +2402,26 @@ export function InvitationGenerator({
           onClick={() => setOpen(false)}
         >
           <div
-            className="glass grid max-h-full w-full max-w-3xl grid-cols-1 gap-5 overflow-y-auto rounded-2xl p-5 sm:grid-cols-2"
+            className="glass flex max-h-[92vh] w-full max-w-5xl flex-col gap-4 rounded-2xl p-4 sm:p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div>
-              <div className="flex items-center justify-between">
-                <h2 className="flex items-center gap-2 font-semibold">
-                  <PartyPopper size={18} className="text-teja" /> Invitación
-                </h2>
-                <button
-                  onClick={() => setOpen(false)}
-                  className="rounded-full bg-white/70 p-1.5 transition hover:bg-white sm:hidden"
-                >
-                  <X size={16} />
-                </button>
-              </div>
+            {/* Cabecera fija: el diálogo ya no se desplaza entero, solo la
+                columna de controles. */}
+            <div className="flex shrink-0 items-center justify-between">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <PartyPopper size={18} className="text-teja" /> Invitación
+              </h2>
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-full bg-white/70 p-1.5 transition hover:bg-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-tinta/50">
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="order-2 min-h-0 overflow-y-auto pr-1 md:order-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-tinta/50">
                 Plantilla
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -2432,7 +2435,10 @@ export function InvitationGenerator({
                   </button>
                 ))}
               </div>
-              <div className="mt-2 grid grid-cols-4 gap-2">
+              <p className="mt-2 text-[11px] text-tinta/50">
+                {visibleTemplates.length} diseños · desliza para ver más
+              </p>
+              <div className="mt-1.5 grid max-h-72 grid-cols-4 gap-2 overflow-y-auto rounded-xl border border-tinta/10 bg-white/40 p-2 sm:grid-cols-5 lg:grid-cols-6">
                 {visibleTemplates.map((t) => (
                   <button
                     key={t.id}
@@ -2731,20 +2737,14 @@ export function InvitationGenerator({
               </p>
             </div>
 
-            <div className="relative flex flex-col items-center justify-center">
-              <button
-                onClick={() => setOpen(false)}
-                className="absolute right-0 top-0 hidden rounded-full bg-white/70 p-1.5 transition hover:bg-white sm:block"
-              >
-                <X size={16} />
-              </button>
+            <div className="order-1 flex min-h-0 flex-col items-center justify-start md:order-2 md:justify-center">
               <p className="mb-2 text-center text-xs text-tinta/50">
                 Arrastra el texto, el código QR o la foto para moverlos
               </p>
               {!ready && (
                 <div
-                  className="flex w-full items-center justify-center rounded-xl bg-white/40 text-sm text-tinta/50"
-                  style={{ aspectRatio: `${template.canvasW} / ${template.canvasH}` }}
+                  className="flex max-h-[34vh] items-center justify-center rounded-xl bg-white/40 text-sm text-tinta/50 md:max-h-[64vh]"
+                  style={{ aspectRatio: `${template.canvasW} / ${template.canvasH}`, height: "34vh" }}
                 >
                   Cargando…
                 </div>
@@ -2755,8 +2755,11 @@ export function InvitationGenerator({
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
-                className={`w-full touch-none rounded-xl shadow-lift ${ready ? "" : "hidden"}`}
+                className={`max-h-[34vh] w-auto touch-none rounded-xl object-contain shadow-lift md:max-h-[64vh] ${
+                  ready ? "" : "hidden"
+                }`}
               />
+            </div>
             </div>
           </div>
         </div>
