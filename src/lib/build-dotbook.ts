@@ -63,21 +63,28 @@ export type TemplateDotbookStyle =
   | "realFiestaInfantil"
   | "realNavidad";
 
-type TemplateCoverConfig = { file: string; accent: RGB; label: string };
+type TemplateCoverConfig = {
+  file: string;
+  accent: RGB;
+  label: string;
+  // Punto vertical (0 = arriba, 1 = abajo) donde el diseño tiene su franja más
+  // despejada. Ahí va la placa con el nombre del álbum, para no tapar el dibujo.
+  band: number;
+};
 
 const TEMPLATE_COVERS: Record<TemplateDotbookStyle, TemplateCoverConfig> = {
-  realGeneral: { file: "general.jpg", accent: rgb(0.62, 0.55, 0.42), label: "Recuerdos en general" },
-  realGraduacion: { file: "graduacion.jpg", accent: rgb(0.16, 0.21, 0.35), label: "Graduación" },
-  realComunion: { file: "comunion.jpg", accent: rgb(0.72, 0.58, 0.32), label: "Primera comunión" },
-  realQuince: { file: "quince.jpg", accent: rgb(0.82, 0.5, 0.6), label: "Quinceañera" },
-  realViajes: { file: "viajes.jpg", accent: rgb(0.74, 0.44, 0.2), label: "Viajes (diseño real)" },
-  realFamilia: { file: "familia.jpg", accent: rgb(0.5, 0.38, 0.25), label: "Familia (diseño real)" },
-  realAnoNuevo: { file: "anonuevo.jpg", accent: rgb(0.68, 0.55, 0.28), label: "Año nuevo" },
-  realBoda: { file: "boda.jpg", accent: rgb(0.44, 0.13, 0.18), label: "Boda" },
-  realBabyShower: { file: "babyshower.jpg", accent: rgb(0.5, 0.62, 0.72), label: "Baby shower" },
-  realBautizo: { file: "bautizo.jpg", accent: rgb(0.76, 0.59, 0.47), label: "Bautizo" },
-  realFiestaInfantil: { file: "fiestainfantil.jpg", accent: rgb(0.87, 0.56, 0.34), label: "Fiesta infantil" },
-  realNavidad: { file: "navidad.jpg", accent: rgb(0.48, 0.1, 0.12), label: "Navidad (diseño real)" },
+  realGeneral: { file: "general.jpg", accent: rgb(0.62, 0.55, 0.42), label: "Recuerdos en general", band: 0.8225 },
+  realGraduacion: { file: "graduacion.jpg", accent: rgb(0.16, 0.21, 0.35), label: "Graduación", band: 0.9 },
+  realComunion: { file: "comunion.jpg", accent: rgb(0.72, 0.58, 0.32), label: "Primera comunión", band: 0.885 },
+  realQuince: { file: "quince.jpg", accent: rgb(0.82, 0.5, 0.6), label: "Quinceañera", band: 0.905 },
+  realViajes: { file: "viajes.jpg", accent: rgb(0.74, 0.44, 0.2), label: "Viajes (diseño real)", band: 0.89 },
+  realFamilia: { file: "familia.jpg", accent: rgb(0.5, 0.38, 0.25), label: "Familia (diseño real)", band: 0.385 },
+  realAnoNuevo: { file: "anonuevo.jpg", accent: rgb(0.68, 0.55, 0.28), label: "Año nuevo", band: 0.375 },
+  realBoda: { file: "boda.jpg", accent: rgb(0.44, 0.13, 0.18), label: "Boda", band: 0.42 },
+  realBabyShower: { file: "babyshower.jpg", accent: rgb(0.5, 0.62, 0.72), label: "Baby shower", band: 0.435 },
+  realBautizo: { file: "bautizo.jpg", accent: rgb(0.76, 0.59, 0.47), label: "Bautizo", band: 0.89 },
+  realFiestaInfantil: { file: "fiestainfantil.jpg", accent: rgb(0.87, 0.56, 0.34), label: "Fiesta infantil", band: 0.4 },
+  realNavidad: { file: "navidad.jpg", accent: rgb(0.48, 0.1, 0.12), label: "Navidad (diseño real)", band: 0.31 },
 };
 
 export const TEMPLATE_DOTBOOK_STYLES: { id: TemplateDotbookStyle; label: string }[] = (
@@ -93,6 +100,34 @@ export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
 
 function isTemplateStyle(style: DotbookStyle): style is TemplateDotbookStyle {
   return Object.prototype.hasOwnProperty.call(TEMPLATE_COVERS, style);
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v));
+}
+
+// pdf-lib no sabe dibujar rectángulos con esquinas redondeadas: se componen
+// con dos rectángulos cruzados y cuatro círculos en las esquinas.
+function drawRoundedBox(
+  page: PDFPage,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  color: RGB,
+  opacity: number,
+) {
+  page.drawRectangle({ x: x + r, y, width: w - r * 2, height: h, color, opacity });
+  page.drawRectangle({ x, y: y + r, width: w, height: h - r * 2, color, opacity });
+  for (const [cx, cy] of [
+    [x + r, y + r],
+    [x + w - r, y + r],
+    [x + r, y + h - r],
+    [x + w - r, y + h - r],
+  ]) {
+    page.drawEllipse({ x: cx, y: cy, xScale: r, yScale: r, color, opacity });
+  }
 }
 
 function mix(a: RGB, b: RGB, t: number): RGB {
@@ -798,51 +833,77 @@ function addTemplateCoverPage(
   fonts: Fonts,
   stats: { total: number; uploaders: number; days: number },
   templateImage: PDFImage,
-  accent: RGB,
+  cover: TemplateCoverConfig,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   drawImageCover(page, templateImage, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
-  const nameplate = mix(accent, rgb(0.05, 0.04, 0.04), 0.6);
-  const textColor = rgb(0.98, 0.96, 0.92);
-  const textFaint = mix(textColor, nameplate, 0.4);
-
-  const bandH = 118;
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: bandH, color: nameplate, opacity: 0.92 });
-
-  let y = bandH - 34;
-  y = drawWrapped(
-    page,
-    album.name,
-    PAGE_WIDTH / 2,
-    y,
-    PAGE_WIDTH - MARGIN * 2,
-    26,
-    fonts.bold,
-    22,
-    textColor,
-    "center",
-  );
-  y -= 20;
+  // El texto va en una placa clara del tamaño justo, colocada en la franja más
+  // despejada del diseño. Antes era una banda maciza de lado a lado que tapaba
+  // media portada.
+  const ink = rgb(0.16, 0.13, 0.1);
+  const inkSoft = mix(ink, rgb(1, 1, 1), 0.35);
 
   const dateLabel = album.eventDate
     ? formatLongDate(new Date(album.eventDate + "T00:00:00"))
     : album.kind === "familia"
       ? "Álbum de familia"
       : null;
-  if (dateLabel) {
-    drawCentered(page, dateLabel, y, fonts.italic, 12, textColor);
-    y -= 18;
-  }
 
-  const statsParts = [
+  const statsLine = [
     `${stats.total} ${stats.total === 1 ? "recuerdo" : "recuerdos"}`,
     stats.uploaders > 0
       ? `${stats.uploaders} ${stats.uploaders === 1 ? "invitado" : "invitados"}`
       : null,
     stats.days > 1 ? `${stats.days} días` : null,
-  ].filter((v): v is string => !!v);
-  drawCentered(page, statsParts.join("   ·   "), y, fonts.regular, 10, textFaint);
+  ]
+    .filter((v): v is string => !!v)
+    .join("   ·   ");
+
+  const maxTextW = PAGE_WIDTH - MARGIN * 2 - 60;
+  const nameSize = 22;
+  const nameLines = wrapLines(album.name, maxTextW, fonts.bold, nameSize);
+
+  const anchoTexto = Math.max(
+    ...nameLines.map((l) => fonts.bold.widthOfTextAtSize(l, nameSize)),
+    dateLabel ? fonts.italic.widthOfTextAtSize(dateLabel, 12) : 0,
+    fonts.regular.widthOfTextAtSize(statsLine, 10),
+  );
+
+  const padX = 30;
+  const padY = 22;
+  const lineH = 27;
+  const alto =
+    padY * 2 + nameLines.length * lineH + (dateLabel ? 20 : 0) + 16;
+  const ancho = Math.min(anchoTexto + padX * 2, PAGE_WIDTH - MARGIN * 2);
+
+  const centro = PAGE_HEIGHT * (1 - cover.band);
+  const y = clamp(centro - alto / 2, MARGIN, PAGE_HEIGHT - MARGIN - alto);
+  const x = (PAGE_WIDTH - ancho) / 2;
+
+  // Sombra suave, placa color papel y un filete del color del diseño.
+  drawRoundedBox(page, x + 3, y - 3, ancho, alto, 10, rgb(0.2, 0.17, 0.12), 0.12);
+  drawRoundedBox(page, x, y, ancho, alto, 10, rgb(0.995, 0.985, 0.965), 0.93);
+  page.drawLine({
+    start: { x: x + ancho / 2 - 26, y: y + 13 },
+    end: { x: x + ancho / 2 + 26, y: y + 13 },
+    thickness: 1,
+    color: cover.accent,
+    opacity: 0.55,
+  });
+
+  let cursor = y + alto - padY - nameSize * 0.85;
+  for (const linea of nameLines) {
+    drawCentered(page, linea, cursor, fonts.bold, nameSize, ink);
+    cursor -= lineH;
+  }
+  cursor += lineH - 24;
+
+  if (dateLabel) {
+    drawCentered(page, dateLabel, cursor, fonts.italic, 12, inkSoft);
+    cursor -= 18;
+  }
+  drawCentered(page, statsLine, cursor, fonts.regular, 10, inkSoft);
 }
 
 async function addPhotoPage(
@@ -1120,7 +1181,7 @@ export async function buildDotbookPdf(
   }
 
   if (templateCoverImage && isTemplateStyle(style)) {
-    addTemplateCoverPage(pdf, album, fonts, stats, templateCoverImage, TEMPLATE_COVERS[style].accent);
+    addTemplateCoverPage(pdf, album, fonts, stats, templateCoverImage, TEMPLATE_COVERS[style]);
   } else {
     const previewSourceImages = sorted.filter((i) => i.type === "image").slice(0, 4);
     const previewImages: PDFImage[] = [];
