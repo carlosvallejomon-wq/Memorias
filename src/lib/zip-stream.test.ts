@@ -60,19 +60,46 @@ test("el ZIP generado lo abre el descompresor del sistema", async () => {
     { name: "003-ñandú.txt", open: async () => streamOf("acentos: ñáéíóú\n") },
   ]);
 
+  const bytes = await collect(zip);
   const dir = mkdtempSync(join(tmpdir(), "zip-test-"));
   const file = join(dir, "prueba.zip");
-  writeFileSync(file, await collect(zip));
+  writeFileSync(file, bytes);
 
   // -t comprueba las sumas CRC de todas las entradas.
   const salida = execFileSync("unzip", ["-t", file], { encoding: "utf8" });
   assert.match(salida, /No errors detected/);
   assert.match(salida, /001-hola\.txt/);
-  assert.match(salida, /003-ñandú\.txt/);
   assert.doesNotMatch(salida, /002-roto/);
 
   execFileSync("unzip", ["-o", "-d", dir, file]);
   const { readFileSync } = await import("node:fs");
   assert.equal(readFileSync(join(dir, "001-hola.txt"), "utf8"), contenido);
-  assert.equal(readFileSync(join(dir, "003-ñandú.txt"), "utf8"), "acentos: ñáéíóú\n");
+
+  // Los nombres con acentos no se comprueban leyendo lo que imprime `unzip`:
+  // cómo los dibuja depende del idioma configurado en la máquina (en el
+  // servidor de GitHub salen ilegibles aunque el ZIP esté perfecto). Se miran
+  // los bytes del propio archivo, que es lo que de verdad importa.
+  const { nombres, banderas } = leerNombres(bytes);
+  assert.deepEqual(nombres, ["001-hola.txt", "003-ñandú.txt"]);
+  // Bit 11 encendido = "el nombre va en UTF-8", que es lo que hace que
+  // Windows y macOS lo abran bien.
+  assert.ok(
+    banderas.every((f) => (f & 0x800) !== 0),
+    "los nombres deben ir marcados como UTF-8",
+  );
 });
+
+/** Lee los nombres de las cabeceras locales del ZIP, sin descomprimir nada. */
+function leerNombres(zip: Uint8Array): { nombres: string[]; banderas: number[] } {
+  const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+  const nombres: string[] = [];
+  const banderas: number[] = [];
+  for (let i = 0; i + 30 <= zip.length; i++) {
+    if (view.getUint32(i, true) !== 0x04034b50) continue;
+    const bandera = view.getUint16(i + 6, true);
+    const largo = view.getUint16(i + 26, true);
+    nombres.push(new TextDecoder("utf-8").decode(zip.slice(i + 30, i + 30 + largo)));
+    banderas.push(bandera);
+  }
+  return { nombres, banderas };
+}
