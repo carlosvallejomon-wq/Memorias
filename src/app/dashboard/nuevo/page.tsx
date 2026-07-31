@@ -127,7 +127,6 @@ export default function NewAlbumPage() {
                   <div className="grid grid-cols-2 gap-1.5">
                     {TILE_PHOTOS.map((src, i) => (
                       <div key={i} className="aspect-square overflow-hidden rounded-lg shadow-soft">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={src} alt="" className="h-full w-full object-cover" />
                       </div>
                     ))}

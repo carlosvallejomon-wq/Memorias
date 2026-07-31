@@ -28,7 +28,7 @@ export function ShareCard({ shareUrl }: { shareUrl: string }) {
   return (
     <section className="glass mt-6 flex flex-col items-center gap-5 rounded-2xl p-5 sm:flex-row">
       {qr && (
-        // eslint-disable-next-line @next/next/no-img-element
+         
         <img
           src={qr}
           alt="Código QR del álbum"

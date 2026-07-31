@@ -47,6 +47,47 @@ invitado puede borrar solo la suya (`/api/guestbook/[entryId]` con su
 `guestId`); el organizador puede borrar cualquiera desde el panel. Se
 imprimen como páginas de "Dedicatorias" al final del Dotbook.
 
+**Preparación de archivos en el navegador** (`src/lib/prepare-upload.ts`):
+antes de subir nada se convierten los HEIC del iPhone a JPG (con `heic-to`,
+importado dinámicamente para que los ~3 MB de wasm solo los descargue quien
+sube un HEIC) y se saca un fotograma de portada de los vídeos, que se sube
+como blob aparte y se guarda en `media.poster_url`. Sin lo primero las fotos
+de iPhone no se ven en Chrome ni en Android; sin lo segundo la galería
+pintaba rectángulos negros. La miniatura se registra con un `UPDATE`
+posterior al `onConflictDoNothing`, porque el webhook de Vercel puede ganarle
+la carrera al cliente y él no la conoce.
+
+**Topes de subida** (`src/lib/limits.ts`, validados en
+`onBeforeGenerateToken`): 150 MB por archivo, 5.000 recuerdos por álbum y 500
+por invitado. Es el único momento en que se puede decir que no, porque
+después el archivo va del móvil a Blob sin pasar por el servidor.
+
+**Descarga ZIP en streaming** (`src/lib/zip-stream.ts`): escritor de ZIP
+propio (método "store" + descriptor de datos) que va escribiendo archivo a
+archivo según los descarga. Antes se juntaba el álbum entero en memoria con
+JSZip y una boda de 2 GB tumbaba la función. Un archivo que falle se salta y
+el resto del ZIP sigue.
+
+**Dotbook**: tope de `MAX_DOTBOOK_PAGES` (220) páginas de recuerdo; si el
+álbum es mayor se escoge una selección repartida de principio a fin
+(`pickSpread`) y se avisa en la página de cierre. Los vídeos con miniatura se
+imprimen con su fotograma y un QR pequeño en la esquina.
+
+**Vista previa al compartir**: `generateMetadata` + `opengraph-image.tsx` en
+`/a/[code]` generan la tarjeta que sale en WhatsApp con el nombre del álbum,
+la fecha y sus últimas fotos. Solo se incrustan URLs absolutas (una relativa
+hace fallar `next/og`) y hay un `try/catch` que cae a la tarjeta sin fotos.
+Los álbumes llevan `robots: noindex`.
+
+**Comprobaciones automáticas**: `npm run check` (lint + tipos + pruebas) y el
+flujo `.github/workflows/comprobaciones.yml`. Las pruebas (`node:test` vía
+`tsx --test`, archivos `*.test.ts` junto al código) cubren el escritor de
+ZIP —comprobando con `unzip -t` que el archivo generado es válido—, los
+nombres del ZIP, el detector de HEIC/vídeo y el límite de peticiones. Tres
+reglas nuevas del compilador de React (`set-state-in-effect`, `purity`,
+`static-components`) están en modo aviso a propósito: marcan patrones que
+aquí son correctos (leer localStorage al montar, pedir datos en un efecto).
+
 **Estilos compartidos** (`globals.css`): clases `.btn`/`.btn-primary`/
 `.btn-soft`/`.btn-ghost`/`.btn-on-dark`, `.chip`, `.field`, `.skeleton`,
 `.nota`, `.scroll-x`, foco visible global y respeto de
@@ -119,6 +160,17 @@ recuperar algo (p. ej. `web-dashboard/src/lib/e2ee.ts`).
 
 MVP implementado y verificado en local (build + servidor real + recorrido
 Playwright del flujo de invitado: galería, vista por días, reacciones,
-comentarios, contadores). Pendiente de verificar en producción: despliegue
-en Vercel, `/api/setup` contra Neon, login Clerk en `/dashboard`, subida
-real a Blob y descarga ZIP.
+comentarios, contadores, carga por tandas, miniaturas de vídeo, código
+personal del invitado, avisos, páginas legales y vista previa al compartir).
+
+**Pendiente de verificar en producción** — es lo más importante que queda:
+despliegue en Vercel, `/api/setup` contra Neon (hay columnas nuevas:
+`media.poster_url` y `comments.guest_id`), login Clerk en `/dashboard`,
+subida real a Blob desde un iPhone (para confirmar la conversión HEIC) y
+desde Android, descarga ZIP de un álbum grande, y la vista previa del enlace
+al pegarlo en WhatsApp.
+
+Queda sin hacer, a sabiendas: no hay caducidad automática de los archivos
+(el almacenamiento crece indefinidamente) ni contraseña opcional por álbum,
+y no hay servicio externo de registro de errores — solo `console.error` y las
+páginas `error.tsx` / `not-found.tsx`.

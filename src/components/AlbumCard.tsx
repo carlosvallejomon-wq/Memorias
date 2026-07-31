@@ -66,7 +66,7 @@ function Media({ item }: { item: { url: string; type: string } }) {
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
+     
     <img src={item.url} alt="" loading="lazy" className="h-full w-full object-cover" />
   );
 }

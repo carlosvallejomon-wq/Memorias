@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import {
   ArrowLeft,
@@ -11,6 +12,7 @@ import {
   X,
   Hourglass,
   Images,
+  KeyRound,
   MessageCircle,
   PenLine,
   Play,
@@ -28,15 +30,23 @@ import {
   type MediaItem,
   avatarColor,
   initial,
+  mediaAlt,
   reactionTotal,
 } from "@/lib/guest-types";
+import { MAX_FILE_BYTES, formatMb } from "@/lib/limits";
+import { isVideo, looksLikeHeic, prepareForUpload } from "@/lib/prepare-upload";
 import { ChallengeIcon } from "@/components/ChallengeIcon";
+import { GuestIdentity } from "@/components/GuestIdentity";
+import { Notice, type NoticeState } from "@/components/Notice";
 import { GuestChallenges } from "@/components/GuestChallenges";
 import { GuestLightbox } from "@/components/GuestLightbox";
 import { GuestMessageWall } from "@/components/GuestMessageWall";
 
 type View = "galeria" | "dias" | "retos" | "mensajes";
 type Filter = "todos" | "mias" | "videos" | "queridas";
+
+/** Cuántos recuerdos se pintan de una tanda. */
+const PAGE_SIZE = 60;
 
 function useLocalValue(key: string, generate?: () => string) {
   const [value, setValue] = useState("");
@@ -87,7 +97,7 @@ export function GuestAlbum({
   eventDate: string | null;
   fromPanel?: boolean;
 }) {
-  const [guestId] = useLocalValue("mv_guest_id", () => crypto.randomUUID());
+  const [guestId, setGuestId] = useLocalValue("mv_guest_id", () => crypto.randomUUID());
   const [guestName, setGuestName] = useLocalValue("mv_guest_name");
   const [askName, setAskName] = useState(false);
   const [items, setItems] = useState<MediaItem[] | null>(null);
@@ -97,7 +107,15 @@ export function GuestAlbum({
   const [filter, setFilter] = useState<Filter>("todos");
   const [person, setPerson] = useState<string | null>(null);
   const [challengeFilter, setChallengeFilter] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
+  const [uploading, setUploading] = useState<{
+    done: number;
+    total: number;
+    step: string | null;
+  } | null>(null);
+  const [notice, setNotice] = useState<NoticeState | null>(null);
+  const [showIdentity, setShowIdentity] = useState(false);
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const sentinel = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
   const [pendingDate, setPendingDate] = useState(eventDate ?? "");
@@ -139,6 +157,25 @@ export function GuestAlbum({
   useEffect(() => {
     refreshChallenges();
   }, [refreshChallenges]);
+
+  // Durante la fiesta la gente sube fotos a la vez: sin esto había que
+  // recargar a mano para ver lo que iban subiendo los demás. Solo consulta
+  // cuando la pestaña está a la vista, para no gastar datos ni batería en un
+  // móvil guardado en el bolsillo.
+  useEffect(() => {
+    if (!guestId) return;
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      refresh();
+      refreshChallenges();
+    };
+    const id = setInterval(tick, 20_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [guestId, refresh, refreshChallenges]);
 
   useEffect(() => {
     if (guestId && !localStorage.getItem("mv_guest_name_asked")) {
@@ -184,6 +221,29 @@ export function GuestAlbum({
     return list;
   }, [all, challengeFilter, person, filter, guestId]);
 
+  // Al cambiar de filtro o de pestaña se vuelve a empezar por la primera
+  // tanda: si no, se quedaba pidiendo fotos de una lista que ya no existe.
+  useEffect(() => {
+    setShown(PAGE_SIZE);
+  }, [filter, person, challengeFilter, view]);
+
+  // Carga la siguiente tanda cuando el final de la galería asoma por
+  // pantalla, sin que el invitado tenga que pulsar nada.
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setShown((n) => n + PAGE_SIZE);
+        }
+      },
+      { rootMargin: "600px" },
+    );
+    obs.observe(node);
+    return () => obs.disconnect();
+  }, [view, visible.length, shown]);
+
   const selectedIndex = selectedId ? visible.findIndex((i) => i.id === selectedId) : -1;
   const selected = selectedIndex >= 0 ? visible[selectedIndex] : null;
 
@@ -214,6 +274,22 @@ export function GuestAlbum({
   async function confirmUpload() {
     const list = pendingFiles;
     if (!list || list.length === 0) return;
+
+    const tooBig = list.filter((f) => f.size > MAX_FILE_BYTES);
+    if (tooBig.length > 0) {
+      setNotice({
+        tone: "error",
+        text: `${tooBig.length === 1 ? "Este archivo pesa" : "Algunos archivos pesan"} más de ${formatMb(MAX_FILE_BYTES)} y no se puede subir: ${tooBig
+          .map((f) => f.name)
+          .join(", ")}`,
+      });
+    }
+    const queue = list.filter((f) => f.size <= MAX_FILE_BYTES);
+    if (queue.length === 0) {
+      cancelUpload();
+      return;
+    }
+
     // Si el invitado elige una fecha, se aplica a todo el lote (lo normal es
     // subir varias fotos del mismo momento a la vez). Si la deja en blanco,
     // se usa la fecha del propio archivo como respaldo.
@@ -222,21 +298,51 @@ export function GuestAlbum({
       : null;
     const challengeId = pendingChallengeId;
     setPendingFiles(null);
-    setUploading({ done: 0, total: list.length });
-    for (const file of list) {
-      const takenAt = overrideTakenAt ?? file.lastModified;
+    setUploading({ done: 0, total: queue.length, step: null });
+    const fallos: string[] = [];
+
+    for (const original of queue) {
+      const takenAt = overrideTakenAt ?? original.lastModified;
       try {
+        // Los HEIC del iPhone se pasan a JPG y los vídeos reciben un
+        // fotograma de portada, todo aquí en el móvil antes de subir nada.
+        if (looksLikeHeic(original)) {
+          setUploading((u) => (u ? { ...u, step: "Preparando la foto…" } : u));
+        } else if (isVideo(original)) {
+          setUploading((u) => (u ? { ...u, step: "Preparando el vídeo…" } : u));
+        }
+        const { file, poster } = await prepareForUpload(original);
+        setUploading((u) => (u ? { ...u, step: null } : u));
+
         const blob = await upload(file.name, file, {
           access: "public",
           handleUploadUrl: "/api/blob-upload",
           clientPayload: JSON.stringify({
             code,
+            kind: "media",
             uploaderName: guestName || null,
             uploaderId: guestId || null,
             takenAt,
             challengeId,
           }),
         });
+
+        let posterUrl: string | null = null;
+        if (poster) {
+          try {
+            const posterBlob = await upload(poster.name, poster, {
+              access: "public",
+              handleUploadUrl: "/api/blob-upload",
+              clientPayload: JSON.stringify({ code, kind: "poster" }),
+            });
+            posterUrl = posterBlob.url;
+          } catch (err) {
+            // Sin miniatura el vídeo se sigue viendo; no vale la pena
+            // fastidiar la subida por esto.
+            console.error("No se pudo subir la miniatura del vídeo:", err);
+          }
+        }
+
         await fetch(`/api/guest/${code}/media`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -244,6 +350,7 @@ export function GuestAlbum({
             url: blob.url,
             pathname: blob.pathname,
             contentType: blob.contentType || file.type,
+            posterUrl,
             uploaderName: guestName || null,
             uploaderId: guestId || null,
             takenAt,
@@ -251,16 +358,29 @@ export function GuestAlbum({
           }),
         });
       } catch (err) {
-        console.error("Error subiendo", file.name, err);
-        const detail = err instanceof Error ? err.message : String(err);
-        alert(`No se pudo subir «${file.name}»: ${detail}`);
+        console.error("Error subiendo", original.name, err);
+        fallos.push(
+          `«${original.name}»: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
-      setUploading((u) => (u ? { ...u, done: u.done + 1 } : u));
+      setUploading((u) => (u ? { ...u, done: u.done + 1, step: null } : u));
     }
+
     setUploading(null);
     setPendingChallengeId(null);
     nextChallengeId.current = null;
     if (fileInput.current) fileInput.current.value = "";
+    if (fallos.length > 0) {
+      setNotice({ tone: "error", text: `No se pudo subir ${fallos.join(" · ")}` });
+    } else if (queue.length > 0) {
+      setNotice({
+        tone: "ok",
+        text:
+          queue.length === 1
+            ? "¡Listo! Tu recuerdo ya está en el álbum."
+            : `¡Listo! Se han subido ${queue.length} recuerdos.`,
+      });
+    }
     await Promise.all([refresh(), refreshChallenges()]);
   }
 
@@ -298,7 +418,13 @@ export function GuestAlbum({
     refreshChallenges();
   }
 
-  const grouped = visible.reduce<Map<string, MediaItem[]>>((map, it) => {
+  // Con un álbum de cientos de fotos, pintarlas todas de golpe dejaba el
+  // móvil clavado un buen rato. Se enseñan por tandas y van entrando solas al
+  // llegar al final de la página.
+  const shownItems = useMemo(() => visible.slice(0, shown), [visible, shown]);
+  const hayMas = visible.length > shownItems.length;
+
+  const grouped = shownItems.reduce<Map<string, MediaItem[]>>((map, it) => {
     const key = dayKey(itemDate(it));
     map.set(key, [...(map.get(key) ?? []), it]);
     return map;
@@ -310,7 +436,13 @@ export function GuestAlbum({
   // ve ordenada aunque las fotos y vídeos no tengan todos el mismo tamaño.
   const rowHeight = galleryWidth < 480 ? 110 : 160;
   const gap = galleryWidth < 480 ? 6 : 8;
-  const galleryRows = computeJustifiedRows(visible, ratios, galleryWidth, rowHeight, gap);
+  const galleryRows = computeJustifiedRows(
+    shownItems,
+    ratios,
+    galleryWidth,
+    rowHeight,
+    gap,
+  );
 
   const dayCount = new Set(all.map((i) => dayKey(itemDate(i)))).size;
   const peopleCount = new Set(all.map((i) => i.uploaderId || i.uploaderName || "?")).size;
@@ -336,20 +468,20 @@ export function GuestAlbum({
           bien visible; el invitado normal solo ve la marca. */}
       {fromPanel ? (
         <div className="pt-4">
-          <a href="/dashboard" className="btn btn-soft px-4 py-2 text-sm">
+          <Link href="/dashboard" className="btn btn-soft px-4 py-2 text-sm">
             <ArrowLeft size={16} /> Volver a mis álbumes
-          </a>
+          </Link>
         </div>
       ) : null}
 
       <header className={fromPanel ? "pt-4 text-center" : "pt-6 text-center"}>
         {!fromPanel && (
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"
           >
             <Camera size={14} /> Memorias Vivas
-          </a>
+          </Link>
         )}
         <h1
           className="text-balance mt-2 text-3xl font-semibold sm:text-4xl"
@@ -379,6 +511,13 @@ export function GuestAlbum({
             </span>
           </p>
         )}
+        <button
+          onClick={() => setShowIdentity(true)}
+          className="mt-3 inline-flex items-center gap-1.5 text-xs text-tinta/40 underline-offset-4 transition hover:text-tinta/70 hover:underline"
+        >
+          <KeyRound size={13} />
+          {guestName ? `Estás como ${guestName}` : "Poner mi nombre"}
+        </button>
       </header>
 
       {/* Barra de pestañas pegajosa: en el móvil se navega con el pulgar sin
@@ -614,6 +753,18 @@ export function GuestAlbum({
               })}
             </div>
           )}
+
+          {/* Marca el final de lo pintado: al asomar por pantalla entra la
+              siguiente tanda de fotos. */}
+          {hayMas && (
+            <div
+              ref={sentinel}
+              className="mt-6 flex items-center justify-center gap-2 py-4 text-sm text-tinta/50"
+            >
+              <Loader2 size={16} className="animate-spin" />
+              Cargando más recuerdos…
+            </div>
+          )}
         </div>
       )}
 
@@ -628,8 +779,8 @@ export function GuestAlbum({
             {uploading ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                Subiendo {Math.min(uploading.done + 1, uploading.total)} de{" "}
-                {uploading.total}…
+                {uploading.step ??
+                  `Subiendo ${Math.min(uploading.done + 1, uploading.total)} de ${uploading.total}…`}
                 <span
                   className="absolute bottom-0 left-0 h-1 bg-white/70 transition-[width] duration-300"
                   style={{ width: `${(uploading.done / uploading.total) * 100}%` }}
@@ -709,6 +860,21 @@ export function GuestAlbum({
                 Subir
               </button>
             </div>
+
+            {/* Se subirán fotos de otras personas: conviene decirlo justo aquí,
+                en el momento en que se decide, y no escondido en un enlace. */}
+            <p className="mt-3 text-center text-[11px] leading-snug text-tinta/45">
+              Al subir confirmas que puedes compartir estas imágenes y que
+              cualquiera con el enlace del álbum podrá verlas.{" "}
+              <a
+                href="/legal/privacidad"
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2 hover:text-tinta"
+              >
+                Privacidad
+              </a>
+            </p>
           </div>
         </div>
       )}
@@ -774,6 +940,24 @@ export function GuestAlbum({
           onCommentAdded={refresh}
         />
       )}
+
+      {showIdentity && (
+        <GuestIdentity
+          guestId={guestId}
+          guestName={guestName}
+          onChangeName={setGuestName}
+          onRestore={(id) => {
+            setGuestId(id);
+            setNotice({
+              tone: "ok",
+              text: "Listo. Este móvil ya te reconoce como el mismo invitado.",
+            });
+          }}
+          onClose={() => setShowIdentity(false)}
+        />
+      )}
+
+      <Notice notice={notice} onClose={() => setNotice(null)} />
     </main>
   );
 }
@@ -807,27 +991,48 @@ function Thumb({
     >
       {item.type === "video" ? (
         <>
-          <video
-            src={item.url}
-            className="h-full w-full object-cover"
-            preload="metadata"
-            muted
-            playsInline
-            onLoadedMetadata={(e) => {
-              const v = e.currentTarget;
-              if (v.videoWidth && v.videoHeight) onRatio(v.videoWidth / v.videoHeight);
-            }}
-          />
+          {item.posterUrl ? (
+            // Con miniatura no hace falta tocar el vídeo: se ve al instante y
+            // no se gastan datos del invitado.
+             
+            <img
+              src={item.posterUrl}
+              alt={mediaAlt(item)}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight)
+                  onRatio(img.naturalWidth / img.naturalHeight);
+              }}
+            />
+          ) : (
+            // Vídeos subidos antes de que existieran las miniaturas.
+            <video
+              src={item.url}
+              className="h-full w-full object-cover"
+              preload="metadata"
+              muted
+              playsInline
+              aria-label={mediaAlt(item)}
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                if (v.videoWidth && v.videoHeight) onRatio(v.videoWidth / v.videoHeight);
+              }}
+            />
+          )}
           <span className="absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1 text-white">
             <Play size={11} fill="white" />
           </span>
         </>
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
+         
         <img
           src={item.url}
-          alt=""
+          alt={mediaAlt(item)}
           loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover"
           onLoad={(e) => {
             const img = e.currentTarget;

@@ -187,14 +187,12 @@ function PhoneMockup() {
         className="polaroid animate-float absolute -bottom-8 -left-10 hidden w-20 overflow-hidden sm:block"
         style={{ ["--rot" as string]: "-9deg", transform: "rotate(-9deg)", animationDelay: "0.4s" }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/decor/babyshower.jpg" alt="" className="h-16 w-full rounded-sm object-cover" />
       </div>
       <div
         className="polaroid animate-float absolute -bottom-4 -left-24 hidden w-16 overflow-hidden sm:block"
         style={{ ["--rot" as string]: "7deg", transform: "rotate(7deg)", animationDelay: "1.1s" }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/decor/anonuevo.jpg" alt="" className="h-12 w-full rounded-sm object-cover" />
       </div>
     </div>
@@ -236,7 +234,6 @@ function DotbookMockup() {
       />
       <div className="relative overflow-hidden rounded-r-xl rounded-l-sm bg-white shadow-lift">
         <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-tinta/25 to-transparent" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/dotbook-templates/thumbs/boda.jpg"
           alt="Portada de ejemplo del Dotbook"
@@ -608,7 +605,7 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-tinta/10 px-6 py-12">
-        <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
+        <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="flex items-center gap-2 font-semibold">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-tinta text-crema">
@@ -655,6 +652,21 @@ export default function Home() {
               </li>
               <li className="flex items-center gap-1.5">
                 <Target size={13} /> Retos fotográficos
+              </li>
+            </ul>
+          </div>
+          <div className="text-sm">
+            <p className="font-semibold text-tinta/70">Legal</p>
+            <ul className="mt-3 space-y-2 text-tinta/50">
+              <li>
+                <Link href="/legal/privacidad" className="hover:text-tinta">
+                  Privacidad
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal/condiciones" className="hover:text-tinta">
+                  Condiciones de uso
+                </Link>
               </li>
             </ul>
           </div>

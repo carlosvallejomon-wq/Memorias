@@ -32,6 +32,7 @@ export async function GET(
       id: media.id,
       url: media.url,
       type: media.type,
+      posterUrl: media.posterUrl,
       uploaderName: media.uploaderName,
       uploaderId: media.uploaderId,
       challengeId: media.challengeId,
@@ -108,6 +109,7 @@ export async function POST(
     url?: string;
     pathname?: string;
     contentType?: string;
+    posterUrl?: string | null;
     uploaderName?: string;
     uploaderId?: string;
     takenAt?: number;
@@ -123,6 +125,7 @@ export async function POST(
     url: body.url,
     pathname: body.pathname ?? null,
     contentType: body.contentType ?? null,
+    posterUrl: body.posterUrl ?? null,
     uploaderName: body.uploaderName ?? null,
     uploaderId: body.uploaderId ?? null,
     takenAt: body.takenAt ?? null,

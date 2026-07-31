@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { comments, media } from "@/db/schema";
+import { allow, clientKey } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export async function GET(
     .select({
       id: comments.id,
       authorName: comments.authorName,
+      guestId: comments.guestId,
       body: comments.body,
       createdAt: comments.createdAt,
     })
@@ -29,8 +31,16 @@ export async function POST(
   { params }: { params: Promise<{ mediaId: string }> },
 ) {
   const { mediaId } = await params;
+  if (!allow(clientKey(request, "comentario"), 20, 60_000)) {
+    return NextResponse.json(
+      { error: "Vas muy rápido. Espera unos segundos y vuelve a intentarlo." },
+      { status: 429 },
+    );
+  }
+
   const body = (await request.json()) as {
     authorName?: string;
+    guestId?: string;
     body?: string;
   };
 
@@ -55,6 +65,7 @@ export async function POST(
     .values({
       mediaId,
       authorName: (body.authorName ?? "").trim().slice(0, 100) || null,
+      guestId: (body.guestId ?? "").trim().slice(0, 64) || null,
       body: text,
     })
     .returning();

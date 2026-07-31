@@ -5,6 +5,7 @@ import { Trash2, Check, X, Loader2 } from "lucide-react";
 import {
   approveMedia,
   deleteAlbum,
+  deleteComment,
   deleteGuestbookEntry,
   deleteMedia,
 } from "@/app/dashboard/actions";
@@ -69,6 +70,25 @@ export function DeleteGuestbookEntryButton({ entryId }: { entryId: string }) {
         }
       }}
       title="Borrar mensaje"
+      className="shrink-0 rounded-full p-1.5 text-tinta/30 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+    >
+      {pending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+    </button>
+  );
+}
+
+export function DeleteCommentButton({ commentId }: { commentId: string }) {
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <button
+      disabled={pending}
+      onClick={() => {
+        if (confirm("¿Borrar este comentario?")) {
+          startTransition(() => deleteComment(commentId));
+        }
+      }}
+      title="Borrar comentario"
       className="shrink-0 rounded-full p-1.5 text-tinta/30 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
     >
       {pending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}

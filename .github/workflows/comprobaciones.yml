@@ -1,0 +1,40 @@
+name: Comprobaciones
+
+# Cada vez que se sube un cambio, GitHub comprueba solo que la app sigue
+# compilando y que las pruebas pasan. Si algo se rompe, sale una marca roja en
+# el pull request antes de fusionarlo.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Reglas de estilo
+        run: npm run lint
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Pruebas
+        run: npm test
+
+      - name: Compilar la app
+        run: npm run build
+        env:
+          # Claves de mentira: en la compilación no se conecta a nada, solo se
+          # necesita que las variables existan.
+          DATABASE_URL: postgres://usuario:clave@localhost:5432/nada
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+          CLERK_SECRET_KEY: sk_test_deprueba

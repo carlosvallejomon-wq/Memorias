@@ -108,7 +108,7 @@ export function AlbumStats({ stats }: { stats: AlbumStatsData }) {
                     playsInline
                   />
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img
                     src={stats.topMedia.url}
                     alt=""

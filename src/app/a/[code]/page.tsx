@@ -1,9 +1,46 @@
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { albums } from "@/db/schema";
 import { GuestAlbum } from "@/components/GuestAlbum";
 
 export const dynamic = "force-dynamic";
+
+// Título y descripción del enlace cuando el organizador lo manda por
+// WhatsApp. La imagen la genera opengraph-image.tsx con las fotos del álbum.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}): Promise<Metadata> {
+  const { code } = await params;
+  const [album] = await db()
+    .select({ name: albums.name, eventDate: albums.eventDate })
+    .from(albums)
+    .where(eq(albums.shareCode, code));
+
+  if (!album) return { title: "Álbum no encontrado" };
+
+  const fecha = album.eventDate
+    ? new Date(album.eventDate + "T00:00:00").toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+  const descripcion = fecha
+    ? `${fecha} · Añade tus fotos y vídeos al álbum. Sin instalar nada y sin registrarte.`
+    : "Añade tus fotos y vídeos al álbum. Sin instalar nada y sin registrarte.";
+
+  return {
+    title: album.name,
+    description: descripcion,
+    openGraph: { title: album.name, description: descripcion, type: "website" },
+    // Un álbum privado no debería aparecer en Google: solo entra quien tiene
+    // el enlace.
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function GuestAlbumPage({
   params,
