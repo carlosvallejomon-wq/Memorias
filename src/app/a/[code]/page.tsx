@@ -116,6 +116,7 @@ export default async function GuestAlbumPage({
   return (
     <GuestAlbum
       code={album.shareCode}
+      albumId={album.id}
       name={album.name}
       eventDate={album.eventDate}
       expiresAt={album.expiresAt ? album.expiresAt.toISOString() : null}

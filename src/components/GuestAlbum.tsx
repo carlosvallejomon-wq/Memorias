@@ -90,12 +90,14 @@ function dayLabel(key: string): string {
 
 export function GuestAlbum({
   code,
+  albumId,
   name,
   eventDate,
   expiresAt = null,
   fromPanel = false,
 }: {
   code: string;
+  albumId: string;
   name: string;
   eventDate: string | null;
   /** Fecha de cierre, si el organizador puso una. */
@@ -131,6 +133,21 @@ export function GuestAlbum({
   const [galleryRef, galleryWidth] = useElementWidth<HTMLDivElement>();
 
   const aviso = expiryWarning(expiresAt);
+
+  // La vuelta atrás al panel se recuerda en este navegador. Antes dependía de
+  // llegar con ?panel=1 en la dirección: en cuanto se recargaba o se
+  // compartía el enlace, el organizador se quedaba sin forma de volver y solo
+  // le quedaba el enlace a la portada.
+  const [esOrganizador, setEsOrganizador] = useState(fromPanel);
+  useEffect(() => {
+    const clave = `mv_panel_${code}`;
+    if (fromPanel) {
+      localStorage.setItem(clave, "1");
+      setEsOrganizador(true);
+    } else if (localStorage.getItem(clave) === "1") {
+      setEsOrganizador(true);
+    }
+  }, [code, fromPanel]);
 
   const handleRatio = useCallback((id: string, ratio: number) => {
     setRatios((prev) => (prev[id] ? prev : { ...prev, [id]: ratio }));
@@ -471,18 +488,21 @@ export function GuestAlbum({
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-28">
-      {/* Al organizador que llega desde su panel se le deja una vuelta atrás
-          bien visible; el invitado normal solo ve la marca. */}
-      {fromPanel ? (
+      {/* Al organizador se le deja una vuelta atrás bien visible; el invitado
+          normal solo ve la marca. */}
+      {esOrganizador ? (
         <div className="pt-4">
-          <Link href="/dashboard" className="btn btn-soft px-4 py-2 text-sm">
-            <ArrowLeft size={16} /> Volver a mis álbumes
+          <Link
+            href={albumId ? `/dashboard/${albumId}` : "/dashboard"}
+            className="btn btn-soft px-4 py-2 text-sm"
+          >
+            <ArrowLeft size={16} /> Volver al panel del álbum
           </Link>
         </div>
       ) : null}
 
-      <header className={fromPanel ? "pt-4 text-center" : "pt-6 text-center"}>
-        {!fromPanel && (
+      <header className={esOrganizador ? "pt-4 text-center" : "pt-6 text-center"}>
+        {!esOrganizador && (
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"

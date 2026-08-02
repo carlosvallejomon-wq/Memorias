@@ -14,6 +14,7 @@ import {
   endPath as endPathOp,
   translate as translateOp,
   rotateDegrees as rotateOp,
+  scale as scaleOp,
 } from "pdf-lib";
 import QRCode from "qrcode";
 import type { albums, media } from "@/db/schema";
@@ -70,15 +71,31 @@ type TemplateCoverConfig = {
   // Punto vertical (0 = arriba, 1 = abajo) donde el diseño tiene su franja más
   // despejada. Ahí va la placa con el nombre del álbum, para no tapar el dibujo.
   band: number;
+  // Algunos diseños tienen el hueco libre muy justo (p. ej. entre un título y
+  // la ilustración de abajo). Con esto la placa se hace algo más pequeña para
+  // que quepa sin montarse encima del texto del propio diseño.
+  compact?: boolean;
 };
 
 const TEMPLATE_COVERS: Record<TemplateDotbookStyle, TemplateCoverConfig> = {
   realGeneral: { file: "general.jpg", accent: rgb(0.62, 0.55, 0.42), label: "Recuerdos en general", band: 0.8225 },
   realGraduacion: { file: "graduacion.jpg", accent: rgb(0.16, 0.21, 0.35), label: "Graduación", band: 0.9 },
   realComunion: { file: "comunion.jpg", accent: rgb(0.72, 0.58, 0.32), label: "Primera comunión", band: 0.885 },
-  realQuince: { file: "quince.jpg", accent: rgb(0.82, 0.5, 0.6), label: "Quinceañera", band: 0.905 },
+  realQuince: {
+    file: "quince.jpg",
+    accent: rgb(0.82, 0.5, 0.6),
+    label: "Quinceañera",
+    band: 0.97,
+    compact: true,
+  },
   realViajes: { file: "viajes.jpg", accent: rgb(0.74, 0.44, 0.2), label: "Viajes (diseño real)", band: 0.89 },
-  realFamilia: { file: "familia.jpg", accent: rgb(0.5, 0.38, 0.25), label: "Familia (diseño real)", band: 0.385 },
+  realFamilia: {
+    file: "familia.jpg",
+    accent: rgb(0.5, 0.38, 0.25),
+    label: "Familia (diseño real)",
+    band: 0.405,
+    compact: true,
+  },
   realAnoNuevo: { file: "anonuevo.jpg", accent: rgb(0.68, 0.55, 0.28), label: "Año nuevo", band: 0.375 },
   realBoda: { file: "boda.jpg", accent: rgb(0.44, 0.13, 0.18), label: "Boda", band: 0.42 },
   realBabyShower: { file: "babyshower.jpg", accent: rgb(0.5, 0.62, 0.72), label: "Baby shower", band: 0.435 },
@@ -563,17 +580,55 @@ async function embedQr(pdf: PDFDocument, url: string, size = 400) {
   return pdf.embedPng(bytes);
 }
 
-async function tryEmbedImage(pdf: PDFDocument, url: string) {
+async function tryEmbedImage(pdf: PDFDocument, url: string, descargada?: Descarga | null) {
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    const contentType = res.headers.get("content-type") ?? "";
-    return contentType.includes("png") ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
+    const datos = descargada ?? (await descargar(url));
+    if (!datos) return null;
+    return datos.esPng ? await pdf.embedPng(datos.bytes) : await pdf.embedJpg(datos.bytes);
   } catch (err) {
     console.error("No se pudo incrustar la imagen en el Dotbook:", err);
     return null;
   }
+}
+
+type Descarga = { bytes: Uint8Array; esPng: boolean };
+
+async function descargar(url: string): Promise<Descarga | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return {
+      bytes: new Uint8Array(await res.arrayBuffer()),
+      esPng: (res.headers.get("content-type") ?? "").includes("png"),
+    };
+  } catch (err) {
+    console.error("No se pudo descargar la imagen del Dotbook:", err);
+    return null;
+  }
+}
+
+/**
+ * Baja todas las fotos ANTES de montar las páginas, de ocho en ocho.
+ *
+ * Antes se descargaban de una en una, justo cuando le tocaba a cada página:
+ * con 200 recuerdos eso son 200 esperas seguidas y el PDF tardaba una
+ * eternidad (o se quedaba sin tiempo). Ahora se solapan, que es donde está
+ * casi todo el tiempo de espera.
+ */
+async function descargarTodas(urls: string[]): Promise<Map<string, Descarga>> {
+  const unicas = [...new Set(urls)];
+  const cache = new Map<string, Descarga>();
+  const TANDA = 8;
+
+  for (let i = 0; i < unicas.length; i += TANDA) {
+    const tanda = unicas.slice(i, i + TANDA);
+    const resultados = await Promise.all(tanda.map((u) => descargar(u)));
+    tanda.forEach((u, j) => {
+      const r = resultados[j];
+      if (r) cache.set(u, r);
+    });
+  }
+  return cache;
 }
 
 // Una "polaroid" rotada con washi tape, como en un scrapbook — se dibuja en
@@ -628,7 +683,112 @@ function drawPolaroid(
   page.pushOperators(popGraphicsState());
 }
 
-// Ramas decorativas de esquina, sencillas pero con textura de scrapbook.
+// --- Rama de olivo decorativa -------------------------------------------
+//
+// Sustituye a las tres elipses sueltas de antes. Se dibuja como trazo
+// vectorial (no como imagen), así que sale nítida a cualquier tamaño y, sobre
+// todo, se puede pintar del color de la plantilla que haya elegido el
+// organizador: la misma rama es dorada en la portada de boda y azul marino en
+// la de graduación.
+
+/** Punto de una curva de Bézier cúbica y su dirección en ese punto. */
+function bezier(
+  t: number,
+  p: [number, number][],
+): { x: number; y: number; ang: number } {
+  const u = 1 - t;
+  const b = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+  const d = [-3 * u * u, 3 * u * u - 6 * u * t, 6 * u * t - 3 * t * t, 3 * t * t];
+  const x = p.reduce((s, q, i) => s + q[0] * b[i], 0);
+  const y = p.reduce((s, q, i) => s + q[1] * b[i], 0);
+  const dx = p.reduce((s, q, i) => s + q[0] * d[i], 0);
+  const dy = p.reduce((s, q, i) => s + q[1] * d[i], 0);
+  return { x, y, ang: Math.atan2(dy, dx) };
+}
+
+/** Una hoja alargada: dos curvas que se cierran en la punta. */
+function hojaPath(bx: number, by: number, ang: number, largo: number, ancho: number): string {
+  const tx = bx + Math.cos(ang) * largo;
+  const ty = by + Math.sin(ang) * largo;
+  const mx = (bx + tx) / 2;
+  const my = (by + ty) / 2;
+  const px = -Math.sin(ang) * ancho;
+  const py = Math.cos(ang) * ancho;
+  return (
+    `M ${bx.toFixed(1)} ${by.toFixed(1)} ` +
+    `Q ${(mx + px).toFixed(1)} ${(my + py).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)} ` +
+    `Q ${(mx - px).toFixed(1)} ${(my - py).toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)} Z`
+  );
+}
+
+// Tallo en coordenadas SVG (la y crece hacia abajo): sube desde abajo a la
+// izquierda hasta arriba a la derecha, con una curva suave.
+const TALLO: [number, number][] = [
+  [8, 150],
+  [22, 112],
+  [16, 66],
+  [46, 18],
+];
+
+// Dónde nace cada hoja a lo largo del tallo, hacia qué lado y de qué tamaño.
+const HOJAS: { t: number; lado: 1 | -1; largo: number; sep: number }[] = [
+  { t: 0.14, lado: -1, largo: 40, sep: 55 },
+  { t: 0.3, lado: 1, largo: 34, sep: 50 },
+  { t: 0.46, lado: -1, largo: 44, sep: 60 },
+  { t: 0.6, lado: 1, largo: 38, sep: 52 },
+  { t: 0.76, lado: -1, largo: 34, sep: 58 },
+  { t: 0.9, lado: 1, largo: 30, sep: 48 },
+];
+
+function ramaPath(): string {
+  const partes: string[] = [];
+
+  // El tallo, como línea muy fina (se dibuja con relleno, así que se traza
+  // como una cinta estrecha de ida y vuelta).
+  const grosor = 0.9;
+  const ida: string[] = [];
+  const vuelta: string[] = [];
+  for (let i = 0; i <= 24; i++) {
+    const { x, y, ang } = bezier(i / 24, TALLO);
+    const nx = -Math.sin(ang) * grosor;
+    const ny = Math.cos(ang) * grosor;
+    ida.push(`${(x + nx).toFixed(1)} ${(y + ny).toFixed(1)}`);
+    vuelta.unshift(`${(x - nx).toFixed(1)} ${(y - ny).toFixed(1)}`);
+  }
+  partes.push(`M ${ida[0]} L ${ida.slice(1).join(" L ")} L ${vuelta.join(" L ")} Z`);
+
+  for (const h of HOJAS) {
+    const { x, y, ang } = bezier(h.t, TALLO);
+    // La hoja sale del tallo abriéndose hacia su lado.
+    const salida = ang + (h.lado * h.sep * Math.PI) / 180;
+    partes.push(hojaPath(x, y, salida, h.largo, h.largo * 0.17));
+  }
+
+  return partes.join(" ");
+}
+
+// Vena central de cada hoja: una línea fina de la base a la punta, como en
+// los dibujos botánicos a pluma que sirvieron de referencia. Se traza aparte
+// del relleno (sin color de fondo, solo trazo) para que se note por encima.
+function venasPath(): string {
+  const partes: string[] = [];
+  for (const h of HOJAS) {
+    const { x, y, ang } = bezier(h.t, TALLO);
+    const salida = ang + (h.lado * h.sep * Math.PI) / 180;
+    const tx = x + Math.cos(salida) * h.largo * 0.88;
+    const ty = y + Math.sin(salida) * h.largo * 0.88;
+    partes.push(`M ${x.toFixed(1)} ${y.toFixed(1)} L ${tx.toFixed(1)} ${ty.toFixed(1)}`);
+  }
+  return partes.join(" ");
+}
+
+const RAMA_PATH = ramaPath();
+const VENAS_PATH = venasPath();
+
+/**
+ * Dibuja la rama en la esquina. `scale` la reduce o agranda y `mirror` la
+ * voltea para la esquina opuesta.
+ */
 function drawCornerBranch(
   page: PDFPage,
   x: number,
@@ -638,32 +798,28 @@ function drawCornerBranch(
   mirror: boolean,
   color: RGB,
 ) {
-  page.pushOperators(
-    pushGraphicsState(),
-    translateOp(x, y),
-    rotateOp(angleDeg),
-  );
-  const dir = mirror ? -1 : 1;
-  page.drawLine({
-    start: { x: 0, y: 0 },
-    end: { x: dir * length, y: length * 0.25 },
-    thickness: 1.5,
+  // El dibujo mide unos 150 de alto; `length` dice cuánto debe ocupar.
+  const escala = length / 150;
+  page.pushOperators(pushGraphicsState(), translateOp(x, y), rotateOp(angleDeg));
+  if (mirror) page.pushOperators(scaleOp(-1, 1));
+  page.drawSvgPath(RAMA_PATH, {
+    x: 0,
+    y: 0,
+    scale: escala,
     color,
-    opacity: 0.5,
+    opacity: 0.42,
+    borderWidth: 0,
   });
-  for (const t of [0.25, 0.5, 0.75]) {
-    const lx = dir * length * t;
-    const ly = length * 0.25 * t;
-    page.drawEllipse({
-      x: lx,
-      y: ly,
-      xScale: 10,
-      yScale: 5,
-      rotate: degrees(dir * -30),
-      color,
-      opacity: 0.4,
-    });
-  }
+  // Vena central de cada hoja, solo trazo: es lo que le da el aire de dibujo
+  // botánico a pluma, en vez de una simple mancha de color.
+  page.drawSvgPath(VENAS_PATH, {
+    x: 0,
+    y: 0,
+    scale: escala,
+    borderColor: color,
+    borderWidth: 0.6,
+    borderOpacity: 0.5,
+  });
   page.pushOperators(popGraphicsState());
 }
 
@@ -876,25 +1032,37 @@ function addTemplateCoverPage(
     .filter((v): v is string => !!v)
     .join("   ·   ");
 
+  // En los diseños con el hueco libre muy justo, la placa se hace algo más
+  // pequeña (menos relleno, letra algo menor) para que quepa sin montarse
+  // sobre el propio texto del diseño.
+  const nameSize = cover.compact ? 18 : 22;
+  const padX = cover.compact ? 24 : 30;
+  const padY = cover.compact ? 15 : 22;
+  const lineH = cover.compact ? 22 : 27;
+  const dateGap = cover.compact ? 14 : 20;
+  const footerGap = cover.compact ? 12 : 16;
+  const dateSize = cover.compact ? 11 : 12;
+  const statsSize = cover.compact ? 9 : 10;
+
   const maxTextW = PAGE_WIDTH - MARGIN * 2 - 60;
-  const nameSize = 22;
   const nameLines = wrapLines(album.name, maxTextW, fonts.bold, nameSize);
 
   const anchoTexto = Math.max(
     ...nameLines.map((l) => fonts.bold.widthOfTextAtSize(l, nameSize)),
-    dateLabel ? fonts.italic.widthOfTextAtSize(dateLabel, 12) : 0,
-    fonts.regular.widthOfTextAtSize(statsLine, 10),
+    dateLabel ? fonts.italic.widthOfTextAtSize(dateLabel, dateSize) : 0,
+    fonts.regular.widthOfTextAtSize(statsLine, statsSize),
   );
 
-  const padX = 30;
-  const padY = 22;
-  const lineH = 27;
-  const alto =
-    padY * 2 + nameLines.length * lineH + (dateLabel ? 20 : 0) + 16;
+  const alto = padY * 2 + nameLines.length * lineH + (dateLabel ? dateGap : 0) + footerGap;
   const ancho = Math.min(anchoTexto + padX * 2, PAGE_WIDTH - MARGIN * 2);
 
+  // El recorte vertical de la placa usa un margen propio, más ajustado que el
+  // de las fotos: en los diseños donde la única franja libre queda pegada al
+  // borde (p. ej. justo debajo de una etiqueta decorativa), el margen general
+  // de página (50pt) dejaba muy poco hueco y forzaba a tapar el texto.
+  const PLAQUE_MARGIN = 22;
   const centro = PAGE_HEIGHT * (1 - cover.band);
-  const y = clamp(centro - alto / 2, MARGIN, PAGE_HEIGHT - MARGIN - alto);
+  const y = clamp(centro - alto / 2, PLAQUE_MARGIN, PAGE_HEIGHT - PLAQUE_MARGIN - alto);
   const x = (PAGE_WIDTH - ancho) / 2;
 
   // Sombra suave, placa color papel y un filete del color del diseño.
@@ -913,13 +1081,13 @@ function addTemplateCoverPage(
     drawCentered(page, linea, cursor, fonts.bold, nameSize, ink);
     cursor -= lineH;
   }
-  cursor += lineH - 24;
+  cursor += lineH - (cover.compact ? 20 : 24);
 
   if (dateLabel) {
-    drawCentered(page, dateLabel, cursor, fonts.italic, 12, inkSoft);
-    cursor -= 18;
+    drawCentered(page, dateLabel, cursor, fonts.italic, dateSize, inkSoft);
+    cursor -= cover.compact ? 15 : 18;
   }
-  drawCentered(page, statsLine, cursor, fonts.regular, 10, inkSoft);
+  drawCentered(page, statsLine, cursor, fonts.regular, statsSize, inkSoft);
 }
 
 async function addPhotoPage(
@@ -931,6 +1099,7 @@ async function addPhotoPage(
   palette: Palette,
   index: number,
   total: number,
+  cache: Map<string, Descarga>,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   drawBackground(page, palette);
@@ -950,7 +1119,7 @@ async function addPhotoPage(
   // que existiera no lo tienen y caen en el QR de siempre).
   const printable = item.type === "image" ? item.url : item.posterUrl;
   if (printable) {
-    const image = await tryEmbedImage(pdf, printable);
+    const image = await tryEmbedImage(pdf, printable, cache.get(printable));
     if (image) {
       const pad = 18;
       drawFrame(page, frameX, frameY, frameW, frameH, palette.accent);
@@ -1251,6 +1420,17 @@ export async function buildDotbookPdf(
 
   const stats = { total: todos.length, uploaders: uploaders.size, days: days.size };
 
+  // Todas las descargas de golpe, en paralelo, antes de dibujar nada: es la
+  // diferencia entre esperar 200 veces seguidas y esperar 25.
+  const portadasNecesarias = todos
+    .filter((i) => i.type === "image")
+    .slice(0, 4)
+    .map((i) => i.url);
+  const cache = await descargarTodas([
+    ...sorted.map((i) => (i.type === "image" ? i.url : i.posterUrl)),
+    ...portadasNecesarias,
+  ].filter((u): u is string => !!u));
+
   let templateCoverImage: PDFImage | null = null;
   if (isTemplateStyle(style)) {
     const cfg = TEMPLATE_COVERS[style];
@@ -1260,10 +1440,9 @@ export async function buildDotbookPdf(
   if (templateCoverImage && isTemplateStyle(style)) {
     addTemplateCoverPage(pdf, album, fonts, stats, templateCoverImage, TEMPLATE_COVERS[style]);
   } else {
-    const previewSourceImages = todos.filter((i) => i.type === "image").slice(0, 4);
     const previewImages: PDFImage[] = [];
-    for (const item of previewSourceImages) {
-      const img = await tryEmbedImage(pdf, item.url);
+    for (const url of portadasNecesarias) {
+      const img = await tryEmbedImage(pdf, url, cache.get(url));
       if (img) previewImages.push(img);
     }
     addCoverPage(pdf, album, fonts, stats, previewImages, palette);
@@ -1280,6 +1459,7 @@ export async function buildDotbookPdf(
       palette,
       i + 1,
       sorted.length,
+      cache,
     );
   }
 
