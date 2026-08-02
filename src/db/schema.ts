@@ -18,6 +18,12 @@ export const albums = pgTable("albums", {
   eventDate: date("event_date"),
   shareCode: text("share_code").notNull().unique(),
   moderationEnabled: boolean("moderation_enabled").notNull().default(false),
+  // Código de acceso OPCIONAL. Nulo = el álbum se abre con el enlace, como
+  // siempre. Se guarda cifrado (scrypt), no en claro.
+  pinHash: text("pin_hash"),
+  // Fecha OPCIONAL de borrado automático, elegida por el organizador. Nula =
+  // el álbum no caduca nunca, que es lo que pasa si no toca nada.
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

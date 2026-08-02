@@ -15,18 +15,27 @@ export default async function Image({ params }: { params: Promise<{ code: string
   const { code } = await params;
 
   const [album] = await db()
-    .select({ id: albums.id, name: albums.name, eventDate: albums.eventDate })
+    .select({
+      id: albums.id,
+      name: albums.name,
+      eventDate: albums.eventDate,
+      pinHash: albums.pinHash,
+    })
     .from(albums)
     .where(eq(albums.shareCode, code));
 
-  const fotos = album
-    ? await db()
-        .select({ url: media.url, posterUrl: media.posterUrl, type: media.type })
-        .from(media)
-        .where(and(eq(media.albumId, album.id), eq(media.approved, true)))
-        .orderBy(desc(media.createdAt))
-        .limit(3)
-    : [];
+  // Si el álbum tiene código de acceso, la vista previa enseña el nombre pero
+  // no las fotos: no tendría sentido pedir un código y luego filtrarlas en la
+  // miniatura de WhatsApp.
+  const fotos =
+    album && !album.pinHash
+      ? await db()
+          .select({ url: media.url, posterUrl: media.posterUrl, type: media.type })
+          .from(media)
+          .where(and(eq(media.albumId, album.id), eq(media.approved, true)))
+          .orderBy(desc(media.createdAt))
+          .limit(3)
+      : [];
 
   // Solo URLs absolutas: con una relativa el generador de imágenes falla y
   // WhatsApp se quedaría sin vista previa. Mejor una tarjeta sin fotos que

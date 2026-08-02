@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { CalendarX } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { albums } from "@/db/schema";
+import { accessCookieName, hasAccess } from "@/lib/album-pin";
+import { isExpired } from "@/lib/expiry";
+import { AlbumLock } from "@/components/AlbumLock";
 import { GuestAlbum } from "@/components/GuestAlbum";
 
 export const dynamic = "force-dynamic";
@@ -55,9 +60,12 @@ export default async function GuestAlbumPage({
   const { panel } = await searchParams;
   const [album] = await db()
     .select({
+      id: albums.id,
       name: albums.name,
       eventDate: albums.eventDate,
       shareCode: albums.shareCode,
+      pinHash: albums.pinHash,
+      expiresAt: albums.expiresAt,
     })
     .from(albums)
     .where(eq(albums.shareCode, code));
@@ -75,11 +83,43 @@ export default async function GuestAlbumPage({
     );
   }
 
+  // Si el organizador puso fecha de borrado y ya pasó, el álbum se cierra
+  // aunque la limpieza automática todavía no haya llegado a él.
+  if (isExpired(album.expiresAt)) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-arena text-teja">
+          <CalendarX size={26} />
+        </span>
+        <h1
+          className="mt-4 text-2xl font-semibold"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Este álbum ya se ha cerrado
+        </h1>
+        <p className="mt-2 text-tinta/60">
+          Quien lo organizó puso una fecha de cierre y ya ha pasado. Si
+          necesitas alguna foto, pídesela directamente.
+        </p>
+      </main>
+    );
+  }
+
+  // El código de acceso se comprueba aquí, en el servidor. Si solo lo mirara
+  // el navegador bastaría con pedir la lista de fotos a mano para saltárselo.
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get(accessCookieName(album.id))?.value;
+  if (!hasAccess(album.id, album.pinHash, cookie)) {
+    return <AlbumLock code={album.shareCode} albumName={album.name} />;
+  }
+
   return (
     <GuestAlbum
       code={album.shareCode}
+      albumId={album.id}
       name={album.name}
       eventDate={album.eventDate}
+      expiresAt={album.expiresAt ? album.expiresAt.toISOString() : null}
       fromPanel={panel === "1"}
     />
   );

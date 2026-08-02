@@ -25,6 +25,7 @@ import { DashboardTopBar } from "@/components/DashboardTopBar";
 import { ChallengeManager } from "@/components/ChallengeManager";
 import { GuestbookPanel } from "@/components/GuestbookPanel";
 import { CommentsPanel } from "@/components/CommentsPanel";
+import { AlbumSettings } from "@/components/AlbumSettings";
 import { OwnerGallery } from "@/components/OwnerGallery";
 import { DeleteAlbumButton } from "@/components/OwnerActions";
 
@@ -291,6 +292,12 @@ export default async function AlbumAdminPage({
         <GuestbookPanel entries={guestbookRows} />
 
         <CommentsPanel comments={commentList} />
+
+        <AlbumSettings
+          albumId={album.id}
+          tienePin={!!album.pinHash}
+          expiresAt={album.expiresAt ? album.expiresAt.toISOString() : null}
+        />
 
         <section className="mt-8">
           <h2 className="flex items-center gap-2 font-semibold">

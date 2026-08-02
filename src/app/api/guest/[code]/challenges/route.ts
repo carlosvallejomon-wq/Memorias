@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { albums, challenges, media } from "@/db/schema";
+import { challenges, media } from "@/db/schema";
+import { guardAlbum } from "@/lib/guest-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +14,11 @@ export async function GET(
 ) {
   const { code } = await params;
 
-  const [album] = await db()
-    .select({ id: albums.id })
-    .from(albums)
-    .where(eq(albums.shareCode, code));
-  if (!album) {
-    return NextResponse.json({ error: "Álbum no encontrado" }, { status: 404 });
+  const guard = await guardAlbum(code);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
+  const album = guard.album;
 
   const rows = await db()
     .select({

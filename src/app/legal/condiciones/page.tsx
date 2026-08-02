@@ -63,7 +63,8 @@ export default function CondicionesPage() {
       <p>
         Esto no es un archivo eterno. Descarga el álbum completo en ZIP cuando
         termine el evento y guárdalo donde guardes tus cosas importantes. Si el
-        organizador borra el álbum, no hay vuelta atrás.
+        organizador borra el álbum —o si le pone fecha de borrado automático y
+        esa fecha llega— no hay vuelta atrás.
       </p>
 
       <h2>Responsabilidad</h2>

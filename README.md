@@ -74,6 +74,20 @@ Para que el servicio (y la factura de almacenamiento) no se descontrolen:
   es mayor, escoge una selección repartida de principio a fin del evento y lo
   dice en la última página. El álbum completo sigue estando entero.
 
+## Dos ajustes opcionales por álbum
+
+Los dos vienen **apagados**. Si no los tocas, el álbum funciona como siempre:
+se entra con el enlace y no caduca nunca.
+
+- **Código de acceso**: 4 a 8 números. Si lo pones, hace falta teclearlo una
+  vez en cada móvil. Se guarda cifrado y se comprueba en el servidor, así que
+  no basta con saltarse la pantalla. Al cambiarlo o quitarlo, los permisos ya
+  dados dejan de valer solos.
+- **Borrado automático**: eliges tú la fecha. Se avisa a los invitados dentro
+  del álbum según se acerca, para que descarguen lo que quieran, y ese día se
+  borra todo sin vuelta atrás. Lo ejecuta una tarea diaria de Vercel
+  (`vercel.json`); si quieres protegerla, añade la variable `CRON_SECRET`.
+
 ## Privacidad
 
 Hay páginas de [privacidad](/legal/privacidad) y

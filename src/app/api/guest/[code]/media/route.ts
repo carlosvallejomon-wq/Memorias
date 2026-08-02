@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { albums, comments, media, reactions } from "@/db/schema";
+import { comments, media, reactions } from "@/db/schema";
+import { guardAlbum } from "@/lib/guest-guard";
 import { isAllowedBlobUrl, registerMedia } from "@/lib/register-media";
 
 export const dynamic = "force-dynamic";
-
-async function findAlbum(code: string) {
-  const [album] = await db()
-    .select({ id: albums.id, moderationEnabled: albums.moderationEnabled })
-    .from(albums)
-    .where(eq(albums.shareCode, code));
-  return album ?? null;
-}
 
 // Lista el contenido del álbum con contadores de comentarios y reacciones.
 export async function GET(
@@ -22,10 +15,11 @@ export async function GET(
   const { code } = await params;
   const guestId = request.nextUrl.searchParams.get("guestId") ?? "";
 
-  const album = await findAlbum(code);
-  if (!album) {
-    return NextResponse.json({ error: "Álbum no encontrado" }, { status: 404 });
+  const guard = await guardAlbum(code);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
+  const album = guard.album;
 
   const items = await db()
     .select({
@@ -100,10 +94,11 @@ export async function POST(
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
-  const album = await findAlbum(code);
-  if (!album) {
-    return NextResponse.json({ error: "Álbum no encontrado" }, { status: 404 });
+  const guard = await guardAlbum(code);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
+  const album = guard.album;
 
   const body = (await request.json()) as {
     url?: string;
