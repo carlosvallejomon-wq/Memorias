@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { albums, guestbookEntries } from "@/db/schema";
+import { guestbookEntries } from "@/db/schema";
+import { guardAlbum } from "@/lib/guest-guard";
 import { allow, clientKey } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
-
-async function findAlbumId(code: string): Promise<string | null> {
-  const [album] = await db()
-    .select({ id: albums.id })
-    .from(albums)
-    .where(eq(albums.shareCode, code));
-  return album?.id ?? null;
-}
 
 // Muro de mensajes: dedicatorias sin foto que cualquier invitado puede leer.
 export async function GET(
@@ -20,10 +13,11 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
-  const albumId = await findAlbumId(code);
-  if (!albumId) {
-    return NextResponse.json({ error: "Álbum no encontrado" }, { status: 404 });
+  const guard = await guardAlbum(code);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
+  const albumId = guard.album.id;
 
   const items = await db()
     .select({
@@ -52,10 +46,11 @@ export async function POST(
     );
   }
 
-  const albumId = await findAlbumId(code);
-  if (!albumId) {
-    return NextResponse.json({ error: "Álbum no encontrado" }, { status: 404 });
+  const guard = await guardAlbum(code);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
+  const albumId = guard.album.id;
 
   const body = (await request.json()) as {
     authorName?: string | null;

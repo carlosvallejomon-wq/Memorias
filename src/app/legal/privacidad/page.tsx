@@ -56,10 +56,14 @@ export default function PrivacidadPage() {
 
       <h2>Quién puede ver las fotos</h2>
       <p>
-        Cualquiera que tenga el enlace o el código QR del álbum. No hay
-        contraseña, igual que un álbum que pasa de mano en mano en una boda. Por
-        eso conviene compartirlo solo con los invitados. Los álbumes no
-        aparecen en Google.
+        Por defecto, cualquiera que tenga el enlace o el código QR del álbum,
+        igual que un álbum que pasa de mano en mano en una boda. Por eso conviene
+        compartirlo solo con los invitados. Los álbumes no aparecen en Google.
+      </p>
+      <p>
+        El organizador puede además poner un <strong>código de acceso</strong>{" "}
+        de 4 a 8 números: entonces hace falta teclearlo una vez en cada móvil
+        para entrar. Ese código se guarda cifrado, nunca en claro.
       </p>
 
       <h2>Dónde se guarda</h2>
@@ -75,6 +79,13 @@ export default function PrivacidadPage() {
         Mientras el álbum exista. Si el organizador lo borra, se borran también
         todas sus fotos, vídeos, comentarios y mensajes, y no se pueden
         recuperar.
+      </p>
+      <p>
+        No hay caducidad automática: un álbum se guarda indefinidamente salvo
+        que su organizador elija una <strong>fecha de borrado</strong>. Si la
+        elige, se avisa dentro del propio álbum con antelación para que quien
+        quiera pueda descargar sus fotos, y llegado el día se borra todo sin
+        vuelta atrás.
       </p>
 
       <h2>Qué puedes pedir</h2>

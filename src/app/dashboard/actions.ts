@@ -9,6 +9,7 @@ import { del } from "@vercel/blob";
 import { db } from "@/db";
 import { albums, challenges, comments, guestbookEntries, media } from "@/db/schema";
 import { DEFAULT_CHALLENGE_ICON, isChallengeIconId } from "@/lib/challenge-icons";
+import { hashPin, isValidPin } from "@/lib/album-pin";
 
 // Alfabeto sin caracteres ambiguos (0/O, 1/l/I) para códigos fáciles de leer.
 const makeCode = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 10);
@@ -274,4 +275,53 @@ export async function setModerationEnabled(albumId: string, enabled: boolean) {
     .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)));
 
   revalidatePath(`/dashboard/${albumId}`);
+}
+
+// Pone o quita el código de acceso del álbum. Cadena vacía = quitarlo, y el
+// álbum vuelve a abrirse solo con el enlace.
+export async function setAlbumPin(albumId: string, pin: string): Promise<string | null> {
+  const { userId } = await auth();
+  if (!userId) return "No autorizado";
+
+  const limpio = pin.trim();
+  if (limpio && !isValidPin(limpio)) {
+    return "El código tiene que ser de 4 a 8 números.";
+  }
+
+  await db()
+    .update(albums)
+    .set({ pinHash: limpio ? hashPin(limpio) : null })
+    .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)));
+
+  revalidatePath(`/dashboard/${albumId}`);
+  return null;
+}
+
+// Pone o quita la fecha de borrado automático. Cadena vacía = el álbum no
+// caduca, que es como está por defecto.
+export async function setAlbumExpiry(
+  albumId: string,
+  fecha: string,
+): Promise<string | null> {
+  const { userId } = await auth();
+  if (!userId) return "No autorizado";
+
+  const limpio = fecha.trim();
+  let expiresAt: Date | null = null;
+  if (limpio) {
+    // Al final del día elegido, para que ese mismo día el álbum siga abierto.
+    expiresAt = new Date(`${limpio}T23:59:59`);
+    if (Number.isNaN(expiresAt.getTime())) return "Esa fecha no es válida.";
+    if (expiresAt.getTime() <= Date.now()) {
+      return "Elige una fecha futura: así nadie se queda sin sus fotos por error.";
+    }
+  }
+
+  await db()
+    .update(albums)
+    .set({ expiresAt })
+    .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)));
+
+  revalidatePath(`/dashboard/${albumId}`);
+  return null;
 }

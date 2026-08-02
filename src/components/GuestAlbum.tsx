@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Camera,
   CalendarDays,
+  CalendarX,
   Heart,
   LayoutGrid,
   X,
@@ -33,6 +34,7 @@ import {
   mediaAlt,
   reactionTotal,
 } from "@/lib/guest-types";
+import { expiryWarning } from "@/lib/expiry";
 import { MAX_FILE_BYTES, formatMb } from "@/lib/limits";
 import { isVideo, looksLikeHeic, prepareForUpload } from "@/lib/prepare-upload";
 import { ChallengeIcon } from "@/components/ChallengeIcon";
@@ -90,11 +92,14 @@ export function GuestAlbum({
   code,
   name,
   eventDate,
+  expiresAt = null,
   fromPanel = false,
 }: {
   code: string;
   name: string;
   eventDate: string | null;
+  /** Fecha de cierre, si el organizador puso una. */
+  expiresAt?: string | null;
   fromPanel?: boolean;
 }) {
   const [guestId, setGuestId] = useLocalValue("mv_guest_id", () => crypto.randomUUID());
@@ -124,6 +129,8 @@ export function GuestAlbum({
   const fileInput = useRef<HTMLInputElement>(null);
   const [ratios, setRatios] = useState<Record<string, number>>({});
   const [galleryRef, galleryWidth] = useElementWidth<HTMLDivElement>();
+
+  const aviso = expiryWarning(expiresAt);
 
   const handleRatio = useCallback((id: string, ratio: number) => {
     setRatios((prev) => (prev[id] ? prev : { ...prev, [id]: ratio }));
@@ -518,6 +525,23 @@ export function GuestAlbum({
           <KeyRound size={13} />
           {guestName ? `Estás como ${guestName}` : "Poner mi nombre"}
         </button>
+
+        {/* Si el organizador puso fecha de cierre, se avisa a los invitados
+            con tiempo para que se guarden lo que quieran. */}
+        {aviso && (
+          <p
+            className={`mx-auto mt-4 flex max-w-sm items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs ${
+              aviso.urgente
+                ? "bg-red-50 text-red-800"
+                : "bg-arena/70 text-tinta/60"
+            }`}
+          >
+            <CalendarX size={14} className="shrink-0" />
+            <span>
+              {aviso.texto} Descarga las fotos que quieras guardar.
+            </span>
+          </p>
+        )}
       </header>
 
       {/* Barra de pestañas pegajosa: en el móvil se navega con el pulgar sin

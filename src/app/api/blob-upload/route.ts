@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { albums, media } from "@/db/schema";
+import { media } from "@/db/schema";
+import { guardAlbum } from "@/lib/guest-guard";
 import { registerMedia } from "@/lib/register-media";
 import {
   MAX_FILE_BYTES,
@@ -66,11 +67,12 @@ export async function POST(request: Request) {
         const payload = JSON.parse(clientPayload ?? "{}") as ClientPayload;
         if (!payload.code) throw new Error("Falta el código del álbum");
 
-        const [album] = await db()
-          .select({ id: albums.id, moderationEnabled: albums.moderationEnabled })
-          .from(albums)
-          .where(eq(albums.shareCode, payload.code));
-        if (!album) throw new Error("El álbum no existe");
+        // Mismo portero que el resto de rutas de invitado: comprueba que el
+        // álbum exista, no haya caducado y, si tiene código de acceso, que
+        // este navegador lo haya puesto.
+        const guard = await guardAlbum(payload.code);
+        if (!guard.ok) throw new Error(guard.error);
+        const album = guard.album;
 
         const isPoster = payload.kind === "poster";
         if (!isPoster) await checkQuota(album.id, payload.uploaderId);

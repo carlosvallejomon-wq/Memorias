@@ -57,6 +57,25 @@ pintaba rectángulos negros. La miniatura se registra con un `UPDATE`
 posterior al `onConflictDoNothing`, porque el webhook de Vercel puede ganarle
 la carrera al cliente y él no la conoce.
 
+**Acceso y caducidad, ambos opcionales y apagados por defecto**
+(`albums.pin_hash`, `albums.expires_at`):
+- *Código de acceso* (`src/lib/album-pin.ts`): 4–8 dígitos, guardado con
+  scrypt. El permiso se recuerda en una cookie httpOnly firmada con HMAC sobre
+  `albumId:pinHash` — así, cambiar o quitar el código invalida solo los
+  permisos ya dados, sin tabla de sesiones. **La comprobación tiene que estar
+  en el servidor**: `guardAlbum` (`src/lib/guest-guard.ts`) es el portero
+  único de TODAS las rutas de invitado (media, retos, muro, blob-upload y la
+  pantalla del salón). Si solo lo mirara el navegador, bastaría con pedir
+  `/api/guest/[code]/media` a mano.
+- *Fecha de borrado* (`src/lib/expiry.ts`): la elige el organizador; nula =
+  no caduca nunca. El álbum se cierra en cuanto pasa la fecha (aunque la
+  limpieza no haya corrido) y `/api/cron/limpieza` —Vercel cron diario, ver
+  `vercel.json`— borra fila y blobs. Se borra la fila ANTES que los archivos:
+  si Blob falla, el álbum ya es inaccesible y la siguiente pasada no lo
+  reintenta en bucle; los archivos huérfanos se cuentan aparte en la
+  respuesta, porque contarlos como "no borrado" hacía creer que no se había
+  hecho nada.
+
 **Topes de subida** (`src/lib/limits.ts`, validados en
 `onBeforeGenerateToken`): 150 MB por archivo, 5.000 recuerdos por álbum y 500
 por invitado. Es el único momento en que se puede decir que no, porque
@@ -170,7 +189,5 @@ subida real a Blob desde un iPhone (para confirmar la conversión HEIC) y
 desde Android, descarga ZIP de un álbum grande, y la vista previa del enlace
 al pegarlo en WhatsApp.
 
-Queda sin hacer, a sabiendas: no hay caducidad automática de los archivos
-(el almacenamiento crece indefinidamente) ni contraseña opcional por álbum,
-y no hay servicio externo de registro de errores — solo `console.error` y las
-páginas `error.tsx` / `not-found.tsx`.
+Queda sin hacer, a sabiendas: no hay servicio externo de registro de errores
+— solo `console.error` y las páginas `error.tsx` / `not-found.tsx`.

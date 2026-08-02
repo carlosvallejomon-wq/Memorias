@@ -13,6 +13,8 @@ export const SETUP_STATEMENTS: string[] = [
   )`,
   `ALTER TABLE albums ADD COLUMN IF NOT EXISTS moderation_enabled boolean NOT NULL DEFAULT false`,
   `ALTER TABLE albums ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'evento'`,
+  `ALTER TABLE albums ADD COLUMN IF NOT EXISTS pin_hash text`,
+  `ALTER TABLE albums ADD COLUMN IF NOT EXISTS expires_at timestamptz`,
   `CREATE TABLE IF NOT EXISTS challenges (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     album_id uuid NOT NULL REFERENCES albums(id) ON DELETE CASCADE,

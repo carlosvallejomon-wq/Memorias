@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { albums } from "@/db/schema";
+import { guardAlbum } from "@/lib/guest-guard";
 import { Slideshow } from "@/components/Slideshow";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,20 @@ export default async function ScreenModePage({
     return (
       <main className="flex min-h-screen items-center justify-center bg-tinta text-center text-white">
         <p>Álbum no encontrado.</p>
+      </main>
+    );
+  }
+
+  // La pantalla del salón es una vista más del álbum: si tiene código de
+  // acceso o ya se cerró, tampoco se enseña aquí.
+  const guard = await guardAlbum(code);
+  if (!guard.ok) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-tinta px-6 text-center text-white">
+        <p className="text-lg">{guard.error}</p>
+        <a href={`/a/${album.shareCode}`} className="text-white/60 underline">
+          Ir al álbum
+        </a>
       </main>
     );
   }
