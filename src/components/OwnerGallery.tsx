@@ -13,8 +13,14 @@ export type OwnerMediaItem = {
   id: string;
   url: string;
   type: string;
+  posterUrl: string | null;
   uploaderName: string | null;
 };
+
+function alt(item: OwnerMediaItem): string {
+  const qué = item.type === "video" ? "Vídeo" : "Foto";
+  return item.uploaderName?.trim() ? `${qué} de ${item.uploaderName.trim()}` : qué;
+}
 
 // Galería del organizador con las mismas filas justificadas que ve el
 // invitado: cada foto conserva su forma y las filas quedan alineadas, en vez
@@ -49,28 +55,46 @@ export function OwnerGallery({
             >
               {item.type === "video" ? (
                 <>
-                  <video
-                    src={item.url}
-                    className="h-full w-full object-cover"
-                    preload="metadata"
-                    muted
-                    playsInline
-                    onLoadedMetadata={(e) => {
-                      const v = e.currentTarget;
-                      if (v.videoWidth && v.videoHeight)
-                        handleRatio(item.id, v.videoWidth / v.videoHeight);
-                    }}
-                  />
+                  {item.posterUrl ? (
+                     
+                    <img
+                      src={item.posterUrl}
+                      alt={alt(item)}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                      onLoad={(e) => {
+                        const img = e.currentTarget;
+                        if (img.naturalWidth && img.naturalHeight)
+                          handleRatio(item.id, img.naturalWidth / img.naturalHeight);
+                      }}
+                    />
+                  ) : (
+                    <video
+                      src={item.url}
+                      className="h-full w-full object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                      aria-label={alt(item)}
+                      onLoadedMetadata={(e) => {
+                        const v = e.currentTarget;
+                        if (v.videoWidth && v.videoHeight)
+                          handleRatio(item.id, v.videoWidth / v.videoHeight);
+                      }}
+                    />
+                  )}
                   <span className="absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1 text-white">
                     <Play size={11} fill="white" />
                   </span>
                 </>
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
+                 
                 <img
                   src={item.url}
-                  alt=""
+                  alt={alt(item)}
                   loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                   onLoad={(e) => {
                     const img = e.currentTarget;

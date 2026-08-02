@@ -372,3 +372,41 @@ details > summary::-webkit-details-marker {
 details > summary::marker {
   content: "";
 }
+
+/* Páginas legales (privacidad, condiciones). Texto largo y corrido: se le da
+   ritmo de lectura sin repetir utilidades en cada párrafo. */
+.legal h1 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+.legal h2 {
+  font-family: var(--font-display);
+  margin-top: 2rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.legal p,
+.legal ul {
+  margin-top: 0.75rem;
+  line-height: 1.7;
+  color: color-mix(in oklab, var(--color-tinta) 78%, transparent);
+}
+.legal .lead {
+  margin-top: 1rem;
+  font-size: 1.05rem;
+  color: color-mix(in oklab, var(--color-tinta) 65%, transparent);
+}
+.legal ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.legal li {
+  margin-top: 0.35rem;
+}
+.legal a {
+  color: var(--color-teja);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

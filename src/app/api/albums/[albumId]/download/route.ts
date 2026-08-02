@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { and, asc, eq } from "drizzle-orm";
-import JSZip from "jszip";
 import { db } from "@/db";
 import { albums, media } from "@/db/schema";
+import { createZipStream, type ZipSource } from "@/lib/zip-stream";
+import { slugify, zipEntryName } from "@/lib/zip-names";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 // Descarga todas las fotos/vídeos del álbum en un ZIP. Solo para el dueño.
+//
+// El ZIP se va escribiendo sobre la marcha: antes se juntaba el álbum entero
+// en memoria y con una boda de verdad (cientos de fotos y vídeos) el servidor
+// se quedaba sin memoria antes de mandar nada.
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ albumId: string }> },
@@ -40,36 +45,30 @@ export async function GET(
     );
   }
 
-  const zip = new JSZip();
-  let index = 1;
-  for (const item of items) {
-    const res = await fetch(item.url);
-    if (!res.ok) continue;
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const original =
-      item.pathname?.split("/").pop() ??
-      `recuerdo-${index}${item.type === "video" ? ".mp4" : ".jpg"}`;
-    const prefix = String(index).padStart(3, "0");
-    zip.file(`${prefix}-${original}`, buffer);
-    index += 1;
-  }
+  const sources: ZipSource[] = items.map((item, i) => ({
+    name: zipEntryName(i + 1, item.pathname, item.type),
+    date: item.takenAt ?? item.createdAt,
+    open: async () => {
+      try {
+        const res = await fetch(item.url);
+        // Si un archivo concreto falla se salta y el resto del ZIP sigue: es
+        // mejor entregar 499 fotos que ninguna.
+        if (!res.ok || !res.body) return null;
+        return res.body;
+      } catch (err) {
+        console.error("No se pudo descargar para el ZIP:", item.url, err);
+        return null;
+      }
+    },
+  }));
 
-  const content = await zip.generateAsync({
-    type: "nodebuffer",
-    compression: "STORE", // fotos/vídeos ya vienen comprimidos
-  });
+  const safeName = slugify(album.name) || "album";
 
-  const safeName = album.name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  return new NextResponse(new Uint8Array(content), {
+  return new NextResponse(createZipStream(sources), {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="memorias-${safeName || "album"}.zip"`,
+      "Content-Disposition": `attachment; filename="memorias-${safeName}.zip"`,
+      "Cache-Control": "no-store",
     },
   });
 }

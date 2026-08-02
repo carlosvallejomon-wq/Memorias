@@ -19,6 +19,7 @@ import {
   avatarColor,
   downloadMedia,
   initial,
+  mediaAlt,
   timeAgo,
 } from "@/lib/guest-types";
 
@@ -90,7 +91,11 @@ export function GuestLightbox({
       const res = await fetch(`/api/media/${item.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ authorName: guestName || null, body: text }),
+        body: JSON.stringify({
+          authorName: guestName || null,
+          guestId: guestId || null,
+          body: text,
+        }),
       });
       if (res.ok) {
         const data = (await res.json()) as { item: Comment };
@@ -101,6 +106,16 @@ export function GuestLightbox({
     } finally {
       setSending(false);
     }
+  }
+
+  // Un comentario publicado no se podía retirar de ninguna manera. Ahora cada
+  // uno puede borrar el suyo.
+  async function deleteComment(commentId: string) {
+    setCommentList((prev) => prev?.filter((c) => c.id !== commentId) ?? prev);
+    await fetch(`/api/comments/${commentId}?guestId=${encodeURIComponent(guestId)}`, {
+      method: "DELETE",
+    });
+    onCommentAdded();
   }
 
   async function download() {
@@ -199,17 +214,19 @@ export function GuestLightbox({
           <video
             key={item.id}
             src={item.url}
+            poster={item.posterUrl ?? undefined}
             controls
             autoPlay
             playsInline
+            aria-label={mediaAlt(item)}
             className="max-h-full max-w-full rounded-lg"
           />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
+           
           <img
             key={item.id}
             src={item.url}
-            alt=""
+            alt={mediaAlt(item)}
             className="animate-crossfade max-h-full max-w-full rounded-lg object-contain"
           />
         )}
@@ -285,8 +302,18 @@ export function GuestLightbox({
                       <span className="truncate font-semibold">
                         {c.authorName || "Anónimo"}
                       </span>
-                      <span className="shrink-0 text-xs text-tinta/40">
+                      <span className="flex shrink-0 items-center gap-1.5 text-xs text-tinta/40">
                         {timeAgo(c.createdAt)}
+                        {!!guestId && c.guestId === guestId && (
+                          <button
+                            onClick={() => deleteComment(c.id)}
+                            title="Borrar mi comentario"
+                            aria-label="Borrar mi comentario"
+                            className="rounded-full p-0.5 transition hover:bg-tinta/10 hover:text-tinta"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </span>
                     </p>
                     <p className="mt-0.5 break-words">{c.body}</p>

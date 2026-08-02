@@ -7,7 +7,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { del } from "@vercel/blob";
 import { db } from "@/db";
-import { albums, challenges, guestbookEntries, media } from "@/db/schema";
+import { albums, challenges, comments, guestbookEntries, media } from "@/db/schema";
 import { DEFAULT_CHALLENGE_ICON, isChallengeIconId } from "@/lib/challenge-icons";
 
 // Alfabeto sin caracteres ambiguos (0/O, 1/l/I) para códigos fáciles de leer.
@@ -241,6 +241,25 @@ export async function deleteGuestbookEntry(entryId: string) {
   if (!row) return;
 
   await db().delete(guestbookEntries).where(eq(guestbookEntries.id, entryId));
+
+  revalidatePath(`/dashboard/${row.albumId}`);
+}
+
+// El organizador puede retirar cualquier comentario de su álbum. Antes un
+// comentario fuera de tono se quedaba puesto para siempre.
+export async function deleteComment(commentId: string) {
+  const { userId } = await auth();
+  if (!userId) return;
+
+  const [row] = await db()
+    .select({ albumId: media.albumId })
+    .from(comments)
+    .innerJoin(media, eq(media.id, comments.mediaId))
+    .innerJoin(albums, eq(albums.id, media.albumId))
+    .where(and(eq(comments.id, commentId), eq(albums.ownerId, userId)));
+  if (!row) return;
+
+  await db().delete(comments).where(eq(comments.id, commentId));
 
   revalidatePath(`/dashboard/${row.albumId}`);
 }

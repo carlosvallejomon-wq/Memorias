@@ -2449,7 +2449,7 @@ export function InvitationGenerator({
                     } ${templateId === t.id ? "ring-2 ring-teja ring-offset-2" : "opacity-70"}`}
                   >
                     {t.bgImage && (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img src={t.bgImage} alt={t.label} className="h-full w-full object-cover" />
                     )}
                   </button>
@@ -2712,7 +2712,6 @@ export function InvitationGenerator({
                 </button>
                 {invitationLinkQr && (
                   <div className="mt-3 flex flex-col items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={invitationLinkQr} alt="QR de la invitación" className="h-32 w-32" />
                     <a
                       href={invitationLinkQr}

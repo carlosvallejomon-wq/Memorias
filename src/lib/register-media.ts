@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { challenges, media } from "@/db/schema";
 
@@ -33,6 +33,7 @@ export async function registerMedia(input: {
   url: string;
   pathname?: string | null;
   contentType?: string | null;
+  posterUrl?: string | null;
   uploaderName?: string | null;
   uploaderId?: string | null;
   takenAt?: number | null;
@@ -40,6 +41,10 @@ export async function registerMedia(input: {
   approved: boolean;
 }) {
   const type = input.contentType?.startsWith("video/") ? "video" : "image";
+  // La miniatura del vídeo también vive en Blob; se valida igual que el
+  // archivo principal para que nadie cuele una URL cualquiera.
+  const posterUrl =
+    input.posterUrl && isAllowedBlobUrl(input.posterUrl) ? input.posterUrl : null;
   await db()
     .insert(media)
     .values({
@@ -47,6 +52,7 @@ export async function registerMedia(input: {
       url: input.url,
       pathname: input.pathname ?? null,
       type,
+      posterUrl,
       uploaderName: input.uploaderName || null,
       uploaderId: input.uploaderId || null,
       approved: input.approved,
@@ -54,4 +60,14 @@ export async function registerMedia(input: {
       challengeId: await validChallengeId(input.albumId, input.challengeId),
     })
     .onConflictDoNothing({ target: media.url });
+
+  // El vídeo se registra dos veces (el navegador y el webhook de Vercel) y
+  // solo el navegador conoce la miniatura. Si ganó la carrera el webhook, la
+  // fila ya existe sin miniatura: se la ponemos aquí.
+  if (posterUrl) {
+    await db()
+      .update(media)
+      .set({ posterUrl })
+      .where(and(eq(media.url, input.url), isNull(media.posterUrl)));
+  }
 }

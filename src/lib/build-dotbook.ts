@@ -102,6 +102,22 @@ function isTemplateStyle(style: DotbookStyle): style is TemplateDotbookStyle {
   return Object.prototype.hasOwnProperty.call(TEMPLATE_COVERS, style);
 }
 
+/** Páginas de recuerdo como mucho, para que el PDF se genere y se pueda abrir. */
+export const MAX_DOTBOOK_PAGES = 220;
+
+/**
+ * Escoge `n` elementos repartidos de principio a fin de la lista. Así el libro
+ * cuenta el evento entero (llegada, ceremonia, fiesta) en vez de quedarse
+ * atascado en la primera hora.
+ */
+function pickSpread<T>(list: T[], n: number): T[] {
+  if (list.length <= n) return list;
+  const paso = list.length / n;
+  const out: T[] = [];
+  for (let i = 0; i < n; i++) out.push(list[Math.floor(i * paso)]);
+  return out;
+}
+
 function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
 }
@@ -930,8 +946,11 @@ async function addPhotoPage(
   const frameY = PAGE_HEIGHT - 96 - frameH;
 
   let embedded = false;
-  if (item.type === "image") {
-    const image = await tryEmbedImage(pdf, item.url);
+  // De los vídeos se imprime su fotograma de portada (los grabados antes de
+  // que existiera no lo tienen y caen en el QR de siempre).
+  const printable = item.type === "image" ? item.url : item.posterUrl;
+  if (printable) {
+    const image = await tryEmbedImage(pdf, printable);
     if (image) {
       const pad = 18;
       drawFrame(page, frameX, frameY, frameW, frameH, palette.accent);
@@ -949,6 +968,26 @@ async function addPhotoPage(
         height: h,
       });
       embedded = true;
+
+      // Un vídeo impreso es una foto quieta: se le pone un QR pequeño en la
+      // esquina para poder verlo de verdad desde el papel.
+      if (item.type === "video") {
+        const qrImage = await embedQr(pdf, item.url, 240);
+        const qrSize = 62;
+        const qx = frameX + frameW - pad - qrSize;
+        const qy = frameY + pad;
+        page.drawRectangle({
+          x: qx - 5,
+          y: qy - 5,
+          width: qrSize + 10,
+          height: qrSize + 10,
+          color: rgb(1, 1, 1),
+          opacity: 0.92,
+        });
+        page.drawImage(qrImage, { x: qx, y: qy, width: qrSize, height: qrSize });
+        // Justo debajo del marco, no encima del borde: ahí se cortaba.
+        drawCentered(page, "Escanea el QR para ver el vídeo", frameY - 12, fonts.regular, 9, palette.inkFaint);
+      }
     }
   }
 
@@ -979,7 +1018,9 @@ async function addPhotoPage(
     );
   }
 
-  let y = frameY - 22;
+  // En los vídeos hay una línea extra bajo el marco («escanea el QR»), así que
+  // el pie baja un poco para no montarse encima.
+  let y = frameY - (item.type === "video" && embedded ? 34 : 22);
   drawDivider(page, y, palette.accent);
   y -= 26;
 
@@ -1119,13 +1160,40 @@ function addMessagePages(
   }
 }
 
-function addClosingPage(pdf: PDFDocument, fonts: Fonts, qrImage: PDFImage, palette: Palette) {
+function addClosingPage(
+  pdf: PDFDocument,
+  fonts: Fonts,
+  qrImage: PDFImage,
+  palette: Palette,
+  seleccion: { impresos: number; totales: number } | null,
+) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bgClosing });
   const centerY = PAGE_HEIGHT / 2 + 60;
 
   drawCentered(page, "Gracias por compartir", centerY + 30, fonts.bold, 24, palette.ink);
   drawCentered(page, "estos recuerdos", centerY, fonts.bold, 24, palette.ink);
+
+  // Si el álbum no cabía entero, se dice claramente en vez de dejar al
+  // organizador contando páginas para ver qué falta.
+  if (seleccion) {
+    drawCentered(
+      page,
+      `En este libro hay ${seleccion.impresos} de los ${seleccion.totales} recuerdos del álbum,`,
+      centerY - 46,
+      fonts.regular,
+      11,
+      palette.inkSoft,
+    );
+    drawCentered(
+      page,
+      "elegidos de principio a fin del evento. Los tienes todos en el álbum.",
+      centerY - 62,
+      fonts.regular,
+      11,
+      palette.inkSoft,
+    );
+  }
 
   const qrSize = 150;
   page.drawImage(qrImage, {
@@ -1161,18 +1229,27 @@ export async function buildDotbookPdf(
     italic: await pdf.embedFont(StandardFonts.TimesRomanItalic),
   };
 
-  const sorted = [...items].sort((a, b) => {
+  const todos = [...items].sort((a, b) => {
     const da = (a.takenAt ?? a.createdAt).getTime();
     const db_ = (b.takenAt ?? b.createdAt).getTime();
     return da - db_;
   });
 
-  const uploaders = new Set(
-    sorted.map((i) => i.uploaderName).filter((n): n is string => !!n && n.trim().length > 0),
-  );
-  const days = new Set(sorted.map((i) => dayKey(i.takenAt ?? i.createdAt)));
+  // Un libro es un libro: con 900 recuerdos el PDF no lo abre nadie y el
+  // servidor se queda sin tiempo antes de terminarlo. Se imprime una
+  // selección repartida por todo el evento (no los 200 primeros, que serían
+  // todos del aperitivo) y se avisa en la última página.
+  const recortado = todos.length > MAX_DOTBOOK_PAGES;
+  const sorted = recortado ? pickSpread(todos, MAX_DOTBOOK_PAGES) : todos;
 
-  const stats = { total: sorted.length, uploaders: uploaders.size, days: days.size };
+  // Las cifras de la portada son las del álbum entero, aunque el libro
+  // imprima una selección.
+  const uploaders = new Set(
+    todos.map((i) => i.uploaderName).filter((n): n is string => !!n && n.trim().length > 0),
+  );
+  const days = new Set(todos.map((i) => dayKey(i.takenAt ?? i.createdAt)));
+
+  const stats = { total: todos.length, uploaders: uploaders.size, days: days.size };
 
   let templateCoverImage: PDFImage | null = null;
   if (isTemplateStyle(style)) {
@@ -1183,7 +1260,7 @@ export async function buildDotbookPdf(
   if (templateCoverImage && isTemplateStyle(style)) {
     addTemplateCoverPage(pdf, album, fonts, stats, templateCoverImage, TEMPLATE_COVERS[style]);
   } else {
-    const previewSourceImages = sorted.filter((i) => i.type === "image").slice(0, 4);
+    const previewSourceImages = todos.filter((i) => i.type === "image").slice(0, 4);
     const previewImages: PDFImage[] = [];
     for (const item of previewSourceImages) {
       const img = await tryEmbedImage(pdf, item.url);
@@ -1211,7 +1288,13 @@ export async function buildDotbookPdf(
   }
 
   const closingQr = await embedQr(pdf, extras.shareUrl, 300);
-  addClosingPage(pdf, fonts, closingQr, palette);
+  addClosingPage(
+    pdf,
+    fonts,
+    closingQr,
+    palette,
+    recortado ? { impresos: sorted.length, totales: todos.length } : null,
+  );
 
   return pdf.save();
 }

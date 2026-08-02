@@ -112,7 +112,7 @@ export function Slideshow({
               onEnded={() => setIndex((i) => (i + 1) % Math.max(items.length, 1))}
             />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img src={current.url} alt="" className="max-h-full max-w-full object-contain" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
@@ -169,7 +169,6 @@ export function Slideshow({
 
       {qr && (
         <div className="glass-dark absolute bottom-6 right-6 flex items-center gap-3 rounded-2xl p-3 text-white">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qr} alt="Código QR" className="h-20 w-20 rounded-lg bg-white p-1" />
           <span className="max-w-[16ch] text-sm leading-tight text-white/80">
             Escanea para unirte y subir tus fotos

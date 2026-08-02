@@ -24,6 +24,7 @@ import { AlbumStats, type AlbumStatsData } from "@/components/AlbumStats";
 import { DashboardTopBar } from "@/components/DashboardTopBar";
 import { ChallengeManager } from "@/components/ChallengeManager";
 import { GuestbookPanel } from "@/components/GuestbookPanel";
+import { CommentsPanel } from "@/components/CommentsPanel";
 import { OwnerGallery } from "@/components/OwnerGallery";
 import { DeleteAlbumButton } from "@/components/OwnerActions";
 
@@ -52,7 +53,8 @@ export default async function AlbumAdminPage({
   const pendingItems = allItems.filter((i) => !i.approved);
   const items = allItems.filter((i) => i.approved);
 
-  const [challengeRows, guestbookRows, reactionRows, commentRows] = await Promise.all([
+  const [challengeRows, guestbookRows, reactionRows, commentRows, commentList] =
+    await Promise.all([
     db()
       .select({
         id: challenges.id,
@@ -87,6 +89,22 @@ export default async function AlbumAdminPage({
       .innerJoin(media, eq(comments.mediaId, media.id))
       .where(eq(media.albumId, albumId))
       .groupBy(comments.mediaId),
+    // Comentarios del álbum con su foto, para poder moderarlos desde aquí.
+    db()
+      .select({
+        id: comments.id,
+        authorName: comments.authorName,
+        body: comments.body,
+        createdAt: comments.createdAt,
+        mediaUrl: media.url,
+        mediaPosterUrl: media.posterUrl,
+        mediaType: media.type,
+      })
+      .from(comments)
+      .innerJoin(media, eq(comments.mediaId, media.id))
+      .where(eq(media.albumId, albumId))
+      .orderBy(desc(comments.createdAt))
+      .limit(200),
   ]);
 
   // Resumen del evento: se calcula sobre el contenido ya publicado.
@@ -165,7 +183,7 @@ export default async function AlbumAdminPage({
               <div className="flex h-full gap-0.5">
                 {covers.map((item) => (
                   <div key={item.id} className="relative h-full flex-1 overflow-hidden">
-                    {item.type === "video" ? (
+                    {item.type === "video" && !item.posterUrl ? (
                       <video
                         src={item.url}
                         className="h-full w-full object-cover"
@@ -174,11 +192,12 @@ export default async function AlbumAdminPage({
                         playsInline
                       />
                     ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img
-                        src={item.url}
+                        src={item.posterUrl ?? item.url}
                         alt=""
                         loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     )}
@@ -270,6 +289,8 @@ export default async function AlbumAdminPage({
         <ChallengeManager albumId={album.id} challenges={challengeRows} />
 
         <GuestbookPanel entries={guestbookRows} />
+
+        <CommentsPanel comments={commentList} />
 
         <section className="mt-8">
           <h2 className="flex items-center gap-2 font-semibold">

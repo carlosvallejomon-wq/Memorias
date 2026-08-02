@@ -99,7 +99,6 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
                     }`}
                   >
                     <div className="aspect-[124/160] overflow-hidden bg-arena">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={`/dotbook-templates/thumbs/${THUMB_FILE[s.id]}`}
                         alt={s.label}

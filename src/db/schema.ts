@@ -59,6 +59,10 @@ export const media = pgTable(
     url: text("url").notNull().unique(),
     pathname: text("pathname"),
     type: text("type").notNull(), // "image" | "video"
+    // Fotograma de portada de los vídeos, generado en el navegador al subir.
+    // Sin esto la galería enseñaba rectángulos negros hasta descargar el
+    // vídeo entero.
+    posterUrl: text("poster_url"),
     uploaderName: text("uploader_name"),
     uploaderId: text("uploader_id"),
     approved: boolean("approved").notNull().default(true),
@@ -78,6 +82,9 @@ export const comments = pgTable(
       .notNull()
       .references(() => media.id, { onDelete: "cascade" }),
     authorName: text("author_name"),
+    // UUID anónimo de quien escribió, para que pueda borrar su propio
+    // comentario igual que borra sus fotos.
+    guestId: text("guest_id"),
     body: text("body").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

@@ -144,7 +144,6 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
             style={{ transform: `rotate(${i % 2 ? 1.1 : -1.1}deg)` }}
           >
             <div className="polaroid overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={e.src}
                 alt={e.label}
@@ -227,7 +226,6 @@ export function PhoneGrid() {
     <div className="grid grid-cols-3 gap-1.5">
       {tiles.map((src, i) => (
         <div key={i} className="aspect-square overflow-hidden rounded-lg shadow-soft">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             key={src}
             src={src}
@@ -269,7 +267,7 @@ export function LiveScreenMockup() {
       <div className="glass-dark rounded-2xl p-3 shadow-lift">
         <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
           {LIVE_PHOTOS.map((p, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img
               key={p.src}
               src={p.src}
@@ -362,7 +360,6 @@ export function InvitationDeck() {
               opacity: p.op,
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={src}
               alt="Ejemplo de invitación"

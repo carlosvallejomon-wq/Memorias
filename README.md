@@ -63,6 +63,29 @@ En el proyecto de Vercel → **Settings → Environment Variables**, añade:
 2. Crea un álbum, descarga o muestra el QR, y ábrelo con el móvil:
    deberías poder subir una foto sin iniciar sesión.
 
+## Límites
+
+Para que el servicio (y la factura de almacenamiento) no se descontrolen:
+
+- **150 MB** por archivo — un vídeo de móvil de varios minutos cabe de sobra.
+- **5.000** recuerdos por álbum.
+- **500** recuerdos por invitado y álbum.
+- El **Dotbook** imprime como mucho **220** páginas de recuerdo; si el álbum
+  es mayor, escoge una selección repartida de principio a fin del evento y lo
+  dice en la última página. El álbum completo sigue estando entero.
+
+## Privacidad
+
+Hay páginas de [privacidad](/legal/privacidad) y
+[condiciones de uso](/legal/condiciones) enlazadas desde el pie de la
+portada, y un aviso de consentimiento en la pantalla de subida. Los álbumes
+no se indexan en buscadores: solo entra quien tiene el enlace.
+
+Cada invitado puede borrar sus propias fotos, comentarios y mensajes desde el
+móvil con el que los subió. Si cambia de teléfono, en la propia página del
+álbum puede copiar su **código personal** y pegarlo en el nuevo para seguir
+siendo el mismo.
+
 ## Desarrollo local (opcional, para programadores)
 
 ```bash
@@ -72,18 +95,35 @@ npm install
 npm run dev
 ```
 
+Comprobaciones antes de subir un cambio:
+
+```bash
+npm run check   # reglas de estilo + tipos + pruebas
+npm run build   # compilación real
+```
+
+GitHub ejecuta lo mismo en cada pull request
+(`.github/workflows/comprobaciones.yml`), así que un fallo sale marcado en
+rojo antes de fusionarlo.
+
 ## Estructura
 
 ```
 src/app/page.tsx                  Portada
+src/app/legal/                    Privacidad y condiciones de uso
 src/app/dashboard/                Panel del organizador (Clerk)
 src/app/a/[code]/                 Página pública del invitado
-src/app/api/blob-upload/          Tokens de subida directa a Vercel Blob
+src/app/a/[code]/opengraph-image  Vista previa del enlace (WhatsApp)
+src/app/api/blob-upload/          Tokens de subida directa + topes
 src/app/api/guest/[code]/media/   Listar y registrar contenido (público)
 src/app/api/guest/[code]/…        Retos y muro de mensajes (público)
 src/app/api/media/[id]/…          Comentarios y reacciones (público)
-src/app/api/albums/[id]/download/ ZIP del álbum (solo el dueño)
+src/app/api/comments/[id]/        Borrar mi propio comentario (público)
+src/app/api/albums/[id]/download/ ZIP del álbum en streaming (el dueño)
 src/app/api/albums/[id]/dotbook/  Dotbook digital en PDF (solo el dueño)
+src/lib/prepare-upload.ts         HEIC→JPG y miniatura de vídeo, en el móvil
+src/lib/zip-stream.ts             Escritor de ZIP sin cargarlo en memoria
+src/lib/limits.ts                 Topes de subida
 src/lib/build-dotbook.ts          Lógica de generación del PDF
 src/app/api/setup/                Crea las tablas en Neon (idempotente)
 src/db/                           Esquema Drizzle y conexión Postgres

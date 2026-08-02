@@ -5,6 +5,8 @@ export type MediaItem = {
   id: string;
   url: string;
   type: "image" | "video";
+  /** Fotograma de portada de los vídeos. Los subidos antes no lo tienen. */
+  posterUrl: string | null;
   uploaderName: string | null;
   uploaderId: string | null;
   challengeId: string | null;
@@ -19,6 +21,8 @@ export type MediaItem = {
 export type Comment = {
   id: string;
   authorName: string | null;
+  /** UUID de quien lo escribió, para que pueda borrarlo él mismo. */
+  guestId: string | null;
   body: string;
   createdAt: string;
 };
@@ -39,6 +43,18 @@ export type GuestbookItem = {
 };
 
 export const EMOJIS = ["❤️", "😂", "😮", "👏"];
+
+// Texto alternativo para lectores de pantalla. No sabemos qué sale en la foto,
+// pero sí quién la subió y cuándo, que es mejor que nada.
+export function mediaAlt(item: Pick<MediaItem, "type" | "uploaderName" | "takenAt" | "createdAt">): string {
+  const qué = item.type === "video" ? "Vídeo" : "Foto";
+  const quién = item.uploaderName?.trim();
+  const cuándo = new Date(item.takenAt ?? item.createdAt).toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+  });
+  return quién ? `${qué} de ${quién}, ${cuándo}` : `${qué} del ${cuándo}`;
+}
 
 export function reactionTotal(item: MediaItem): number {
   return Object.values(item.reactions).reduce((a, b) => a + b, 0);

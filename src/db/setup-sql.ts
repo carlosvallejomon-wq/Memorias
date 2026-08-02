@@ -37,6 +37,7 @@ export const SETUP_STATEMENTS: string[] = [
   `ALTER TABLE media ADD COLUMN IF NOT EXISTS uploader_id text`,
   `ALTER TABLE media ADD COLUMN IF NOT EXISTS approved boolean NOT NULL DEFAULT true`,
   `ALTER TABLE media ADD COLUMN IF NOT EXISTS challenge_id uuid REFERENCES challenges(id) ON DELETE SET NULL`,
+  `ALTER TABLE media ADD COLUMN IF NOT EXISTS poster_url text`,
   `CREATE INDEX IF NOT EXISTS media_album_idx ON media (album_id)`,
   `CREATE TABLE IF NOT EXISTS comments (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -45,6 +46,7 @@ export const SETUP_STATEMENTS: string[] = [
     body text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
+  `ALTER TABLE comments ADD COLUMN IF NOT EXISTS guest_id text`,
   `CREATE INDEX IF NOT EXISTS comments_media_idx ON comments (media_id)`,
   `CREATE TABLE IF NOT EXISTS reactions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { albums, guestbookEntries } from "@/db/schema";
+import { allow, clientKey } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,13 @@ export async function POST(
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
+  if (!allow(clientKey(request, "mensaje"), 10, 60_000)) {
+    return NextResponse.json(
+      { error: "Vas muy rápido. Espera unos segundos y vuelve a intentarlo." },
+      { status: 429 },
+    );
+  }
+
   const albumId = await findAlbumId(code);
   if (!albumId) {
     return NextResponse.json({ error: "Álbum no encontrado" }, { status: 404 });
