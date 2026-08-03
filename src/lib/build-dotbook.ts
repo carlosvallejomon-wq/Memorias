@@ -591,16 +591,54 @@ async function tryEmbedImage(pdf: PDFDocument, url: string, descargada?: Descarg
   }
 }
 
+/**
+ * Carga una portada de plantilla LEYÉNDOLA DEL DISCO, no por internet.
+ *
+ * Antes el servidor se pedía la imagen a su propia web
+ * (`https://…/dotbook-templates/boda.jpg`). En los despliegues de vista
+ * previa, que Vercel protege con contraseña, esa petición volvía con la
+ * pantalla de acceso en vez de la foto: la portada bonita fallaba en silencio
+ * y el libro salía con el diseño antiguo. Leyendo del disco no hay petición
+ * que pueda fallar, y además se ahorra una espera.
+ */
+async function embedTemplateCover(pdf: PDFDocument, file: string): Promise<PDFImage | null> {
+  // Nombre de archivo fijo, nunca viene del usuario, pero se recorta a la
+  // última parte por si acaso.
+  const nombre = file.split("/").pop() ?? "";
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const bytes = await readFile(join(process.cwd(), "public", "dotbook-templates", nombre));
+    return await pdf.embedJpg(new Uint8Array(bytes));
+  } catch (err) {
+    console.error(`No se pudo leer la portada de plantilla «${nombre}»:`, err);
+    return null;
+  }
+}
+
 type Descarga = { bytes: Uint8Array; esPng: boolean };
+
+/**
+ * Lado máximo, en píxeles, con el que se incrusta cada foto en el PDF.
+ *
+ * En la página la foto ocupa como mucho unos 500x420 puntos, o sea unos
+ * 1.400 px impresos a buena calidad. Meter el original de 12 megapíxeles no
+ * se ve mejor y multiplica por veinte el peso del archivo: un libro de 60
+ * fotos pasaba de 6 MB a 130 MB, y descargar eso desde un móvil es lo que
+ * hacía que "el PDF tardara" aunque el servidor ya hubiera terminado.
+ */
+const FOTO_MAX_PX = 1400;
+
+/** Cuántas fotos se reducen a la vez (hay ~4 núcleos en la función). */
+const REDUCIR_A_LA_VEZ = 4;
 
 async function descargar(url: string): Promise<Descarga | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
-    return {
-      bytes: new Uint8Array(await res.arrayBuffer()),
-      esPng: (res.headers.get("content-type") ?? "").includes("png"),
-    };
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const esPng = (res.headers.get("content-type") ?? "").includes("png");
+    return await reducir(bytes, esPng);
   } catch (err) {
     console.error("No se pudo descargar la imagen del Dotbook:", err);
     return null;
@@ -608,20 +646,53 @@ async function descargar(url: string): Promise<Descarga | null> {
 }
 
 /**
- * Baja todas las fotos ANTES de montar las páginas, de ocho en ocho.
+ * Deja la foto en el tamaño en que se va a imprimir. Si algo falla (formato
+ * raro, foto corrupta) se devuelve el original: más vale un libro pesado que
+ * un libro sin esa foto.
+ */
+async function reducir(bytes: Uint8Array, esPng: boolean): Promise<Descarga> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const salida = await sharp(bytes)
+      // `rotate()` sin argumentos aplica la orientación EXIF: sin esto, las
+      // fotos hechas en vertical con el móvil salían tumbadas al reducirlas.
+      .rotate()
+      .resize({
+        width: FOTO_MAX_PX,
+        height: FOTO_MAX_PX,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      // Un PNG con transparencia acabaría con el fondo negro al pasarlo a
+      // JPG; sobre blanco queda como una foto normal impresa en papel.
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 82, mozjpeg: true })
+      .toBuffer();
+    return { bytes: new Uint8Array(salida), esPng: false };
+  } catch (err) {
+    console.error("No se pudo reducir una foto del Dotbook, se usa el original:", err);
+    return { bytes, esPng };
+  }
+}
+
+/**
+ * Baja y prepara todas las fotos ANTES de montar las páginas, en tandas.
  *
  * Antes se descargaban de una en una, justo cuando le tocaba a cada página:
  * con 200 recuerdos eso son 200 esperas seguidas y el PDF tardaba una
  * eternidad (o se quedaba sin tiempo). Ahora se solapan, que es donde está
  * casi todo el tiempo de espera.
+ *
+ * El tamaño de tanda lo manda el reducido de fotos, no la descarga: reducir
+ * usa el procesador, y lanzar veinte a la vez con cuatro núcleos solo hace
+ * que se estorben entre ellas.
  */
 async function descargarTodas(urls: string[]): Promise<Map<string, Descarga>> {
   const unicas = [...new Set(urls)];
   const cache = new Map<string, Descarga>();
-  const TANDA = 8;
 
-  for (let i = 0; i < unicas.length; i += TANDA) {
-    const tanda = unicas.slice(i, i + TANDA);
+  for (let i = 0; i < unicas.length; i += REDUCIR_A_LA_VEZ) {
+    const tanda = unicas.slice(i, i + REDUCIR_A_LA_VEZ);
     const resultados = await Promise.all(tanda.map((u) => descargar(u)));
     tanda.forEach((u, j) => {
       const r = resultados[j];
@@ -1433,8 +1504,7 @@ export async function buildDotbookPdf(
 
   let templateCoverImage: PDFImage | null = null;
   if (isTemplateStyle(style)) {
-    const cfg = TEMPLATE_COVERS[style];
-    templateCoverImage = await tryEmbedImage(pdf, `${extras.baseUrl}/dotbook-templates/${cfg.file}`);
+    templateCoverImage = await embedTemplateCover(pdf, TEMPLATE_COVERS[style].file);
   }
 
   if (templateCoverImage && isTemplateStyle(style)) {
