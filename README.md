@@ -76,8 +76,8 @@ Para que el servicio (y la factura de almacenamiento) no se descontrolen:
 
 ## Añadir una portada de Dotbook
 
-Hay **17 diseños** de portada (entre ellos **6 de quinceañera**, que es donde
-más se suele querer elegir). Para añadir otro:
+Hay **22 diseños** de portada, con varios para las celebraciones donde más se
+suele querer elegir: **6 de boda** y **6 de quinceañera**. Para añadir otro:
 
 1. Deja el JPG en `public/dotbook-templates/` (proporción parecida a un
    folio, p. ej. 1057×1500).

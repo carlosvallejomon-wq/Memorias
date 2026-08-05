@@ -21,6 +21,11 @@ export type TemplateDotbookStyle =
   | "realQuinceLazo"
   | "realQuinceMariposas"
   | "realQuincePrincesa"
+  | "realBodaCorazon"
+  | "realBodaCeremonia"
+  | "realBodaMomentos"
+  | "realBodaFlores"
+  | "realBodaAzul"
   | "realViajes"
   | "realFamilia"
   | "realAnoNuevo"
@@ -57,7 +62,13 @@ export type TemplateCoverMeta = {
 export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
   { id: "realGeneral", file: "general.jpg", label: "Recuerdos en general", accent: [0.62, 0.55, 0.42], band: 0.8225 },
   { id: "realFamilia", file: "familia.jpg", label: "Familia", accent: [0.5, 0.38, 0.25], band: 0.405, compact: true },
-  { id: "realBoda", file: "boda.jpg", label: "Boda", accent: [0.44, 0.13, 0.18], band: 0.42 },
+  // Boda: varios diseños, desde el clásico con foto hasta los ilustrados.
+  { id: "realBoda", file: "boda.jpg", label: "Boda · clásica", accent: [0.44, 0.13, 0.18], band: 0.42 },
+  { id: "realBodaCorazon", file: "boda-corazon.jpg", label: "Boda · corazón", accent: [0.55, 0.35, 0.35], band: 0.5 },
+  { id: "realBodaCeremonia", file: "boda-ceremonia.jpg", label: "Boda · ceremonia", accent: [0.42, 0.47, 0.38], band: 0.5 },
+  { id: "realBodaMomentos", file: "boda-momentos.jpg", label: "Boda · momentos", accent: [0.75, 0.5, 0.52], band: 0.5 },
+  { id: "realBodaFlores", file: "boda-flores.jpg", label: "Boda · flores", accent: [0.72, 0.45, 0.25], band: 0.5 },
+  { id: "realBodaAzul", file: "boda-azul.jpg", label: "Boda · flores azules", accent: [0.35, 0.45, 0.66], band: 0.5 },
 
   // Quinceañera: varios diseños para elegir, que es la celebración donde más
   // se cuida la estética y con una sola portada no había dónde escoger.
