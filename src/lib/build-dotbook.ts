@@ -601,7 +601,7 @@ async function tryEmbedImage(pdf: PDFDocument, url: string, descargada?: Descarg
  * y el libro salía con el diseño antiguo. Leyendo del disco no hay petición
  * que pueda fallar, y además se ahorra una espera.
  */
-async function embedTemplateCover(pdf: PDFDocument, file: string): Promise<PDFImage | null> {
+async function leerPlantilla(file: string): Promise<Uint8Array | null> {
   // Nombre de archivo fijo, nunca viene del usuario, pero se recorta a la
   // última parte por si acaso.
   const nombre = file.split("/").pop() ?? "";
@@ -609,9 +609,119 @@ async function embedTemplateCover(pdf: PDFDocument, file: string): Promise<PDFIm
     const { readFile } = await import("node:fs/promises");
     const { join } = await import("node:path");
     const bytes = await readFile(join(process.cwd(), "public", "dotbook-templates", nombre));
-    return await pdf.embedJpg(new Uint8Array(bytes));
+    return new Uint8Array(bytes);
   } catch (err) {
     console.error(`No se pudo leer la portada de plantilla «${nombre}»:`, err);
+    return null;
+  }
+}
+
+/**
+ * Busca en la portada el hueco más despejado donde quepa la placa del título.
+ *
+ * Antes esta posición era un número escrito a mano por cada plantilla, y cada
+ * vez que se afinaba una se estropeaba otra: la placa acababa encima del
+ * dibujo o del texto del propio diseño. Aquí se mira la imagen de verdad —
+ * cuánto "detalle" hay en cada franja— y se elige la que menos tiene, del
+ * tamaño exacto que va a ocupar la placa. Así también funciona con las
+ * plantillas que se añadan más adelante, sin tocar código.
+ *
+ * Devuelve la Y (en puntos de PDF, desde abajo) donde apoyar la placa, o null
+ * si no se pudo analizar (entonces se usa el valor de respaldo de siempre).
+ */
+async function huecoParaLaPlaca(
+  bytes: Uint8Array,
+  anchoPlaca: number,
+  altoPlaca: number,
+): Promise<number | null> {
+  try {
+    const sharp = (await import("sharp")).default;
+
+    // Se analiza en pequeño (rápido y sin ruido de detalle fino) y con la
+    // misma proporción y recorte que tendrá en la página.
+    const ANCHO = 120;
+    const ALTO = Math.round((ANCHO * PAGE_HEIGHT) / PAGE_WIDTH);
+    const { data } = await sharp(bytes)
+      .rotate()
+      .resize(ANCHO, ALTO, { fit: "cover", position: "centre" })
+      .greyscale()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    // Color del papel: la mediana del borde exterior, que en estos diseños es
+    // siempre fondo limpio.
+    const borde: number[] = [];
+    for (let x = 0; x < ANCHO; x++) {
+      borde.push(data[x], data[(ALTO - 1) * ANCHO + x]);
+    }
+    for (let y = 0; y < ALTO; y++) {
+      borde.push(data[y * ANCHO], data[y * ANCHO + ANCHO - 1]);
+    }
+    borde.sort((a, b) => a - b);
+    const fondo = borde[Math.floor(borde.length / 2)];
+
+    // "Detalle" = cuánto cambia cada píxel respecto a sus vecinos, MÁS cuánto
+    // se aleja del color del papel. Solo con lo primero, un título grande de
+    // color suave (el "15 Years" rosa sobre crema) apenas puntuaba y la placa
+    // se plantaba encima; lo segundo lo detecta aunque tenga poco contraste.
+    const detalle = new Float64Array(ANCHO * ALTO);
+    for (let y = 1; y < ALTO - 1; y++) {
+      for (let x = 1; x < ANCHO - 1; x++) {
+        const i = y * ANCHO + x;
+        const dx = Math.abs(data[i - 1] - data[i + 1]);
+        const dy = Math.abs(data[i - ANCHO] - data[i + ANCHO]);
+        const lejosDelPapel = Math.abs(data[i] - fondo);
+        detalle[i] = dx + dy + lejosDelPapel * 0.8;
+      }
+    }
+
+    // La placa va centrada horizontalmente: solo importa lo que hay bajo ella
+    // (con un poco de margen a los lados para no pegarse a nada).
+    const anchoUtil = Math.min(ANCHO, Math.round(((anchoPlaca + 30) / PAGE_WIDTH) * ANCHO));
+    const x0 = Math.max(0, Math.round((ANCHO - anchoUtil) / 2));
+    const x1 = Math.min(ANCHO, x0 + anchoUtil);
+
+    // Cuánto hay en cada fila (media, para que no dependa del ancho).
+    const porFila = new Float64Array(ALTO);
+    for (let y = 0; y < ALTO; y++) {
+      let s = 0;
+      for (let x = x0; x < x1; x++) s += detalle[y * ANCHO + x];
+      porFila[y] = s / (x1 - x0);
+    }
+
+    // Se prueba cada posición posible y se elige la más limpia. Se deja un
+    // margen arriba y abajo para que la placa no quede pegada al borde.
+    //
+    // El coste de una franja es el de su PEOR fila, no el promedio: casi
+    // todos estos diseños llevan un subtítulo fino ("PHOTO ALBUM COVER FOR
+    // BAPTISM") rodeado de espacio vacío, y promediando salía barato
+    // plantarse justo encima. Mirando la peor fila, una sola línea de texto
+    // ya descarta la franja entera.
+    const altoFranja = Math.max(1, Math.round((altoPlaca / PAGE_HEIGHT) * ALTO));
+    const margen = Math.round((26 / PAGE_HEIGHT) * ALTO);
+    let mejorY = -1;
+    let mejorCoste = Infinity;
+    for (let top = margen; top + altoFranja <= ALTO - margen; top++) {
+      let peor = 0;
+      for (let y = top; y < top + altoFranja; y++) {
+        if (porFila[y] > peor) peor = porFila[y];
+      }
+      // A igualdad de limpieza se prefiere abajo: es donde un pie de portada
+      // se ve natural, y donde estos diseños suelen dejar sitio.
+      const centro = (top + altoFranja / 2) / ALTO;
+      const total = peor + (1 - centro) * 1.5;
+      if (total < mejorCoste) {
+        mejorCoste = total;
+        mejorY = top;
+      }
+    }
+    if (mejorY < 0) return null;
+
+    // De coordenadas de imagen (0 arriba) a coordenadas de PDF (0 abajo).
+    const centroDesdeArriba = (mejorY + altoFranja / 2) / ALTO;
+    return PAGE_HEIGHT * (1 - centroDesdeArriba) - altoPlaca / 2;
+  } catch (err) {
+    console.error("No se pudo analizar la portada para colocar el título:", err);
     return null;
   }
 }
@@ -1070,13 +1180,15 @@ function addCoverPage(
 // "Graduation"). La franja usa un tono oscuro del propio color de acento del
 // diseño para que el texto blanco siempre se lea bien encima, sea cual sea
 // el diseño.
-function addTemplateCoverPage(
+async function addTemplateCoverPage(
   pdf: PDFDocument,
   album: Album,
   fonts: Fonts,
   stats: { total: number; uploaders: number; days: number },
   templateImage: PDFImage,
   cover: TemplateCoverConfig,
+  /** Bytes del diseño, para analizar dónde queda hueco libre. */
+  templateBytes: Uint8Array | null,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   drawImageCover(page, templateImage, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
@@ -1132,8 +1244,11 @@ function addTemplateCoverPage(
   // borde (p. ej. justo debajo de una etiqueta decorativa), el margen general
   // de página (50pt) dejaba muy poco hueco y forzaba a tapar el texto.
   const PLAQUE_MARGIN = 22;
-  const centro = PAGE_HEIGHT * (1 - cover.band);
-  const y = clamp(centro - alto / 2, PLAQUE_MARGIN, PAGE_HEIGHT - PLAQUE_MARGIN - alto);
+  // Se mira la imagen para encontrar el hueco libre del tamaño exacto de la
+  // placa. `cover.band` solo se usa si ese análisis no se puede hacer.
+  const huecoY = templateBytes ? await huecoParaLaPlaca(templateBytes, ancho, alto) : null;
+  const propuesta = huecoY ?? PAGE_HEIGHT * (1 - cover.band) - alto / 2;
+  const y = clamp(propuesta, PLAQUE_MARGIN, PAGE_HEIGHT - PLAQUE_MARGIN - alto);
   const x = (PAGE_WIDTH - ancho) / 2;
 
   // Sombra suave, placa color papel y un filete del color del diseño.
@@ -1503,12 +1618,28 @@ export async function buildDotbookPdf(
   ].filter((u): u is string => !!u));
 
   let templateCoverImage: PDFImage | null = null;
+  let templateBytes: Uint8Array | null = null;
   if (isTemplateStyle(style)) {
-    templateCoverImage = await embedTemplateCover(pdf, TEMPLATE_COVERS[style].file);
+    templateBytes = await leerPlantilla(TEMPLATE_COVERS[style].file);
+    if (templateBytes) {
+      try {
+        templateCoverImage = await pdf.embedJpg(templateBytes);
+      } catch (err) {
+        console.error("No se pudo incrustar la portada de plantilla:", err);
+      }
+    }
   }
 
   if (templateCoverImage && isTemplateStyle(style)) {
-    addTemplateCoverPage(pdf, album, fonts, stats, templateCoverImage, TEMPLATE_COVERS[style]);
+    await addTemplateCoverPage(
+      pdf,
+      album,
+      fonts,
+      stats,
+      templateCoverImage,
+      TEMPLATE_COVERS[style],
+      templateBytes,
+    );
   } else {
     const previewImages: PDFImage[] = [];
     for (const url of portadasNecesarias) {

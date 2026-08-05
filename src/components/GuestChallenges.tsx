@@ -2,6 +2,7 @@
 
 import { Camera, Check, Target } from "lucide-react";
 import { ChallengeIcon } from "@/components/ChallengeIcon";
+import { challengeIconStyle } from "@/lib/challenge-icons";
 import type { ChallengeItem } from "@/lib/guest-types";
 
 // Tablero de retos del invitado: cada tarjeta abre el selector de archivos ya
@@ -77,7 +78,11 @@ export function GuestChallenges({
                 complete ? "border-teja/30 bg-teja/5" : "border-tinta/10 bg-white"
               }`}
             >
+              {/* Sin completar, el icono va con su propio color; al
+                  completarlo pasa a naranja pleno, que es la señal de "hecho"
+                  del resto de la app. */}
               <span
+                style={complete ? undefined : challengeIconStyle(c.emoji)}
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
                   complete
                     ? "bg-teja text-white shadow-soft"
