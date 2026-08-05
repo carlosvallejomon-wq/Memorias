@@ -90,7 +90,27 @@ el resto del ZIP sigue.
 **Dotbook**: tope de `MAX_DOTBOOK_PAGES` (220) páginas de recuerdo; si el
 álbum es mayor se escoge una selección repartida de principio a fin
 (`pickSpread`) y se avisa en la página de cierre. Los vídeos con miniatura se
-imprimen con su fotograma y un QR pequeño en la esquina.
+imprimen con su fotograma y un QR pequeño en la esquina. Cada foto se reduce
+a `FOTO_MAX_PX` antes de incrustarla (con `sharp`): a resolución completa un
+libro de 60 fotos pesaba 130 MB y lo lento era descargarlo, no generarlo.
+
+**Portadas de plantilla** (`src/lib/dotbook-templates.ts`): catálogo
+compartido por el generador del PDF y el selector del navegador — antes la
+lista estaba duplicada y añadir una portada obligaba a tocar tres archivos.
+Para añadir una: dejar el JPG en `public/dotbook-templates/`, una miniatura
+del mismo nombre en `thumbs/`, y una línea en `TEMPLATE_COVER_LIST`.
+
+La placa con el nombre del álbum **se coloca sola**: `huecoParaLaPlaca()`
+analiza la imagen (con `sharp`) y busca el hueco libre del tamaño exacto de
+la placa, probando también posiciones a izquierda y derecha. Tres detalles
+que costaron varias vueltas y conviene no revertir: se mide el gradiente
+*más* la distancia al color del papel (un título grande de color suave, el
+"15 Years" rosa sobre crema, no tiene gradiente pero sí destaca del fondo);
+se puntúa por el punto **más marcado** de la caja, no por la media (un
+subtítulo fino promediado salía casi gratis y la placa se comía la primera
+palabra); y el texto se centra en la placa, no en la página, porque la placa
+puede acabar descentrada. El `band` de cada plantilla es solo el respaldo
+por si el análisis falla.
 
 **Vista previa al compartir**: `generateMetadata` + `opengraph-image.tsx` en
 `/a/[code]` generan la tarjeta que sale en WhatsApp con el nombre del álbum,
