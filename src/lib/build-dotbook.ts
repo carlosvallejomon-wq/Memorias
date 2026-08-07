@@ -580,6 +580,22 @@ async function leerPlantilla(file: string): Promise<Uint8Array | null> {
 }
 
 /**
+ * Dónde cabe la placa. `suciedad` es lo más marcado del dibujo que queda
+ * debajo (0 = del todo limpio); es lo único que sirve para comparar dos
+ * tamaños de placa, porque el `coste` con el que se elige la posición incluye
+ * además las preferencias de sitio (abajo y centrada) y no dice nada de si
+ * tapa algo.
+ */
+type Hueco = { x: number; y: number; suciedad: number };
+
+/**
+ * A partir de aquí el mejor hueco ya no está limpio: hay dibujo o texto del
+ * propio diseño donde iría la placa. Cuando pasa, se vuelve a buscar con la
+ * placa pequeña antes de resignarse a taparlo.
+ */
+const HUECO_LIMPIO = 45;
+
+/**
  * Busca en la portada el hueco más despejado donde quepa la placa del título.
  *
  * Antes esta posición era un número escrito a mano por cada plantilla, y cada
@@ -590,14 +606,14 @@ async function leerPlantilla(file: string): Promise<Uint8Array | null> {
  * plantillas que se añadan más adelante, sin tocar código.
  *
  * Devuelve la esquina inferior izquierda de la placa (en puntos de PDF, con el
- * 0 abajo), o null si no se pudo analizar — entonces se usa el valor de
- * respaldo de siempre.
+ * 0 abajo) y lo sucio que ha quedado el mejor hueco, o null si no se pudo
+ * analizar — entonces se usa el valor de respaldo de siempre.
  */
 async function huecoParaLaPlaca(
   bytes: Uint8Array,
   anchoPlaca: number,
   altoPlaca: number,
-): Promise<{ x: number; y: number } | null> {
+): Promise<Hueco | null> {
   try {
     const sharp = (await import("sharp")).default;
 
@@ -662,6 +678,7 @@ async function huecoParaLaPlaca(
     let mejorX = -1;
     let mejorY = -1;
     let mejorCoste = Infinity;
+    let mejorSuciedad = Infinity;
 
     for (const x0 of posicionesX) {
       const x1 = Math.min(ANCHO, x0 + anchoCaja);
@@ -695,6 +712,7 @@ async function huecoParaLaPlaca(
         const total = peor + (1 - centroVertical) * 12 + desvio * 45;
         if (total < mejorCoste) {
           mejorCoste = total;
+          mejorSuciedad = peor;
           mejorX = x0;
           mejorY = top;
         }
@@ -707,6 +725,7 @@ async function huecoParaLaPlaca(
     return {
       x: ((mejorX + anchoCaja / 2) / ANCHO) * PAGE_WIDTH - anchoPlaca / 2,
       y: PAGE_HEIGHT * (1 - centroDesdeArriba) - altoPlaca / 2,
+      suciedad: mejorSuciedad,
     };
   } catch (err) {
     console.error("No se pudo analizar la portada para colocar el título:", err);
@@ -1206,35 +1225,57 @@ async function addTemplateCoverPage(
   // En los diseños con el hueco libre muy justo, la placa se hace algo más
   // pequeña (menos relleno, letra algo menor) para que quepa sin montarse
   // sobre el propio texto del diseño.
-  const nameSize = cover.compact ? 18 : 22;
-  const padX = cover.compact ? 24 : 30;
-  const padY = cover.compact ? 15 : 22;
-  const lineH = cover.compact ? 22 : 27;
-  const dateGap = cover.compact ? 14 : 20;
-  const footerGap = cover.compact ? 12 : 16;
-  const dateSize = cover.compact ? 11 : 12;
-  const statsSize = cover.compact ? 9 : 10;
+  const medidas = (compacta: boolean) => {
+    const nameSize = compacta ? 18 : 22;
+    const padX = compacta ? 24 : 30;
+    const padY = compacta ? 15 : 22;
+    const lineH = compacta ? 22 : 27;
+    const dateGap = compacta ? 14 : 20;
+    const footerGap = compacta ? 12 : 16;
+    const dateSize = compacta ? 11 : 12;
+    const statsSize = compacta ? 9 : 10;
 
-  const maxTextW = PAGE_WIDTH - MARGIN * 2 - 60;
-  const nameLines = wrapLines(album.name, maxTextW, fonts.bold, nameSize);
+    const maxTextW = PAGE_WIDTH - MARGIN * 2 - 60;
+    const nameLines = wrapLines(album.name, maxTextW, fonts.bold, nameSize);
+    const anchoTexto = Math.max(
+      ...nameLines.map((l) => fonts.bold.widthOfTextAtSize(l, nameSize)),
+      dateLabel ? fonts.italic.widthOfTextAtSize(dateLabel, dateSize) : 0,
+      fonts.regular.widthOfTextAtSize(statsLine, statsSize),
+    );
 
-  const anchoTexto = Math.max(
-    ...nameLines.map((l) => fonts.bold.widthOfTextAtSize(l, nameSize)),
-    dateLabel ? fonts.italic.widthOfTextAtSize(dateLabel, dateSize) : 0,
-    fonts.regular.widthOfTextAtSize(statsLine, statsSize),
-  );
-
-  const alto = padY * 2 + nameLines.length * lineH + (dateLabel ? dateGap : 0) + footerGap;
-  const ancho = Math.min(anchoTexto + padX * 2, PAGE_WIDTH - MARGIN * 2);
+    return {
+      nameSize, padX, padY, lineH, dateGap, footerGap, dateSize, statsSize, nameLines,
+      alto: padY * 2 + nameLines.length * lineH + (dateLabel ? dateGap : 0) + footerGap,
+      ancho: Math.min(anchoTexto + padX * 2, PAGE_WIDTH - MARGIN * 2),
+    };
+  };
 
   // El recorte vertical de la placa usa un margen propio, más ajustado que el
   // de las fotos: en los diseños donde la única franja libre queda pegada al
   // borde (p. ej. justo debajo de una etiqueta decorativa), el margen general
   // de página (50pt) dejaba muy poco hueco y forzaba a tapar el texto.
   const PLAQUE_MARGIN = 22;
+
   // Se mira la imagen para encontrar el hueco libre del tamaño exacto de la
   // placa. `cover.band` solo se usa si ese análisis no se puede hacer.
-  const hueco = templateBytes ? await huecoParaLaPlaca(templateBytes, ancho, alto) : null;
+  let m = medidas(cover.compact === true);
+  let hueco = templateBytes ? await huecoParaLaPlaca(templateBytes, m.ancho, m.alto) : null;
+
+  // Si ni el mejor hueco está limpio, el diseño va lleno de borde a borde (una
+  // corona de flores que ocupa la portada entera) y la placa grande no cabe en
+  // ningún sitio sin comerse el dibujo. Antes eso se apañaba a mano marcando
+  // `compact` plantilla por plantilla; ahora se prueba la pequeña y se queda
+  // con ella solo si de verdad encuentra sitio mejor.
+  if (hueco && hueco.suciedad > HUECO_LIMPIO && !cover.compact) {
+    const chica = medidas(true);
+    const otro = await huecoParaLaPlaca(templateBytes!, chica.ancho, chica.alto);
+    if (otro && otro.suciedad < hueco.suciedad * 0.75) {
+      m = chica;
+      hueco = otro;
+    }
+  }
+
+  const { nameSize, padY, lineH, dateSize, statsSize, nameLines, alto, ancho } = m;
   const y = clamp(
     hueco?.y ?? PAGE_HEIGHT * (1 - cover.band) - alto / 2,
     PLAQUE_MARGIN,

@@ -26,6 +26,11 @@ export type TemplateDotbookStyle =
   | "realBodaMomentos"
   | "realBodaFlores"
   | "realBodaAzul"
+  | "realBautizoCorona"
+  | "realBautizoPaloma"
+  | "realBautizoMarmol"
+  | "realBautizoCeleste"
+  | "realBautizoAngel"
   | "realViajes"
   | "realFamilia"
   | "realAnoNuevo"
@@ -81,7 +86,15 @@ export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
 
   { id: "realGraduacion", file: "graduacion.jpg", label: "Graduación", accent: [0.16, 0.21, 0.35], band: 0.9 },
   { id: "realComunion", file: "comunion.jpg", label: "Primera comunión", accent: [0.72, 0.58, 0.32], band: 0.885 },
-  { id: "realBautizo", file: "bautizo.jpg", label: "Bautizo", accent: [0.76, 0.59, 0.47], band: 0.89 },
+
+  // Bautizo: seis diseños, del clásico a los ilustrados en tonos celestes.
+  { id: "realBautizo", file: "bautizo.jpg", label: "Bautizo · clásico", accent: [0.76, 0.59, 0.47], band: 0.89 },
+  { id: "realBautizoCorona", file: "bautizo-corona.jpg", label: "Bautizo · corona", accent: [0.5, 0.52, 0.36], band: 0.5 },
+  { id: "realBautizoPaloma", file: "bautizo-paloma.jpg", label: "Bautizo · paloma", accent: [0.66, 0.52, 0.28], band: 0.5 },
+  { id: "realBautizoMarmol", file: "bautizo-marmol.jpg", label: "Bautizo · mármol", accent: [0.6, 0.52, 0.3], band: 0.5 },
+  { id: "realBautizoCeleste", file: "bautizo-celeste.jpg", label: "Bautizo · celeste", accent: [0.38, 0.52, 0.7], band: 0.5 },
+  { id: "realBautizoAngel", file: "bautizo-angel.jpg", label: "Bautizo · angelito", accent: [0.3, 0.42, 0.62], band: 0.5 },
+
   { id: "realBabyShower", file: "babyshower.jpg", label: "Baby shower", accent: [0.5, 0.62, 0.72], band: 0.435 },
   { id: "realFiestaInfantil", file: "fiestainfantil.jpg", label: "Fiesta infantil", accent: [0.87, 0.56, 0.34], band: 0.4 },
   { id: "realViajes", file: "viajes.jpg", label: "Viajes", accent: [0.74, 0.44, 0.2], band: 0.89 },
