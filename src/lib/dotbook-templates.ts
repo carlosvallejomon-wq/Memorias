@@ -31,6 +31,11 @@ export type TemplateDotbookStyle =
   | "realBautizoMarmol"
   | "realBautizoCeleste"
   | "realBautizoAngel"
+  | "realBabyKoala"
+  | "realBabyOvejita"
+  | "realBabyNina"
+  | "realBabyNino"
+  | "realBabyDormido"
   | "realCumpleSencilla"
   | "realCumpleNina"
   | "realCumpleOsito"
@@ -100,7 +105,16 @@ export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
   { id: "realBautizoCeleste", file: "bautizo-celeste.jpg", label: "Bautizo · celeste", accent: [0.38, 0.52, 0.7], band: 0.5 },
   { id: "realBautizoAngel", file: "bautizo-angel.jpg", label: "Bautizo · angelito", accent: [0.3, 0.42, 0.62], band: 0.5 },
 
-  { id: "realBabyShower", file: "babyshower.jpg", label: "Baby shower", accent: [0.5, 0.62, 0.72], band: 0.435 },
+
+  // Baby shower: seis diseños, en rosa, azul y neutro para quien no quiere
+  // decir todavía si es niño o niña.
+  { id: "realBabyShower", file: "babyshower.jpg", label: "Baby shower · clásico", accent: [0.5, 0.62, 0.72], band: 0.435 },
+  { id: "realBabyKoala", file: "baby-koala.jpg", label: "Baby shower · koala", accent: [0.85, 0.42, 0.55], band: 0.5 },
+  { id: "realBabyOvejita", file: "baby-ovejita.jpg", label: "Baby shower · ovejita", accent: [0.36, 0.5, 0.72], band: 0.5 },
+  { id: "realBabyNina", file: "baby-nina.jpg", label: "Baby shower · niña", accent: [0.8, 0.5, 0.5], band: 0.5 },
+  { id: "realBabyNino", file: "baby-nino.jpg", label: "Baby shower · niño", accent: [0.3, 0.44, 0.62], band: 0.5 },
+  { id: "realBabyDormido", file: "baby-dormido.jpg", label: "Baby shower · bebé dormido", accent: [0.55, 0.58, 0.38], band: 0.5 },
+
 
   // Fiesta infantil: seis diseños, de la portada sobria con marco para la foto
   // a las ilustradas a todo color.

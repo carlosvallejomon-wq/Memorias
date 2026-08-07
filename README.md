@@ -76,9 +76,9 @@ Para que el servicio (y la factura de almacenamiento) no se descontrolen:
 
 ## Añadir una portada de Dotbook
 
-Hay **32 diseños** de portada, con varios para las celebraciones donde más se
-suele querer elegir: **6 de boda**, **6 de quinceañera**, **6 de bautizo** y
-**6 de fiesta infantil**. Para añadir otro:
+Hay **37 diseños** de portada, con varios para las celebraciones donde más se
+suele querer elegir: **6 de boda**, **6 de quinceañera**, **6 de bautizo**,
+**6 de fiesta infantil** y **6 de baby shower**. Para añadir otro:
 
 1. Deja el JPG en `public/dotbook-templates/` (proporción parecida a un
    folio, p. ej. 1057×1500).
