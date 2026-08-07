@@ -31,6 +31,11 @@ export type TemplateDotbookStyle =
   | "realBautizoMarmol"
   | "realBautizoCeleste"
   | "realBautizoAngel"
+  | "realComunionFlores"
+  | "realComunionNina"
+  | "realComunionNino"
+  | "realComunionCorona"
+  | "realComunionIglesia"
   | "realBabyKoala"
   | "realBabyOvejita"
   | "realBabyNina"
@@ -95,7 +100,15 @@ export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
   { id: "realQuincePrincesa", file: "quince-princesa.jpg", label: "Quinceañera · princesa", accent: [0.84, 0.54, 0.62], band: 0.5 },
 
   { id: "realGraduacion", file: "graduacion.jpg", label: "Graduación", accent: [0.16, 0.21, 0.35], band: 0.9 },
-  { id: "realComunion", file: "comunion.jpg", label: "Primera comunión", accent: [0.72, 0.58, 0.32], band: 0.885 },
+
+  // Primera comunión: seis diseños, en rosa y en azul.
+  { id: "realComunion", file: "comunion.jpg", label: "Primera comunión · clásica", accent: [0.72, 0.58, 0.32], band: 0.885 },
+  { id: "realComunionFlores", file: "comunion-flores.jpg", label: "Primera comunión · flores", accent: [0.82, 0.46, 0.55], band: 0.5 },
+  { id: "realComunionNina", file: "comunion-nina.jpg", label: "Primera comunión · niña", accent: [0.74, 0.42, 0.4], band: 0.5 },
+  { id: "realComunionNino", file: "comunion-nino.jpg", label: "Primera comunión · niño", accent: [0.34, 0.5, 0.72], band: 0.5 },
+  { id: "realComunionCorona", file: "comunion-corona.jpg", label: "Primera comunión · corona", accent: [0.78, 0.34, 0.55], band: 0.5 },
+  { id: "realComunionIglesia", file: "comunion-iglesia.jpg", label: "Primera comunión · iglesia", accent: [0.28, 0.4, 0.6], band: 0.5 },
+
 
   // Bautizo: seis diseños, del clásico a los ilustrados en tonos celestes.
   { id: "realBautizo", file: "bautizo.jpg", label: "Bautizo · clásico", accent: [0.76, 0.59, 0.47], band: 0.89 },
