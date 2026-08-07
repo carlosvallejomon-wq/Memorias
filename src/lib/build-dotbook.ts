@@ -596,6 +596,14 @@ type Hueco = { x: number; y: number; suciedad: number };
 const HUECO_LIMPIO = 45;
 
 /**
+ * Y a partir de aquí no hay hueco en toda la portada: el diseño va ilustrado
+ * de esquina a esquina y la placa va a tapar algo se ponga donde se ponga.
+ * Entonces se deja de buscar y se pone abajo del todo, como el pie de una
+ * foto — que es donde menos raro queda y donde nunca se come el título.
+ */
+const PORTADA_LLENA = 120;
+
+/**
  * Busca en la portada el hueco más despejado donde quepa la placa del título.
  *
  * Antes esta posición era un número escrito a mano por cada plantilla, y cada
@@ -629,7 +637,7 @@ async function huecoParaLaPlaca(
       .toBuffer({ resolveWithObject: true });
 
     // Color del papel: la mediana del borde exterior, que en estos diseños es
-    // siempre fondo limpio.
+    // casi siempre fondo limpio.
     const borde: number[] = [];
     for (let x = 0; x < ANCHO; x++) {
       borde.push(data[x], data[(ALTO - 1) * ANCHO + x]);
@@ -1273,6 +1281,12 @@ async function addTemplateCoverPage(
       m = chica;
       hueco = otro;
     }
+  }
+
+  // Ni encogiéndola hay sitio: la portada está pintada entera. Al pie, que es
+  // lo único que se lee como aposta y no como un descuido.
+  if (hueco && hueco.suciedad > PORTADA_LLENA) {
+    hueco = { x: (PAGE_WIDTH - m.ancho) / 2, y: PLAQUE_MARGIN, suciedad: hueco.suciedad };
   }
 
   const { nameSize, padY, lineH, dateSize, statsSize, nameLines, alto, ancho } = m;

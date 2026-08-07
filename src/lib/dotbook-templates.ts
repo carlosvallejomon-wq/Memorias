@@ -31,6 +31,11 @@ export type TemplateDotbookStyle =
   | "realBautizoMarmol"
   | "realBautizoCeleste"
   | "realBautizoAngel"
+  | "realCumpleSencilla"
+  | "realCumpleNina"
+  | "realCumpleOsito"
+  | "realCumpleArcoiris"
+  | "realCumpleNino"
   | "realViajes"
   | "realFamilia"
   | "realAnoNuevo"
@@ -96,7 +101,16 @@ export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
   { id: "realBautizoAngel", file: "bautizo-angel.jpg", label: "Bautizo · angelito", accent: [0.3, 0.42, 0.62], band: 0.5 },
 
   { id: "realBabyShower", file: "babyshower.jpg", label: "Baby shower", accent: [0.5, 0.62, 0.72], band: 0.435 },
-  { id: "realFiestaInfantil", file: "fiestainfantil.jpg", label: "Fiesta infantil", accent: [0.87, 0.56, 0.34], band: 0.4 },
+
+  // Fiesta infantil: seis diseños, de la portada sobria con marco para la foto
+  // a las ilustradas a todo color.
+  { id: "realFiestaInfantil", file: "fiestainfantil.jpg", label: "Fiesta infantil · clásica", accent: [0.87, 0.56, 0.34], band: 0.4 },
+  { id: "realCumpleSencilla", file: "cumple-sencilla.jpg", label: "Fiesta infantil · sencilla", accent: [0.28, 0.6, 0.62], band: 0.5 },
+  { id: "realCumpleNina", file: "cumple-nina.jpg", label: "Fiesta infantil · niña", accent: [0.55, 0.36, 0.62], band: 0.5 },
+  { id: "realCumpleOsito", file: "cumple-osito.jpg", label: "Fiesta infantil · osito", accent: [0.5, 0.3, 0.62], band: 0.5 },
+  { id: "realCumpleArcoiris", file: "cumple-arcoiris.jpg", label: "Fiesta infantil · arcoíris", accent: [0.45, 0.32, 0.66], band: 0.5 },
+  { id: "realCumpleNino", file: "cumple-nino.jpg", label: "Fiesta infantil · niño", accent: [0.18, 0.38, 0.68], band: 0.5 },
+
   { id: "realViajes", file: "viajes.jpg", label: "Viajes", accent: [0.74, 0.44, 0.2], band: 0.89 },
   { id: "realNavidad", file: "navidad.jpg", label: "Navidad", accent: [0.48, 0.1, 0.12], band: 0.31 },
   { id: "realAnoNuevo", file: "anonuevo.jpg", label: "Año nuevo", accent: [0.68, 0.55, 0.28], band: 0.375 },

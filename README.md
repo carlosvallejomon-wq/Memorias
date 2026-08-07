@@ -76,9 +76,9 @@ Para que el servicio (y la factura de almacenamiento) no se descontrolen:
 
 ## Añadir una portada de Dotbook
 
-Hay **27 diseños** de portada, con varios para las celebraciones donde más se
-suele querer elegir: **6 de boda**, **6 de quinceañera** y **6 de bautizo**.
-Para añadir otro:
+Hay **32 diseños** de portada, con varios para las celebraciones donde más se
+suele querer elegir: **6 de boda**, **6 de quinceañera**, **6 de bautizo** y
+**6 de fiesta infantil**. Para añadir otro:
 
 1. Deja el JPG en `public/dotbook-templates/` (proporción parecida a un
    folio, p. ej. 1057×1500).
@@ -87,8 +87,10 @@ Para añadir otro:
 3. Añade una línea a `TEMPLATE_COVER_LIST` en `src/lib/dotbook-templates.ts`.
 
 No hace falta calcular dónde va el título: la app analiza el diseño y coloca
-la placa sola en el hueco que quede libre, y si el diseño va lleno de borde a
-borde la hace más pequeña para tapar lo menos posible.
+la placa sola en el hueco que quede libre. Si el diseño va muy lleno la hace
+más pequeña, y si va pintado de esquina a esquina —una portada infantil, por
+ejemplo— la pone al pie, que es donde queda como el pie de una foto y nunca
+se come el título del diseño.
 
 ## Dos ajustes opcionales por álbum
 
