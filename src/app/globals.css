@@ -81,6 +81,34 @@ body::before {
   box-shadow: var(--shadow-lift);
 }
 
+/* Barra superior de cristal, la misma en la portada, el panel y el álbum del
+   invitado. Antes era un crema al 85 %, que a efectos prácticos era una banda
+   opaca: se veía como un corte y no dejaba pasar el color de lo que hubiera
+   debajo. Con poca opacidad y saturación alta, el desenfoque tiñe la barra de
+   lo que esté pasando por debajo. El color de respaldo va aparte, para los
+   navegadores sin `backdrop-filter` (ahí sí hace falta que sea casi opaco o
+   el texto se vuelve ilegible sobre las fotos). */
+.barra-cristal {
+  background: rgba(250, 246, 240, 0.92);
+  border-bottom: 1px solid rgba(43, 33, 24, 0.07);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .barra-cristal {
+    background: rgba(250, 246, 240, 0.5);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+  }
+}
+
+/* Arriba del todo de la portada no hace falta ni eso: se deja ver la foto. */
+.barra-cristal-arriba {
+  background: transparent;
+  border-bottom-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .glass-dark {
   background: rgba(20, 14, 10, 0.55);
   backdrop-filter: blur(20px) saturate(160%);

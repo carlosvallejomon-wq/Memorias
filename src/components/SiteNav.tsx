@@ -27,8 +27,8 @@ export function SiteNav() {
 
   return (
     <header
-      className={`sticky top-0 z-40 transition-colors ${
-        scrolled ? "border-b border-tinta/8 bg-crema/85 backdrop-blur-md" : ""
+      className={`barra-cristal sticky top-0 z-40 transition-colors ${
+        scrolled ? "" : "barra-cristal-arriba"
       }`}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
@@ -68,7 +68,7 @@ export function SiteNav() {
       </div>
 
       {open && (
-        <div className="animate-fade-in border-t border-tinta/8 bg-crema px-6 pb-4 md:hidden">
+        <div className="barra-cristal animate-fade-in border-t border-tinta/8 px-6 pb-4 md:hidden">
           <nav className="flex flex-col">
             {LINKS.map((l) => (
               <a
