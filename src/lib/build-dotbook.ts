@@ -312,6 +312,49 @@ export type DotbookExtras = {
 
 type Fonts = { bold: PDFFont; regular: PDFFont; italic: PDFFont };
 
+/**
+ * Deja el texto en caracteres que las fuentes del PDF saben escribir.
+ *
+ * Las fuentes estándar de pdf-lib usan WinAnsi, que cubre el español entero
+ * pero no los emoji ni los símbolos raros. Y no los ignora: **lanza una
+ * excepción**. Como los comentarios y las dedicatorias los escriben los
+ * invitados desde el móvil, con un solo "❤️" en un comentario la descarga del
+ * Dotbook entero se caía con un error 500 — justo el día del evento y sin que
+ * el organizador pudiera hacer nada.
+ *
+ * Los emoji más habituales se cambian por su equivalente escrito, para que la
+ * frase siga teniendo sentido; el resto de lo que no se puede escribir se
+ * quita. Las tildes, la eñe y los signos de apertura se quedan como están.
+ */
+const EMOJI_A_TEXTO: [RegExp, string][] = [
+  [/[\u{2764}\u{2665}\u{2661}\u{1F494}]|[\u{1F495}-\u{1F49F}]/gu, "<3"],
+  // El de llorar de risa va antes que la carita genérica: cae dentro del mismo
+  // rango y si no se comprueba primero salía como una sonrisa cualquiera.
+  [/[\u{1F602}\u{1F923}]/gu, ":D"],
+  [/[\u{1F600}-\u{1F607}]|[\u{1F642}-\u{1F643}]|\u{1F60A}|\u{1F60D}/gu, ":)"],
+  [/[\u{1F622}\u{1F62D}\u{1F97A}]/gu, ":'("],
+  [/[\u{1F44F}\u{1F389}\u{1F38A}✨]/gu, "!"],
+];
+
+export function textoParaPdf(text: string): string {
+  // Fuera los selectores de variante y los "juntadores" antes de nada: sin
+  // esto, "❤️" son dos puntos de código y el corazón salía duplicado.
+  let limpio = text.replace(/[\u{FE0E}\u{FE0F}\u{200D}]/gu, "");
+  for (const [patron, reemplazo] of EMOJI_A_TEXTO) limpio = limpio.replace(patron, reemplazo);
+  // Lo que quede fuera de WinAnsi (otros emoji, alfabetos no latinos, comillas
+  // exóticas) se cae, y con él el espacio que lo precede, para no dejar un
+  // hueco doble en mitad de la frase. Ojo con colapsar espacios a lo bruto:
+  // eso se cargaba el "M E M O R I A S   V I V A S" del encabezado, que
+  // lleva los espacios de más a propósito.
+  limpio = limpio
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/ ?[^ -ÿ€‚ƒ†‡ˆ‰ŠŽŒ]+/g, "");
+  return limpio.trim();
+}
+
 function drawCentered(
   page: PDFPage,
   text: string,
@@ -322,8 +365,9 @@ function drawCentered(
   /** Centro horizontal. Por defecto el de la página. */
   centerX = PAGE_WIDTH / 2,
 ) {
-  const width = font.widthOfTextAtSize(text, size);
-  page.drawText(text, { x: centerX - width / 2, y, size, font, color });
+  const limpio = textoParaPdf(text);
+  const width = font.widthOfTextAtSize(limpio, size);
+  page.drawText(limpio, { x: centerX - width / 2, y, size, font, color });
 }
 
 // Parte un texto en líneas que caben en `maxWidth`, respetando los saltos de
@@ -335,7 +379,7 @@ function wrapLines(
   size: number,
 ): string[] {
   const lines: string[] = [];
-  for (const paragraph of text.split(/\r?\n/)) {
+  for (const paragraph of textoParaPdf(text).split(/\r?\n/)) {
     let line = "";
     for (const word of paragraph.split(" ")) {
       const test = line ? `${line} ${word}` : word;
@@ -1442,7 +1486,7 @@ async function addPhotoPage(
   ]
     .filter(Boolean)
     .join("  ·  ");
-  page.drawText(caption, { x: frameX, y, size: 12, font: fonts.bold, color: palette.ink });
+  page.drawText(textoParaPdf(caption), { x: frameX, y, size: 12, font: fonts.bold, color: palette.ink });
 
   if (reactionCount > 0) {
     const label = `${reactionCount} ${reactionCount === 1 ? "reacción" : "reacciones"}`;
@@ -1556,9 +1600,9 @@ function addMessagePages(
       });
     });
 
-    const signature = `— ${message.authorName?.trim() || "Anónimo"} · ${formatLongDate(
-      message.createdAt,
-    )}`;
+    const signature = textoParaPdf(
+      `— ${message.authorName?.trim() || "Anónimo"} · ${formatLongDate(message.createdAt)}`,
+    );
     const sigWidth = fonts.regular.widthOfTextAtSize(signature, 9.5);
     p.drawText(signature, {
       x: MARGIN + cardW - 18 - sigWidth,
