@@ -8,7 +8,11 @@ import {
   deleteChallenge,
 } from "@/app/dashboard/actions";
 import { ChallengeIcon } from "@/components/ChallengeIcon";
-import { CHALLENGE_ICONS, DEFAULT_CHALLENGE_ICON } from "@/lib/challenge-icons";
+import {
+  CHALLENGE_ICONS,
+  DEFAULT_CHALLENGE_ICON,
+  challengeIconStyle,
+} from "@/lib/challenge-icons";
 
 export type ChallengeRow = {
   id: string;
@@ -118,7 +122,10 @@ export function ChallengeManager({
               key={c.id}
               className="flex items-center gap-3 rounded-xl border border-tinta/10 bg-crema px-3 py-2"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-teja shadow-soft">
+              <span
+                style={challengeIconStyle(c.emoji)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-teja shadow-soft"
+              >
                 <ChallengeIcon icon={c.emoji} size={17} />
               </span>
               <span className="min-w-0 flex-1 truncate font-medium">{c.title}</span>
@@ -153,22 +160,33 @@ export function ChallengeManager({
           Elige un icono
         </p>
         <div className="scroll-x mt-2 flex gap-1.5 pb-1">
-          {ICON_CHOICES.map((id) => (
-            <button
-              key={id}
-              type="button"
-              title={CHALLENGE_ICONS[id]?.label ?? id}
-              aria-pressed={emoji === id}
-              onClick={() => setEmoji(id)}
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition ${
-                emoji === id
-                  ? "border-teja bg-teja text-white shadow-soft"
-                  : "border-tinta/10 bg-white text-tinta/60 hover:border-teja/40 hover:text-teja"
-              }`}
-            >
-              <ChallengeIcon icon={id} size={17} />
-            </button>
-          ))}
+          {ICON_CHOICES.map((id) => {
+            const info = CHALLENGE_ICONS[id];
+            const elegido = emoji === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                title={info?.label ?? id}
+                aria-pressed={elegido}
+                onClick={() => setEmoji(id)}
+                // Cada icono con su color: sin elegir va sobre su fondo suave;
+                // el elegido invierte a color pleno y se marca con un aro.
+                style={
+                  info
+                    ? elegido
+                      ? { backgroundColor: info.color, color: "#fff", boxShadow: `0 0 0 3px ${info.bg}` }
+                      : { backgroundColor: info.bg, color: info.color }
+                    : undefined
+                }
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition hover:scale-105 ${
+                  elegido ? "shadow-soft" : ""
+                }`}
+              >
+                <ChallengeIcon icon={id} size={18} />
+              </button>
+            );
+          })}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {/* El ancho mínimo hace que en el móvil el campo salte a su propia

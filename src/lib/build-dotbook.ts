@@ -18,6 +18,12 @@ import {
 } from "pdf-lib";
 import QRCode from "qrcode";
 import type { albums, media } from "@/db/schema";
+import {
+  TEMPLATE_COVER_LIST,
+  isTemplateDotbookStyle,
+  type TemplateCoverMeta,
+  type TemplateDotbookStyle,
+} from "@/lib/dotbook-templates";
 
 const PAGE_WIDTH = 595; // A4 a 72dpi
 const PAGE_HEIGHT = 842;
@@ -50,63 +56,18 @@ export const VECTOR_DOTBOOK_STYLES: { id: VectorDotbookStyle; label: string }[] 
 // recreados vectorialmente. Cada uno trae un color de acento propio, que
 // las páginas de foto siguientes heredan para el fondo, la sombra y el
 // margen, así todo el Dotbook queda a juego con la portada real.
-export type TemplateDotbookStyle =
-  | "realGeneral"
-  | "realGraduacion"
-  | "realComunion"
-  | "realQuince"
-  | "realViajes"
-  | "realFamilia"
-  | "realAnoNuevo"
-  | "realBoda"
-  | "realBabyShower"
-  | "realBautizo"
-  | "realFiestaInfantil"
-  | "realNavidad";
+export type { TemplateDotbookStyle };
 
-type TemplateCoverConfig = {
-  file: string;
-  accent: RGB;
-  label: string;
-  // Punto vertical (0 = arriba, 1 = abajo) donde el diseño tiene su franja más
-  // despejada. Ahí va la placa con el nombre del álbum, para no tapar el dibujo.
-  band: number;
-  // Algunos diseños tienen el hueco libre muy justo (p. ej. entre un título y
-  // la ilustración de abajo). Con esto la placa se hace algo más pequeña para
-  // que quepa sin montarse encima del texto del propio diseño.
-  compact?: boolean;
-};
+type TemplateCoverConfig = Omit<TemplateCoverMeta, "accent"> & { accent: RGB };
 
-const TEMPLATE_COVERS: Record<TemplateDotbookStyle, TemplateCoverConfig> = {
-  realGeneral: { file: "general.jpg", accent: rgb(0.62, 0.55, 0.42), label: "Recuerdos en general", band: 0.8225 },
-  realGraduacion: { file: "graduacion.jpg", accent: rgb(0.16, 0.21, 0.35), label: "Graduación", band: 0.9 },
-  realComunion: { file: "comunion.jpg", accent: rgb(0.72, 0.58, 0.32), label: "Primera comunión", band: 0.885 },
-  realQuince: {
-    file: "quince.jpg",
-    accent: rgb(0.82, 0.5, 0.6),
-    label: "Quinceañera",
-    band: 0.97,
-    compact: true,
-  },
-  realViajes: { file: "viajes.jpg", accent: rgb(0.74, 0.44, 0.2), label: "Viajes (diseño real)", band: 0.89 },
-  realFamilia: {
-    file: "familia.jpg",
-    accent: rgb(0.5, 0.38, 0.25),
-    label: "Familia (diseño real)",
-    band: 0.405,
-    compact: true,
-  },
-  realAnoNuevo: { file: "anonuevo.jpg", accent: rgb(0.68, 0.55, 0.28), label: "Año nuevo", band: 0.375 },
-  realBoda: { file: "boda.jpg", accent: rgb(0.44, 0.13, 0.18), label: "Boda", band: 0.42 },
-  realBabyShower: { file: "babyshower.jpg", accent: rgb(0.5, 0.62, 0.72), label: "Baby shower", band: 0.435 },
-  realBautizo: { file: "bautizo.jpg", accent: rgb(0.76, 0.59, 0.47), label: "Bautizo", band: 0.89 },
-  realFiestaInfantil: { file: "fiestainfantil.jpg", accent: rgb(0.87, 0.56, 0.34), label: "Fiesta infantil", band: 0.4 },
-  realNavidad: { file: "navidad.jpg", accent: rgb(0.48, 0.1, 0.12), label: "Navidad (diseño real)", band: 0.31 },
-};
+// El catálogo vive en dotbook-templates.ts (compartido con el selector del
+// navegador); aquí solo se pasa el color al tipo que entiende pdf-lib.
+const TEMPLATE_COVERS = Object.fromEntries(
+  TEMPLATE_COVER_LIST.map((t) => [t.id, { ...t, accent: rgb(...t.accent) }]),
+) as Record<TemplateDotbookStyle, TemplateCoverConfig>;
 
-export const TEMPLATE_DOTBOOK_STYLES: { id: TemplateDotbookStyle; label: string }[] = (
-  Object.entries(TEMPLATE_COVERS) as [TemplateDotbookStyle, TemplateCoverConfig][]
-).map(([id, cfg]) => ({ id, label: cfg.label }));
+export const TEMPLATE_DOTBOOK_STYLES: { id: TemplateDotbookStyle; label: string }[] =
+  TEMPLATE_COVER_LIST.map((t) => ({ id: t.id, label: t.label }));
 
 export type DotbookStyle = VectorDotbookStyle | TemplateDotbookStyle;
 
@@ -116,7 +77,7 @@ export const DOTBOOK_STYLES: { id: DotbookStyle; label: string }[] = [
 ];
 
 function isTemplateStyle(style: DotbookStyle): style is TemplateDotbookStyle {
-  return Object.prototype.hasOwnProperty.call(TEMPLATE_COVERS, style);
+  return isTemplateDotbookStyle(style);
 }
 
 /** Páginas de recuerdo como mucho, para que el PDF se genere y se pueda abrir. */
@@ -358,9 +319,11 @@ function drawCentered(
   font: PDFFont,
   size: number,
   color: RGB,
+  /** Centro horizontal. Por defecto el de la página. */
+  centerX = PAGE_WIDTH / 2,
 ) {
   const width = font.widthOfTextAtSize(text, size);
-  page.drawText(text, { x: (PAGE_WIDTH - width) / 2, y, size, font, color });
+  page.drawText(text, { x: centerX - width / 2, y, size, font, color });
 }
 
 // Parte un texto en líneas que caben en `maxWidth`, respetando los saltos de
@@ -591,16 +554,216 @@ async function tryEmbedImage(pdf: PDFDocument, url: string, descargada?: Descarg
   }
 }
 
+/**
+ * Carga una portada de plantilla LEYÉNDOLA DEL DISCO, no por internet.
+ *
+ * Antes el servidor se pedía la imagen a su propia web
+ * (`https://…/dotbook-templates/boda.jpg`). En los despliegues de vista
+ * previa, que Vercel protege con contraseña, esa petición volvía con la
+ * pantalla de acceso en vez de la foto: la portada bonita fallaba en silencio
+ * y el libro salía con el diseño antiguo. Leyendo del disco no hay petición
+ * que pueda fallar, y además se ahorra una espera.
+ */
+async function leerPlantilla(file: string): Promise<Uint8Array | null> {
+  // Nombre de archivo fijo, nunca viene del usuario, pero se recorta a la
+  // última parte por si acaso.
+  const nombre = file.split("/").pop() ?? "";
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const bytes = await readFile(join(process.cwd(), "public", "dotbook-templates", nombre));
+    return new Uint8Array(bytes);
+  } catch (err) {
+    console.error(`No se pudo leer la portada de plantilla «${nombre}»:`, err);
+    return null;
+  }
+}
+
+/**
+ * Dónde cabe la placa. `suciedad` es lo más marcado del dibujo que queda
+ * debajo (0 = del todo limpio); es lo único que sirve para comparar dos
+ * tamaños de placa, porque el `coste` con el que se elige la posición incluye
+ * además las preferencias de sitio (abajo y centrada) y no dice nada de si
+ * tapa algo.
+ */
+type Hueco = { x: number; y: number; suciedad: number };
+
+/**
+ * A partir de aquí el mejor hueco ya no está limpio: hay dibujo o texto del
+ * propio diseño donde iría la placa. Cuando pasa, se vuelve a buscar con la
+ * placa pequeña antes de resignarse a taparlo.
+ */
+const HUECO_LIMPIO = 45;
+
+/**
+ * Y a partir de aquí no hay hueco en toda la portada: el diseño va ilustrado
+ * de esquina a esquina y la placa va a tapar algo se ponga donde se ponga.
+ * Entonces se deja de buscar y se pone abajo del todo, como el pie de una
+ * foto — que es donde menos raro queda y donde nunca se come el título.
+ */
+const PORTADA_LLENA = 120;
+
+/**
+ * Busca en la portada el hueco más despejado donde quepa la placa del título.
+ *
+ * Antes esta posición era un número escrito a mano por cada plantilla, y cada
+ * vez que se afinaba una se estropeaba otra: la placa acababa encima del
+ * dibujo o del texto del propio diseño. Aquí se mira la imagen de verdad —
+ * cuánto "detalle" hay en cada franja— y se elige la que menos tiene, del
+ * tamaño exacto que va a ocupar la placa. Así también funciona con las
+ * plantillas que se añadan más adelante, sin tocar código.
+ *
+ * Devuelve la esquina inferior izquierda de la placa (en puntos de PDF, con el
+ * 0 abajo) y lo sucio que ha quedado el mejor hueco, o null si no se pudo
+ * analizar — entonces se usa el valor de respaldo de siempre.
+ */
+async function huecoParaLaPlaca(
+  bytes: Uint8Array,
+  anchoPlaca: number,
+  altoPlaca: number,
+): Promise<Hueco | null> {
+  try {
+    const sharp = (await import("sharp")).default;
+
+    // Se analiza en pequeño (rápido y sin ruido de detalle fino) y con la
+    // misma proporción y recorte que tendrá en la página.
+    const ANCHO = 120;
+    const ALTO = Math.round((ANCHO * PAGE_HEIGHT) / PAGE_WIDTH);
+    const { data } = await sharp(bytes)
+      .rotate()
+      .resize(ANCHO, ALTO, { fit: "cover", position: "centre" })
+      .greyscale()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    // Color del papel: la mediana del borde exterior, que en estos diseños es
+    // casi siempre fondo limpio.
+    const borde: number[] = [];
+    for (let x = 0; x < ANCHO; x++) {
+      borde.push(data[x], data[(ALTO - 1) * ANCHO + x]);
+    }
+    for (let y = 0; y < ALTO; y++) {
+      borde.push(data[y * ANCHO], data[y * ANCHO + ANCHO - 1]);
+    }
+    borde.sort((a, b) => a - b);
+    const fondo = borde[Math.floor(borde.length / 2)];
+
+    // "Detalle" = cuánto cambia cada píxel respecto a sus vecinos, MÁS cuánto
+    // se aleja del color del papel. Solo con lo primero, un título grande de
+    // color suave (el "15 Years" rosa sobre crema) apenas puntuaba y la placa
+    // se plantaba encima; lo segundo lo detecta aunque tenga poco contraste.
+    const detalle = new Float64Array(ANCHO * ALTO);
+    for (let y = 1; y < ALTO - 1; y++) {
+      for (let x = 1; x < ANCHO - 1; x++) {
+        const i = y * ANCHO + x;
+        const dx = Math.abs(data[i - 1] - data[i + 1]);
+        const dy = Math.abs(data[i - ANCHO] - data[i + ANCHO]);
+        const lejosDelPapel = Math.abs(data[i] - fondo);
+        detalle[i] = dx + dy + lejosDelPapel * 0.8;
+      }
+    }
+
+    // Tamaño de la placa en la rejilla de análisis, con algo de aire alrededor
+    // para que no quede pegada a lo que tenga al lado.
+    const anchoCaja = Math.min(ANCHO, Math.round(((anchoPlaca + 24) / PAGE_WIDTH) * ANCHO));
+    const altoCaja = Math.max(1, Math.round(((altoPlaca + 16) / PAGE_HEIGHT) * ALTO));
+    const margenY = Math.round((26 / PAGE_HEIGHT) * ALTO);
+    const margenX = Math.round((MARGIN / PAGE_WIDTH) * ANCHO);
+
+    // Se prueba la placa en varias posiciones, moviéndola también a izquierda
+    // y derecha. Con los diseños más cargados —una quinceañera dibujada justo
+    // en el centro— quedarse siempre centrada obligaba a taparle la cara o el
+    // vestido; dejándola correrse a un lado cabe en el hueco de al lado.
+    const izquierdaMax = ANCHO - margenX - anchoCaja;
+    const posicionesX: number[] = [];
+    for (let k = 0; k <= 8; k++) {
+      const x = Math.round(margenX + ((izquierdaMax - margenX) * k) / 8);
+      if (x >= 0 && x + anchoCaja <= ANCHO) posicionesX.push(x);
+    }
+    if (posicionesX.length === 0) posicionesX.push(Math.max(0, Math.round((ANCHO - anchoCaja) / 2)));
+
+    const centroX = (ANCHO - anchoCaja) / 2;
+    let mejorX = -1;
+    let mejorY = -1;
+    let mejorCoste = Infinity;
+    let mejorSuciedad = Infinity;
+
+    for (const x0 of posicionesX) {
+      const x1 = Math.min(ANCHO, x0 + anchoCaja);
+
+      // De cada fila se guarda su punto MÁS marcado dentro de estas columnas,
+      // no la media: un subtítulo fino ("PHOTO ALBUM COVER FOR BAPTISM") son
+      // cuatro píxeles oscuros que, promediados a lo ancho de la placa, salían
+      // casi gratis — y la placa acababa comiéndose la primera palabra.
+      const maxPorFila = new Float64Array(ALTO);
+      for (let y = 0; y < ALTO; y++) {
+        let m = 0;
+        for (let x = x0; x < x1; x++) {
+          const v = detalle[y * ANCHO + x];
+          if (v > m) m = v;
+        }
+        maxPorFila[y] = m;
+      }
+
+      for (let top = margenY; top + altoCaja <= ALTO - margenY; top++) {
+        // Lo más marcado que hay en toda la caja: si dentro cae cualquier
+        // texto o dibujo, esa posición queda descartada frente a una limpia.
+        let peor = 0;
+        for (let y = top; y < top + altoCaja; y++) {
+          if (maxPorFila[y] > peor) peor = maxPorFila[y];
+        }
+        // A igualdad de limpieza se prefiere abajo (donde un pie de portada se
+        // ve natural) y centrada (que es lo más formal): solo se descentra si
+        // de verdad compensa.
+        const centroVertical = (top + altoCaja / 2) / ALTO;
+        const desvio = Math.abs(x0 - centroX) / ANCHO;
+        const total = peor + (1 - centroVertical) * 12 + desvio * 45;
+        if (total < mejorCoste) {
+          mejorCoste = total;
+          mejorSuciedad = peor;
+          mejorX = x0;
+          mejorY = top;
+        }
+      }
+    }
+    if (mejorY < 0 || mejorX < 0) return null;
+
+    // De coordenadas de imagen (0 arriba) a coordenadas de PDF (0 abajo).
+    const centroDesdeArriba = (mejorY + altoCaja / 2) / ALTO;
+    return {
+      x: ((mejorX + anchoCaja / 2) / ANCHO) * PAGE_WIDTH - anchoPlaca / 2,
+      y: PAGE_HEIGHT * (1 - centroDesdeArriba) - altoPlaca / 2,
+      suciedad: mejorSuciedad,
+    };
+  } catch (err) {
+    console.error("No se pudo analizar la portada para colocar el título:", err);
+    return null;
+  }
+}
+
 type Descarga = { bytes: Uint8Array; esPng: boolean };
+
+/**
+ * Lado máximo, en píxeles, con el que se incrusta cada foto en el PDF.
+ *
+ * En la página la foto ocupa como mucho unos 500x420 puntos, o sea unos
+ * 1.400 px impresos a buena calidad. Meter el original de 12 megapíxeles no
+ * se ve mejor y multiplica por veinte el peso del archivo: un libro de 60
+ * fotos pasaba de 6 MB a 130 MB, y descargar eso desde un móvil es lo que
+ * hacía que "el PDF tardara" aunque el servidor ya hubiera terminado.
+ */
+const FOTO_MAX_PX = 1400;
+
+/** Cuántas fotos se reducen a la vez (hay ~4 núcleos en la función). */
+const REDUCIR_A_LA_VEZ = 4;
 
 async function descargar(url: string): Promise<Descarga | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
-    return {
-      bytes: new Uint8Array(await res.arrayBuffer()),
-      esPng: (res.headers.get("content-type") ?? "").includes("png"),
-    };
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const esPng = (res.headers.get("content-type") ?? "").includes("png");
+    return await reducir(bytes, esPng);
   } catch (err) {
     console.error("No se pudo descargar la imagen del Dotbook:", err);
     return null;
@@ -608,20 +771,53 @@ async function descargar(url: string): Promise<Descarga | null> {
 }
 
 /**
- * Baja todas las fotos ANTES de montar las páginas, de ocho en ocho.
+ * Deja la foto en el tamaño en que se va a imprimir. Si algo falla (formato
+ * raro, foto corrupta) se devuelve el original: más vale un libro pesado que
+ * un libro sin esa foto.
+ */
+async function reducir(bytes: Uint8Array, esPng: boolean): Promise<Descarga> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const salida = await sharp(bytes)
+      // `rotate()` sin argumentos aplica la orientación EXIF: sin esto, las
+      // fotos hechas en vertical con el móvil salían tumbadas al reducirlas.
+      .rotate()
+      .resize({
+        width: FOTO_MAX_PX,
+        height: FOTO_MAX_PX,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      // Un PNG con transparencia acabaría con el fondo negro al pasarlo a
+      // JPG; sobre blanco queda como una foto normal impresa en papel.
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 82, mozjpeg: true })
+      .toBuffer();
+    return { bytes: new Uint8Array(salida), esPng: false };
+  } catch (err) {
+    console.error("No se pudo reducir una foto del Dotbook, se usa el original:", err);
+    return { bytes, esPng };
+  }
+}
+
+/**
+ * Baja y prepara todas las fotos ANTES de montar las páginas, en tandas.
  *
  * Antes se descargaban de una en una, justo cuando le tocaba a cada página:
  * con 200 recuerdos eso son 200 esperas seguidas y el PDF tardaba una
  * eternidad (o se quedaba sin tiempo). Ahora se solapan, que es donde está
  * casi todo el tiempo de espera.
+ *
+ * El tamaño de tanda lo manda el reducido de fotos, no la descarga: reducir
+ * usa el procesador, y lanzar veinte a la vez con cuatro núcleos solo hace
+ * que se estorben entre ellas.
  */
 async function descargarTodas(urls: string[]): Promise<Map<string, Descarga>> {
   const unicas = [...new Set(urls)];
   const cache = new Map<string, Descarga>();
-  const TANDA = 8;
 
-  for (let i = 0; i < unicas.length; i += TANDA) {
-    const tanda = unicas.slice(i, i + TANDA);
+  for (let i = 0; i < unicas.length; i += REDUCIR_A_LA_VEZ) {
+    const tanda = unicas.slice(i, i + REDUCIR_A_LA_VEZ);
     const resultados = await Promise.all(tanda.map((u) => descargar(u)));
     tanda.forEach((u, j) => {
       const r = resultados[j];
@@ -999,13 +1195,15 @@ function addCoverPage(
 // "Graduation"). La franja usa un tono oscuro del propio color de acento del
 // diseño para que el texto blanco siempre se lea bien encima, sea cual sea
 // el diseño.
-function addTemplateCoverPage(
+async function addTemplateCoverPage(
   pdf: PDFDocument,
   album: Album,
   fonts: Fonts,
   stats: { total: number; uploaders: number; days: number },
   templateImage: PDFImage,
   cover: TemplateCoverConfig,
+  /** Bytes del diseño, para analizar dónde queda hueco libre. */
+  templateBytes: Uint8Array | null,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   drawImageCover(page, templateImage, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
@@ -1035,35 +1233,73 @@ function addTemplateCoverPage(
   // En los diseños con el hueco libre muy justo, la placa se hace algo más
   // pequeña (menos relleno, letra algo menor) para que quepa sin montarse
   // sobre el propio texto del diseño.
-  const nameSize = cover.compact ? 18 : 22;
-  const padX = cover.compact ? 24 : 30;
-  const padY = cover.compact ? 15 : 22;
-  const lineH = cover.compact ? 22 : 27;
-  const dateGap = cover.compact ? 14 : 20;
-  const footerGap = cover.compact ? 12 : 16;
-  const dateSize = cover.compact ? 11 : 12;
-  const statsSize = cover.compact ? 9 : 10;
+  const medidas = (compacta: boolean) => {
+    const nameSize = compacta ? 18 : 22;
+    const padX = compacta ? 24 : 30;
+    const padY = compacta ? 15 : 22;
+    const lineH = compacta ? 22 : 27;
+    const dateGap = compacta ? 14 : 20;
+    const footerGap = compacta ? 12 : 16;
+    const dateSize = compacta ? 11 : 12;
+    const statsSize = compacta ? 9 : 10;
 
-  const maxTextW = PAGE_WIDTH - MARGIN * 2 - 60;
-  const nameLines = wrapLines(album.name, maxTextW, fonts.bold, nameSize);
+    const maxTextW = PAGE_WIDTH - MARGIN * 2 - 60;
+    const nameLines = wrapLines(album.name, maxTextW, fonts.bold, nameSize);
+    const anchoTexto = Math.max(
+      ...nameLines.map((l) => fonts.bold.widthOfTextAtSize(l, nameSize)),
+      dateLabel ? fonts.italic.widthOfTextAtSize(dateLabel, dateSize) : 0,
+      fonts.regular.widthOfTextAtSize(statsLine, statsSize),
+    );
 
-  const anchoTexto = Math.max(
-    ...nameLines.map((l) => fonts.bold.widthOfTextAtSize(l, nameSize)),
-    dateLabel ? fonts.italic.widthOfTextAtSize(dateLabel, dateSize) : 0,
-    fonts.regular.widthOfTextAtSize(statsLine, statsSize),
-  );
-
-  const alto = padY * 2 + nameLines.length * lineH + (dateLabel ? dateGap : 0) + footerGap;
-  const ancho = Math.min(anchoTexto + padX * 2, PAGE_WIDTH - MARGIN * 2);
+    return {
+      nameSize, padX, padY, lineH, dateGap, footerGap, dateSize, statsSize, nameLines,
+      alto: padY * 2 + nameLines.length * lineH + (dateLabel ? dateGap : 0) + footerGap,
+      ancho: Math.min(anchoTexto + padX * 2, PAGE_WIDTH - MARGIN * 2),
+    };
+  };
 
   // El recorte vertical de la placa usa un margen propio, más ajustado que el
   // de las fotos: en los diseños donde la única franja libre queda pegada al
   // borde (p. ej. justo debajo de una etiqueta decorativa), el margen general
   // de página (50pt) dejaba muy poco hueco y forzaba a tapar el texto.
   const PLAQUE_MARGIN = 22;
-  const centro = PAGE_HEIGHT * (1 - cover.band);
-  const y = clamp(centro - alto / 2, PLAQUE_MARGIN, PAGE_HEIGHT - PLAQUE_MARGIN - alto);
-  const x = (PAGE_WIDTH - ancho) / 2;
+
+  // Se mira la imagen para encontrar el hueco libre del tamaño exacto de la
+  // placa. `cover.band` solo se usa si ese análisis no se puede hacer.
+  let m = medidas(cover.compact === true);
+  let hueco = templateBytes ? await huecoParaLaPlaca(templateBytes, m.ancho, m.alto) : null;
+
+  // Si ni el mejor hueco está limpio, el diseño va lleno de borde a borde (una
+  // corona de flores que ocupa la portada entera) y la placa grande no cabe en
+  // ningún sitio sin comerse el dibujo. Antes eso se apañaba a mano marcando
+  // `compact` plantilla por plantilla; ahora se prueba la pequeña y se queda
+  // con ella solo si de verdad encuentra sitio mejor.
+  if (hueco && hueco.suciedad > HUECO_LIMPIO && !cover.compact) {
+    const chica = medidas(true);
+    const otro = await huecoParaLaPlaca(templateBytes!, chica.ancho, chica.alto);
+    if (otro && otro.suciedad < hueco.suciedad * 0.75) {
+      m = chica;
+      hueco = otro;
+    }
+  }
+
+  // Ni encogiéndola hay sitio: la portada está pintada entera. Al pie, que es
+  // lo único que se lee como aposta y no como un descuido.
+  if (hueco && hueco.suciedad > PORTADA_LLENA) {
+    hueco = { x: (PAGE_WIDTH - m.ancho) / 2, y: PLAQUE_MARGIN, suciedad: hueco.suciedad };
+  }
+
+  const { nameSize, padY, lineH, dateSize, statsSize, nameLines, alto, ancho } = m;
+  const y = clamp(
+    hueco?.y ?? PAGE_HEIGHT * (1 - cover.band) - alto / 2,
+    PLAQUE_MARGIN,
+    PAGE_HEIGHT - PLAQUE_MARGIN - alto,
+  );
+  const x = clamp(
+    hueco?.x ?? (PAGE_WIDTH - ancho) / 2,
+    PLAQUE_MARGIN,
+    PAGE_WIDTH - PLAQUE_MARGIN - ancho,
+  );
 
   // Sombra suave, placa color papel y un filete del color del diseño.
   drawRoundedBox(page, x + 3, y - 3, ancho, alto, 10, rgb(0.2, 0.17, 0.12), 0.12);
@@ -1076,18 +1312,22 @@ function addTemplateCoverPage(
     opacity: 0.55,
   });
 
+  // El texto se centra en la PLACA, no en la página: la placa puede haberse
+  // corrido a un lado para no tapar el dibujo.
+  const centroPlaca = x + ancho / 2;
+
   let cursor = y + alto - padY - nameSize * 0.85;
   for (const linea of nameLines) {
-    drawCentered(page, linea, cursor, fonts.bold, nameSize, ink);
+    drawCentered(page, linea, cursor, fonts.bold, nameSize, ink, centroPlaca);
     cursor -= lineH;
   }
   cursor += lineH - (cover.compact ? 20 : 24);
 
   if (dateLabel) {
-    drawCentered(page, dateLabel, cursor, fonts.italic, dateSize, inkSoft);
+    drawCentered(page, dateLabel, cursor, fonts.italic, dateSize, inkSoft, centroPlaca);
     cursor -= cover.compact ? 15 : 18;
   }
-  drawCentered(page, statsLine, cursor, fonts.regular, statsSize, inkSoft);
+  drawCentered(page, statsLine, cursor, fonts.regular, statsSize, inkSoft, centroPlaca);
 }
 
 async function addPhotoPage(
@@ -1432,13 +1672,28 @@ export async function buildDotbookPdf(
   ].filter((u): u is string => !!u));
 
   let templateCoverImage: PDFImage | null = null;
+  let templateBytes: Uint8Array | null = null;
   if (isTemplateStyle(style)) {
-    const cfg = TEMPLATE_COVERS[style];
-    templateCoverImage = await tryEmbedImage(pdf, `${extras.baseUrl}/dotbook-templates/${cfg.file}`);
+    templateBytes = await leerPlantilla(TEMPLATE_COVERS[style].file);
+    if (templateBytes) {
+      try {
+        templateCoverImage = await pdf.embedJpg(templateBytes);
+      } catch (err) {
+        console.error("No se pudo incrustar la portada de plantilla:", err);
+      }
+    }
   }
 
   if (templateCoverImage && isTemplateStyle(style)) {
-    addTemplateCoverPage(pdf, album, fonts, stats, templateCoverImage, TEMPLATE_COVERS[style]);
+    await addTemplateCoverPage(
+      pdf,
+      album,
+      fonts,
+      stats,
+      templateCoverImage,
+      TEMPLATE_COVERS[style],
+      templateBytes,
+    );
   } else {
     const previewImages: PDFImage[] = [];
     for (const url of portadasNecesarias) {

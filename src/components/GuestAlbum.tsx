@@ -182,6 +182,23 @@ export function GuestAlbum({
     refreshChallenges();
   }, [refreshChallenges]);
 
+  // Cerrar el saludo del nombre: se marca como ya preguntado para no volver a
+  // sacarlo, se haya escrito nombre o no.
+  const cerrarNombre = useCallback(() => {
+    localStorage.setItem("mv_guest_name_asked", "1");
+    setAskName(false);
+  }, []);
+
+  // La tecla Esc cierra el saludo, como en cualquier ventana del sistema.
+  useEffect(() => {
+    if (!askName) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") cerrarNombre();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [askName, cerrarNombre]);
+
   // Durante la fiesta la gente sube fotos a la vez: sin esto había que
   // recargar a mano para ver lo que iban subiendo los demás. Solo consulta
   // cuando la pestaña está a la vista, para no gastar datos ni batería en un
@@ -923,12 +940,31 @@ export function GuestAlbum({
         </div>
       )}
 
-      {/* Diálogo para pedir el nombre (opcional, una sola vez) */}
+      {/* Diálogo para pedir el nombre (opcional, una sola vez). Se puede
+          cerrar de tres formas —la X, tocar fuera o la tecla Esc—: es una
+          pregunta opcional y quedarse encerrado en ella no tiene sentido. */}
       {askName && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
-          <div className="glass animate-fade-in w-full max-w-sm rounded-2xl p-6">
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4"
+          onClick={cerrarNombre}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mv-saludo"
+            className="glass animate-fade-in relative w-full max-w-sm rounded-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={cerrarNombre}
+              aria-label="Cerrar"
+              className="btn btn-ghost absolute right-3 top-3 p-1.5"
+            >
+              <X size={18} />
+            </button>
             <h2
-              className="text-lg font-semibold"
+              id="mv-saludo"
+              className="pr-8 text-lg font-semibold"
               style={{ fontFamily: "var(--font-display)" }}
             >
               ¡Hola! 👋
@@ -940,8 +976,7 @@ export function GuestAlbum({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                localStorage.setItem("mv_guest_name_asked", "1");
-                setAskName(false);
+                cerrarNombre();
               }}
             >
               <input
@@ -954,6 +989,13 @@ export function GuestAlbum({
               />
               <button type="submit" className="btn btn-primary shimmer mt-3 w-full">
                 Continuar
+              </button>
+              <button
+                type="button"
+                onClick={cerrarNombre}
+                className="btn btn-ghost mt-1 w-full text-sm"
+              >
+                Ahora no
               </button>
             </form>
           </div>

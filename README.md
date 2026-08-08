@@ -74,6 +74,24 @@ Para que el servicio (y la factura de almacenamiento) no se descontrolen:
   es mayor, escoge una selección repartida de principio a fin del evento y lo
   dice en la última página. El álbum completo sigue estando entero.
 
+## Añadir una portada de Dotbook
+
+Hay **47 diseños** de portada, con seis para cada ocasión donde más se suele
+querer elegir: **boda**, **quinceañera**, **bautizo**, **primera comunión**,
+**fiesta infantil**, **baby shower** y **viajes**. Para añadir otro:
+
+1. Deja el JPG en `public/dotbook-templates/` (proporción parecida a un
+   folio, p. ej. 1057×1500).
+2. Deja una miniatura del **mismo nombre** en
+   `public/dotbook-templates/thumbs/` (124×160 va bien).
+3. Añade una línea a `TEMPLATE_COVER_LIST` en `src/lib/dotbook-templates.ts`.
+
+No hace falta calcular dónde va el título: la app analiza el diseño y coloca
+la placa sola en el hueco que quede libre. Si el diseño va muy lleno la hace
+más pequeña, y si va pintado de esquina a esquina —una portada infantil, por
+ejemplo— la pone al pie, que es donde queda como el pie de una foto y nunca
+se come el título del diseño.
+
 ## Dos ajustes opcionales por álbum
 
 Los dos vienen **apagados**. Si no los tocas, el álbum funciona como siempre:

@@ -2,21 +2,14 @@
 
 import { useState } from "react";
 import { BookOpen, X, Download } from "lucide-react";
+import {
+  TEMPLATE_COVER_LIST,
+  type TemplateDotbookStyle,
+} from "@/lib/dotbook-templates";
 
-const REAL_STYLES = [
-  { id: "realGeneral", label: "Recuerdos en general" },
-  { id: "realFamilia", label: "Familia" },
-  { id: "realBoda", label: "Boda" },
-  { id: "realQuince", label: "Quinceañera" },
-  { id: "realGraduacion", label: "Graduación" },
-  { id: "realComunion", label: "Primera comunión" },
-  { id: "realBautizo", label: "Bautizo" },
-  { id: "realBabyShower", label: "Baby shower" },
-  { id: "realFiestaInfantil", label: "Fiesta infantil" },
-  { id: "realViajes", label: "Viajes" },
-  { id: "realNavidad", label: "Navidad" },
-  { id: "realAnoNuevo", label: "Año nuevo" },
-] as const;
+// Las portadas con diseño salen del catálogo compartido: así, al añadir una
+// nueva, aparece aquí sola y no hay dos listas que se puedan desincronizar.
+const REAL_STYLES = TEMPLATE_COVER_LIST;
 
 const VECTOR_STYLES = [
   { id: "clasico", label: "Cálido floral", swatch: "from-oro to-teja" },
@@ -27,27 +20,12 @@ const VECTOR_STYLES = [
   { id: "viajes", label: "Viajes (vectorial)", swatch: "from-teja to-arena" },
 ] as const;
 
-type StyleId = (typeof REAL_STYLES)[number]["id"] | (typeof VECTOR_STYLES)[number]["id"];
+type StyleId = TemplateDotbookStyle | (typeof VECTOR_STYLES)[number]["id"];
 
 const ALL_LABELS: Record<StyleId, string> = Object.fromEntries([
   ...REAL_STYLES.map((s) => [s.id, s.label]),
   ...VECTOR_STYLES.map((s) => [s.id, s.label]),
 ]) as Record<StyleId, string>;
-
-const THUMB_FILE: Record<(typeof REAL_STYLES)[number]["id"], string> = {
-  realGeneral: "general.jpg",
-  realFamilia: "familia.jpg",
-  realBoda: "boda.jpg",
-  realQuince: "quince.jpg",
-  realGraduacion: "graduacion.jpg",
-  realComunion: "comunion.jpg",
-  realBautizo: "bautizo.jpg",
-  realBabyShower: "babyshower.jpg",
-  realFiestaInfantil: "fiestainfantil.jpg",
-  realViajes: "viajes.jpg",
-  realNavidad: "navidad.jpg",
-  realAnoNuevo: "anonuevo.jpg",
-};
 
 export function DotbookGenerator({ albumId }: { albumId: string }) {
   const [open, setOpen] = useState(false);
@@ -100,7 +78,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
                   >
                     <div className="aspect-[124/160] overflow-hidden bg-arena">
                       <img
-                        src={`/dotbook-templates/thumbs/${THUMB_FILE[s.id]}`}
+                        src={`/dotbook-templates/thumbs/${s.file}`}
                         alt={s.label}
                         className="h-full w-full object-cover"
                       />
