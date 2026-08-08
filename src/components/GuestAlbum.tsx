@@ -583,7 +583,7 @@ export function GuestAlbum({
 
       {/* Barra de pestañas pegajosa: en el móvil se navega con el pulgar sin
           tener que volver arriba del todo. */}
-      <nav className="sticky top-0 z-20 -mx-4 mt-5 border-b border-tinta/8 bg-crema/85 px-4 py-2.5 backdrop-blur-md">
+      <nav className="barra-cristal sticky top-0 z-20 -mx-4 mt-5 px-4 py-2.5">
         <div className="scroll-x flex items-center gap-2">
           {tabs.map((t) => (
             <button

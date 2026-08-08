@@ -30,6 +30,7 @@ import {
   Reveal,
   RetosMockup,
 } from "@/components/LandingPieces";
+import { TEMPLATE_COVER_LIST } from "@/lib/dotbook-templates";
 
 const TRUST = [
   { icon: WifiOff, title: "Nada que instalar", text: "Se abre en el navegador del móvil" },
@@ -224,24 +225,41 @@ function MuroMockup() {
   );
 }
 
+// Tres portadas reales en abanico. Antes era una sola miniatura de 124 px
+// estirada, que se veía borrosa y además no daba idea de que hubiera dónde
+// elegir; estas salen de `medios/`, a tamaño de pantalla y unos 50 KB cada una.
+const DOTBOOK_ABANICO = [
+  { file: "quince-flores.jpg", alt: "Portada de quinceañera", clase: "-left-12 top-8 -rotate-[7deg]" },
+  { file: "familia-polaroids.jpg", alt: "Portada de familia", clase: "left-12 top-5 rotate-[7deg]" },
+];
+
+// La proporción es la de las propias portadas (1057×1500), no un 3/4 a ojo:
+// forzando 3/4 el `object-cover` recortaba el pie del diseño.
+const HOJA = "aspect-[1057/1500] w-full object-cover";
+
 function DotbookMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-xs">
-      {/* Dos libros: uno detrás asomando y la portada delante. */}
-      <div
-        className="absolute left-6 top-4 h-full w-full rounded-r-xl rounded-l-sm bg-arena shadow-soft"
-        style={{ transform: "rotate(4deg)" }}
-      />
+    <div className="relative mx-auto w-full max-w-[15rem] pb-6">
+      {DOTBOOK_ABANICO.map((p) => (
+        <div
+          key={p.file}
+          className={`absolute h-full w-full overflow-hidden rounded-r-xl rounded-l-sm bg-white shadow-soft ${p.clase}`}
+        >
+          <img src={`/dotbook-templates/medios/${p.file}`} alt={p.alt} className={HOJA} />
+        </div>
+      ))}
+
       <div className="relative overflow-hidden rounded-r-xl rounded-l-sm bg-white shadow-lift">
-        <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-tinta/25 to-transparent" />
+        <div className="absolute inset-y-0 left-0 z-10 w-3 bg-gradient-to-r from-tinta/25 to-transparent" />
         <img
-          src="/dotbook-templates/thumbs/boda.jpg"
-          alt="Portada de ejemplo del Dotbook"
-          className="aspect-[3/4] w-full object-cover"
+          src="/dotbook-templates/medios/boda-flores.jpg"
+          alt="Portada de boda del Dotbook"
+          className={HOJA}
         />
       </div>
-      <div className="glass absolute -bottom-5 -right-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold shadow-lift">
-        <BookOpen size={15} className="text-teja" /> 12 diseños de portada
+
+      <div className="glass absolute -bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-semibold shadow-lift">
+        <BookOpen size={15} className="text-teja" /> {TEMPLATE_COVER_LIST.length} diseños de portada
       </div>
     </div>
   );
@@ -292,8 +310,12 @@ function Showcase({
 }
 
 export default function Home() {
+  // `overflow-x-clip` y no `overflow-hidden`: los dos recortan las polaroids
+  // decorativas que se salen por los lados, pero `hidden` convierte esto en un
+  // contenedor de scroll y eso anula el `sticky` de la barra de arriba, que se
+  // iba con la página en vez de quedarse fija.
   return (
-    <div className="relative z-[1] overflow-hidden">
+    <div className="relative z-[1] overflow-x-clip">
       <SiteNav />
 
       <main>
@@ -505,7 +527,7 @@ export default function Home() {
             title="Tu álbum convertido en un libro de recuerdos"
             text="Con un clic se genera un PDF con portada a elegir, una página por cada recuerdo con sus comentarios, y las dedicatorias del muro al final. Listo para guardar o llevar a imprimir."
             bullets={[
-              "12 diseños de portada, más 6 estilos dibujados",
+              `${TEMPLATE_COVER_LIST.length} diseños de portada, más 6 estilos dibujados`,
               "Los vídeos llevan un QR que abre el original",
               "Se descarga al momento, sin esperar ni encargar nada",
             ]}

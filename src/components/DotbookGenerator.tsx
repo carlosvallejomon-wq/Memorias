@@ -3,13 +3,21 @@
 import { useState } from "react";
 import { BookOpen, X, Download } from "lucide-react";
 import {
+  TEMPLATE_COVER_GROUPS,
   TEMPLATE_COVER_LIST,
+  type TemplateCoverGroup,
   type TemplateDotbookStyle,
 } from "@/lib/dotbook-templates";
 
 // Las portadas con diseño salen del catálogo compartido: así, al añadir una
 // nueva, aparece aquí sola y no hay dos listas que se puedan desincronizar.
 const REAL_STYLES = TEMPLATE_COVER_LIST;
+
+// Solo se ofrecen las pestañas que tienen algo dentro, para que añadir o
+// quitar portadas no deje una categoría vacía en la barra.
+const GRUPOS_CON_PORTADAS = TEMPLATE_COVER_GROUPS.filter(
+  (g) => g.id === "todas" || REAL_STYLES.some((s) => s.grupo === g.id),
+);
 
 const VECTOR_STYLES = [
   { id: "clasico", label: "Cálido floral", swatch: "from-oro to-teja" },
@@ -30,6 +38,10 @@ const ALL_LABELS: Record<StyleId, string> = Object.fromEntries([
 export function DotbookGenerator({ albumId }: { albumId: string }) {
   const [open, setOpen] = useState(false);
   const [styleId, setStyleId] = useState<StyleId>(REAL_STYLES[0].id);
+  const [grupo, setGrupo] = useState<TemplateCoverGroup>("todas");
+
+  const visibles =
+    grupo === "todas" ? REAL_STYLES : REAL_STYLES.filter((s) => s.grupo === grupo);
 
   return (
     <>
@@ -66,8 +78,22 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-tinta/50">
                 Diseño de portada
               </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {GRUPOS_CON_PORTADAS.map((g) => (
+                  <button
+                    key={g.id}
+                    onClick={() => setGrupo(g.id)}
+                    className={`chip ${grupo === g.id ? "chip-active" : ""}`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-tinta/50">
+                {visibles.length} {visibles.length === 1 ? "diseño" : "diseños"}
+              </p>
               <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                {REAL_STYLES.map((s) => (
+                {visibles.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setStyleId(s.id)}
