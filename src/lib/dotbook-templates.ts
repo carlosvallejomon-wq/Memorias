@@ -47,10 +47,10 @@ export type TemplateDotbookStyle =
   | "realCumpleArcoiris"
   | "realCumpleNino"
   | "realFamiliaIlustrada"
-  | "realFamiliaMontana"
-  | "realFamiliaAcuarela"
   | "realFamiliaManos"
-  | "realFamiliaPlaya"
+  | "realFamiliaCampo"
+  | "realFamiliaFlores"
+  | "realFamiliaPolaroids"
   | "realViajesVintage"
   | "realViajesPolaroid"
   | "realViajesAventuras"
@@ -92,15 +92,13 @@ export type TemplateCoverMeta = {
 export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
   { id: "realGeneral", file: "general.jpg", label: "Recuerdos en general", accent: [0.62, 0.55, 0.42], band: 0.8225 },
 
-  // Familia. "Montaña" y "montaña y manos" son el mismo diseño cambiando una
-  // foto pequeña de abajo; se dejan las dos porque a tamaño grande sí se
-  // distinguen, pero por eso llevan nombres que dicen en qué se diferencian.
+  // Familia.
   { id: "realFamilia", file: "familia.jpg", label: "Familia · clásica", accent: [0.5, 0.38, 0.25], band: 0.405, compact: true },
-  { id: "realFamiliaIlustrada", file: "familia-ilustrada.jpg", label: "Familia · ilustrada", accent: [0.62, 0.42, 0.3], band: 0.5 },
-  { id: "realFamiliaMontana", file: "familia-montana.jpg", label: "Familia · montaña", accent: [0.32, 0.38, 0.45], band: 0.5 },
-  { id: "realFamiliaManos", file: "familia-manos.jpg", label: "Familia · montaña y manos", accent: [0.32, 0.38, 0.45], band: 0.5 },
-  { id: "realFamiliaAcuarela", file: "familia-acuarela.jpg", label: "Familia · acuarela", accent: [0.55, 0.45, 0.35], band: 0.5 },
-  { id: "realFamiliaPlaya", file: "familia-playa.jpg", label: "Familia · playa", accent: [0.24, 0.28, 0.4], band: 0.5 },
+  { id: "realFamiliaManos", file: "familia-manos.jpg", label: "Familia · montaña", accent: [0.32, 0.38, 0.45], band: 0.5 },
+  { id: "realFamiliaCampo", file: "familia-campo.jpg", label: "Familia · campo", accent: [0.55, 0.46, 0.3], band: 0.5 },
+  { id: "realFamiliaFlores", file: "familia-flores.jpg", label: "Familia · flores", accent: [0.63, 0.42, 0.28], band: 0.5 },
+  { id: "realFamiliaPolaroids", file: "familia-polaroids.jpg", label: "Familia · polaroids", accent: [0.5, 0.42, 0.36], band: 0.5 },
+  { id: "realFamiliaIlustrada", file: "familia-ilustrada.jpg", label: "Familia · ilustrada", accent: [0.26, 0.33, 0.45], band: 0.5 },
 
   // Boda: varios diseños, desde el clásico con foto hasta los ilustrados.
   { id: "realBoda", file: "boda.jpg", label: "Boda · clásica", accent: [0.44, 0.13, 0.18], band: 0.42 },
