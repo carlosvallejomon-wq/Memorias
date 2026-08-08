@@ -109,6 +109,37 @@ body::before {
   -webkit-backdrop-filter: none;
 }
 
+/* Variante flotante: en vez de una banda de lado a lado, una pastilla
+   despegada del borde. Con las esquinas rectas la barra parecía parte de la
+   página y no se entendía que fuera algo fijo mientras se baja; redondeada,
+   con sombra y un filete del color de la marca, se lee como lo que es: una
+   barra por encima del contenido. */
+.barra-pastilla {
+  border-radius: 1.15rem;
+  border: 1px solid rgba(194, 87, 27, 0.16);
+  background: rgba(250, 246, 240, 0.94);
+  box-shadow:
+    0 2px 6px rgba(43, 33, 24, 0.06),
+    0 14px 34px -14px rgba(43, 33, 24, 0.3);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .barra-pastilla {
+    background: rgba(250, 246, 240, 0.6);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+  }
+}
+
+/* Sin bajar todavía: la pastilla se disuelve y no molesta. */
+.barra-pastilla-arriba {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .glass-dark {
   background: rgba(20, 14, 10, 0.55);
   backdrop-filter: blur(20px) saturate(160%);

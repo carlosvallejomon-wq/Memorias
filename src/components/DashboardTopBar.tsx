@@ -6,8 +6,8 @@ import { Camera, LayoutGrid, Plus } from "lucide-react";
 // y no en una página suelta, y deja siempre a mano crear un álbum.
 export function DashboardTopBar() {
   return (
-    <header className="barra-cristal sticky top-0 z-30">
-      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
+    <header className="sticky top-0 z-30 px-3 pt-2 sm:pt-3">
+      <div className="barra-pastilla mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-tinta text-crema">
             <Camera size={17} />
