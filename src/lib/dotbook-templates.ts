@@ -46,6 +46,11 @@ export type TemplateDotbookStyle =
   | "realCumpleOsito"
   | "realCumpleArcoiris"
   | "realCumpleNino"
+  | "realViajesVintage"
+  | "realViajesPolaroid"
+  | "realViajesAventuras"
+  | "realViajesCoche"
+  | "realViajesPostales"
   | "realViajes"
   | "realFamilia"
   | "realAnoNuevo"
@@ -138,7 +143,15 @@ export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
   { id: "realCumpleArcoiris", file: "cumple-arcoiris.jpg", label: "Fiesta infantil · arcoíris", accent: [0.45, 0.32, 0.66], band: 0.5 },
   { id: "realCumpleNino", file: "cumple-nino.jpg", label: "Fiesta infantil · niño", accent: [0.18, 0.38, 0.68], band: 0.5 },
 
-  { id: "realViajes", file: "viajes.jpg", label: "Viajes", accent: [0.74, 0.44, 0.2], band: 0.89 },
+
+  // Viajes: seis diseños, del cuaderno de cuero al dibujo del coche cargado.
+  { id: "realViajes", file: "viajes.jpg", label: "Viajes · clásico", accent: [0.74, 0.44, 0.2], band: 0.89 },
+  { id: "realViajesVintage", file: "viajes-vintage.jpg", label: "Viajes · cuaderno de cuero", accent: [0.45, 0.34, 0.2], band: 0.5 },
+  { id: "realViajesPolaroid", file: "viajes-polaroid.jpg", label: "Viajes · polaroid", accent: [0.4, 0.3, 0.18], band: 0.5 },
+  { id: "realViajesAventuras", file: "viajes-aventuras.jpg", label: "Viajes · aventuras", accent: [0.2, 0.28, 0.42], band: 0.5 },
+  { id: "realViajesCoche", file: "viajes-coche.jpg", label: "Viajes · en coche", accent: [0.32, 0.58, 0.6], band: 0.5 },
+  { id: "realViajesPostales", file: "viajes-postales.jpg", label: "Viajes · postales", accent: [0.55, 0.45, 0.25], band: 0.5 },
+
   { id: "realNavidad", file: "navidad.jpg", label: "Navidad", accent: [0.48, 0.1, 0.12], band: 0.31 },
   { id: "realAnoNuevo", file: "anonuevo.jpg", label: "Año nuevo", accent: [0.68, 0.55, 0.28], band: 0.375 },
 ];
