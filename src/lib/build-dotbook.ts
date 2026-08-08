@@ -625,9 +625,12 @@ async function huecoParaLaPlaca(
   try {
     const sharp = (await import("sharp")).default;
 
-    // Se analiza en pequeño (rápido y sin ruido de detalle fino) y con la
-    // misma proporción y recorte que tendrá en la página.
-    const ANCHO = 120;
+    // Se analiza reducida (rápido) y con la misma proporción y recorte que
+    // tendrá en la página. A 120 px de ancho una línea de texto fina —un
+    // "MAKING MEMORIES TOGETHER" de tres píxeles de alto en el original— se
+    // promediaba hasta desaparecer, y la placa se plantaba encima creyendo
+    // que ahí no había nada. A 240 sobrevive y sigue costando milisegundos.
+    const ANCHO = 240;
     const ALTO = Math.round((ANCHO * PAGE_HEIGHT) / PAGE_WIDTH);
     const { data } = await sharp(bytes)
       .rotate()
