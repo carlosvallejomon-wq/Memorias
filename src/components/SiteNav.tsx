@@ -26,12 +26,16 @@ export function SiteNav() {
   }, []);
 
   return (
-    <header
-      className={`barra-cristal sticky top-0 z-40 transition-colors ${
-        scrolled ? "" : "barra-cristal-arriba"
-      }`}
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
+    <header className="sticky top-0 z-40 px-3 pt-2 sm:px-4 sm:pt-3">
+      <div
+        // Con el menú del móvil desplegado la pastilla se pinta sí o sí,
+        // aunque no se haya bajado: si no, los enlaces quedan flotando sobre
+        // la foto de la portada y no se leen.
+        className={`barra-pastilla mx-auto max-w-6xl overflow-hidden transition-all duration-300 ${
+          scrolled || open ? "" : "barra-pastilla-arriba"
+        }`}
+      >
+      <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-tinta text-crema">
             <Camera size={18} />
@@ -68,7 +72,7 @@ export function SiteNav() {
       </div>
 
       {open && (
-        <div className="barra-cristal animate-fade-in border-t border-tinta/8 px-6 pb-4 md:hidden">
+        <div className="animate-fade-in border-t border-tinta/8 px-5 pb-4 md:hidden">
           <nav className="flex flex-col">
             {LINKS.map((l) => (
               <a
@@ -86,6 +90,7 @@ export function SiteNav() {
           </Link>
         </div>
       )}
+      </div>
     </header>
   );
 }
