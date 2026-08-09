@@ -1377,6 +1377,81 @@ async function addTemplateCoverPage(
   drawCentered(page, statsLine, cursor, fonts.regular, statsSize, inkSoft, centroPlaca);
 }
 
+/**
+ * Alto que va a ocupar el pie de la página (autor, fecha y comentarios).
+ *
+ * Se calcula antes de dibujar nada para poder darle a la foto TODO el hueco
+ * que sobra. Antes el marco medía 420 puntos fijos y el pie se colocaba
+ * debajo: en una página de 842 eso dejaba media hoja en blanco, y el libro
+ * parecía una plantilla a medio rellenar.
+ */
+function altoDelPie(comments: string[], fonts: Fonts, anchoTexto: number): number {
+  let alto = 26 + 22; // separador + línea de autor y fecha
+  for (const comment of comments.slice(0, 2)) {
+    const lineas = wrapLines(`"${comment.slice(0, 160)}"`, anchoTexto, fonts.italic, 11);
+    alto += lineas.length * 15 + 18;
+  }
+  return alto;
+}
+
+/** Escribe el pie y devuelve dónde se ha quedado. */
+function dibujarPie(
+  page: PDFPage,
+  fonts: Fonts,
+  item: MediaItem,
+  comments: string[],
+  reactionCount: number,
+  palette: Palette,
+  x: number,
+  y: number,
+  ancho: number,
+) {
+  const caption = [
+    item.uploaderName ? `Subido por ${item.uploaderName}` : "Anónimo",
+    formatLongDate(item.takenAt ?? item.createdAt),
+  ]
+    .filter(Boolean)
+    .join("  ·  ");
+  page.drawText(textoParaPdf(caption), { x, y, size: 12, font: fonts.bold, color: palette.ink });
+
+  if (reactionCount > 0) {
+    const label = `${reactionCount} ${reactionCount === 1 ? "reacción" : "reacciones"}`;
+    const w = fonts.regular.widthOfTextAtSize(label, 11);
+    page.drawText(label, { x: x + ancho - w, y, size: 11, font: fonts.regular, color: palette.accent });
+  }
+
+  let cursor = y - 22;
+  for (const comment of comments.slice(0, 2)) {
+    cursor = drawWrapped(
+      page,
+      `"${comment.slice(0, 160)}"`,
+      x,
+      cursor,
+      ancho,
+      15,
+      fonts.italic,
+      11,
+      palette.inkFaint,
+    );
+    cursor -= 18;
+  }
+  return cursor;
+}
+
+/**
+ * ¿Esta foto merece ir a sangre, ocupando la hoja entera?
+ *
+ * Solo las verticales: recortadas a proporción de folio pierden muy poco. Una
+ * foto apaisada a sangre habría que recortarla por la mitad para que llenara
+ * la página, y se comería justo a quien sale en ella. Además se alternan (una
+ * de cada tres) para que el libro tenga ritmo en vez de doscientas páginas
+ * clavadas iguales, que es lo que lo hacía parecer generado por una máquina.
+ */
+function vaASangre(image: PDFImage, index: number, tieneComentarios: boolean): boolean {
+  const esVertical = image.height / image.width > 1.15;
+  return esVertical && !tieneComentarios && index % 3 === 0;
+}
+
 async function addPhotoPage(
   pdf: PDFDocument,
   fonts: Fonts,
@@ -1389,77 +1464,128 @@ async function addPhotoPage(
   cache: Map<string, Descarga>,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  drawBackground(page, palette);
 
-  // Cabecera discreta a juego con la portada, para que cada página se sienta
-  // diseñada y no "una foto gigante pegada en blanco".
-  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, index * 2 + 11);
-  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
+  // Margen lateral propio de la foto, más estrecho que el del texto: una foto
+  // apaisada solo puede crecer a lo ancho, y cada punto que se le quita al
+  // margen se convierte en foto más grande.
+  const frameX = MARGIN - 6;
+  const frameW = PAGE_WIDTH - (MARGIN - 6) * 2;
 
-  const frameX = MARGIN + 12;
-  const frameW = PAGE_WIDTH - (MARGIN + 12) * 2;
-  const frameH = 420;
-  const frameY = PAGE_HEIGHT - 96 - frameH;
-
-  let embedded = false;
   // De los vídeos se imprime su fotograma de portada (los grabados antes de
   // que existiera no lo tienen y caen en el QR de siempre).
   const printable = item.type === "image" ? item.url : item.posterUrl;
-  if (printable) {
-    const image = await tryEmbedImage(pdf, printable, cache.get(printable));
-    if (image) {
-      const pad = 18;
-      drawFrame(page, frameX, frameY, frameW, frameH, palette.accent);
-      // "Contain" (no recorte) para la foto protagonista de la página: se ve
-      // completa siempre, sea cual sea su proporción original.
-      const innerW = frameW - pad * 2;
-      const innerH = frameH - pad * 2;
-      const scale = Math.min(innerW / image.width, innerH / image.height);
-      const w = image.width * scale;
-      const h = image.height * scale;
-      page.drawImage(image, {
-        x: frameX + (frameW - w) / 2,
-        y: frameY + (frameH - h) / 2,
-        width: w,
-        height: h,
-      });
-      embedded = true;
+  const image = printable ? await tryEmbedImage(pdf, printable, cache.get(printable)) : null;
 
-      // Un vídeo impreso es una foto quieta: se le pone un QR pequeño en la
-      // esquina para poder verlo de verdad desde el papel.
-      if (item.type === "video") {
-        const qrImage = await embedQr(pdf, item.url, 240);
-        const qrSize = 62;
-        const qx = frameX + frameW - pad - qrSize;
-        const qy = frameY + pad;
-        page.drawRectangle({
-          x: qx - 5,
-          y: qy - 5,
-          width: qrSize + 10,
-          height: qrSize + 10,
-          color: rgb(1, 1, 1),
-          opacity: 0.92,
-        });
-        page.drawImage(qrImage, { x: qx, y: qy, width: qrSize, height: qrSize });
-        // Justo debajo del marco, no encima del borde: ahí se cortaba.
-        drawCentered(page, "Escanea el QR para ver el vídeo", frameY - 12, fonts.regular, 9, palette.inkFaint);
-      }
+  // ---- Página a sangre: la foto es la página -------------------------------
+  if (image && item.type === "image" && vaASangre(image, index, comments.length > 0)) {
+    drawImageCover(page, image, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+
+    // Franja de papel abajo para que el pie se lea sobre cualquier foto, por
+    // oscura o clara que sea. Sin ella el texto desaparecía en las fotos
+    // nocturnas y se comía la cara en las claras.
+    const franja = 78;
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: PAGE_WIDTH,
+      height: franja,
+      color: palette.bg,
+      opacity: 0.93,
+    });
+    page.drawRectangle({ x: 0, y: franja, width: PAGE_WIDTH, height: 1.2, color: palette.accent, opacity: 0.55 });
+
+    dibujarPie(page, fonts, item, comments, reactionCount, palette, MARGIN, franja - 30, PAGE_WIDTH - MARGIN * 2);
+    drawCentered(page, `${index} / ${total}`, 16, fonts.regular, 9, palette.inkFaint);
+    return;
+  }
+
+  // ---- Página con marco: la foto se estira hasta donde empieza el pie ------
+  drawBackground(page, palette);
+  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, index * 2 + 11);
+  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
+
+  const arribaDelArea = PAGE_HEIGHT - 96;
+  const abajoDelArea = 64; // hueco para el número de página
+  const hayAvisoDeVideo = item.type === "video" && !!image;
+  const pie = altoDelPie(comments, fonts, frameW) + (hayAvisoDeVideo ? 12 : 0);
+  const altoDisponible = arribaDelArea - abajoDelArea - pie - 22;
+
+  // El marco se ajusta a la foto en vez de ser una caja fija. Con una caja
+  // fija y alta, una foto apaisada dejaba dos bandas blancas enormes arriba y
+  // abajo dentro del propio marco, que es lo que hacía que la página pareciera
+  // a medio montar.
+  const pad = 18;
+  const proporcion = image ? image.width / image.height : 1.2;
+  let frameH = Math.min(altoDisponible, (frameW - pad * 2) / proporcion + pad * 2);
+  let frameWReal = Math.min(frameW, (frameH - pad * 2) * proporcion + pad * 2);
+  if (!image) {
+    // La página de respaldo con QR necesita sitio para el código y su leyenda.
+    frameH = Math.min(altoDisponible, 300);
+    frameWReal = frameW;
+  }
+
+  // El bloque entero (foto + pie) se centra en el hueco libre, para que los
+  // márgenes de arriba y de abajo queden parejos.
+  const altoBloque = frameH + 22 + pie;
+  // Ligeramente por debajo del centro geométrico: arriba ya hay encabezado y
+  // adorno ocupando sitio, así que repartir el sobrante a partes iguales dejaba
+  // la página con pinta de vacía por abajo.
+  const sobra = arribaDelArea - abajoDelArea - altoBloque;
+  const frameY = abajoDelArea + sobra * 0.58 + 22 + pie;
+  const frameXReal = (PAGE_WIDTH - frameWReal) / 2;
+
+  let embedded = false;
+  if (image) {
+    drawFrame(page, frameXReal, frameY, frameWReal, frameH, palette.accent);
+    // "Contain" (no recorte) para la foto protagonista: se ve completa
+    // siempre, sea cual sea su proporción original.
+    const innerW = frameWReal - pad * 2;
+    const innerH = frameH - pad * 2;
+    const scale = Math.min(innerW / image.width, innerH / image.height);
+    const w = image.width * scale;
+    const h = image.height * scale;
+    page.drawImage(image, {
+      x: frameXReal + (frameWReal - w) / 2,
+      y: frameY + (frameH - h) / 2,
+      width: w,
+      height: h,
+    });
+    embedded = true;
+
+    // Un vídeo impreso es una foto quieta: se le pone un QR pequeño en la
+    // esquina para poder verlo de verdad desde el papel.
+    if (item.type === "video") {
+      const qrImage = await embedQr(pdf, item.url, 240);
+      const qrSize = 62;
+      const qx = frameXReal + frameWReal - pad - qrSize;
+      const qy = frameY + pad;
+      page.drawRectangle({
+        x: qx - 5,
+        y: qy - 5,
+        width: qrSize + 10,
+        height: qrSize + 10,
+        color: rgb(1, 1, 1),
+        opacity: 0.92,
+      });
+      page.drawImage(qrImage, { x: qx, y: qy, width: qrSize, height: qrSize });
+      // Justo debajo del marco, no encima del borde: ahí se cortaba.
+      drawCentered(page, "Escanea el QR para ver el vídeo", frameY - 12, fonts.regular, 9, palette.inkFaint);
     }
   }
 
   if (!embedded) {
-    drawFrame(page, frameX, frameY, frameW, frameH, palette.accent);
+    drawFrame(page, frameXReal, frameY, frameWReal, frameH, palette.accent);
     page.drawRectangle({
-      x: frameX + 18,
+      x: frameXReal + 18,
       y: frameY + 18,
-      width: frameW - 36,
+      width: frameWReal - 36,
       height: frameH - 36,
       color: SAND,
     });
     const qrImage = await embedQr(pdf, item.url, 400);
     const qrSize = 200;
     page.drawImage(qrImage, {
-      x: frameX + (frameW - qrSize) / 2,
+      x: frameXReal + (frameWReal - qrSize) / 2,
       y: frameY + (frameH - qrSize) / 2 + 20,
       width: qrSize,
       height: qrSize,
@@ -1476,36 +1602,11 @@ async function addPhotoPage(
 
   // En los vídeos hay una línea extra bajo el marco («escanea el QR»), así que
   // el pie baja un poco para no montarse encima.
-  let y = frameY - (item.type === "video" && embedded ? 34 : 22);
+  let y = frameY - (hayAvisoDeVideo ? 34 : 22);
   drawDivider(page, y, palette.accent);
   y -= 26;
 
-  const caption = [
-    item.uploaderName ? `Subido por ${item.uploaderName}` : "Anónimo",
-    formatLongDate(item.takenAt ?? item.createdAt),
-  ]
-    .filter(Boolean)
-    .join("  ·  ");
-  page.drawText(textoParaPdf(caption), { x: frameX, y, size: 12, font: fonts.bold, color: palette.ink });
-
-  if (reactionCount > 0) {
-    const label = `${reactionCount} ${reactionCount === 1 ? "reacción" : "reacciones"}`;
-    const w = fonts.regular.widthOfTextAtSize(label, 11);
-    page.drawText(label, {
-      x: frameX + frameW - w,
-      y,
-      size: 11,
-      font: fonts.regular,
-      color: palette.accent,
-    });
-  }
-  y -= 22;
-
-  for (const comment of comments.slice(0, 2)) {
-    y = drawWrapped(page, `"${comment.slice(0, 160)}"`, frameX, y, frameW, 15, fonts.italic, 11, palette.inkFaint);
-    y -= 18;
-  }
-
+  dibujarPie(page, fonts, item, comments, reactionCount, palette, frameX, y, frameW);
   drawCentered(page, `${index} / ${total}`, 32, fonts.regular, 9, palette.inkFaint);
 }
 
