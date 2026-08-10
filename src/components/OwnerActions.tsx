@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2, Check, X, Loader2 } from "lucide-react";
 import {
   approveMedia,
@@ -17,25 +18,53 @@ export function DeleteAlbumButton({
   albumId: string;
   albumName: string;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  // La navegación la hace el navegador cuando la acción ha terminado, en vez
+  // de que la acción redirija: así el resultado (o el fallo) llega hasta aquí
+  // y se puede enseñar.
+  function borrar() {
+    if (
+      !confirm(
+        `¿Seguro que quieres borrar el álbum «${albumName}» y todo su contenido? Esta acción no se puede deshacer.`,
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      try {
+        const r = await deleteAlbum(albumId);
+        if (r.ok) {
+          router.push("/dashboard");
+          router.refresh();
+        } else {
+          setError(r.error ?? "No se pudo borrar el álbum.");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "No se pudo borrar el álbum.");
+      }
+    });
+  }
 
   return (
+    <div className="flex flex-col items-start gap-2">
     <button
       disabled={pending}
-      onClick={() => {
-        if (
-          confirm(
-            `¿Seguro que quieres borrar el álbum «${albumName}» y todo su contenido? Esta acción no se puede deshacer.`,
-          )
-        ) {
-          startTransition(() => deleteAlbum(albumId));
-        }
-      }}
+      onClick={borrar}
       className="flex items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-soft transition hover:bg-red-50 disabled:opacity-50"
     >
       {pending ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
       Borrar álbum
     </button>
+    {error && (
+      <p className="nota max-w-sm rounded-xl px-3 py-2 text-xs" role="alert">
+        {error}
+      </p>
+    )}
+    </div>
   );
 }
 

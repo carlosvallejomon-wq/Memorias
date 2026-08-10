@@ -12,12 +12,7 @@ export const dynamic = "force-dynamic";
 // Cuántas fotos se piden por álbum para montar la portada de su tarjeta.
 const COVERS_PER_ALBUM = 3;
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const { error } = await searchParams;
+export default async function DashboardPage() {
   const { userId } = await auth();
 
   const rows = await db()
@@ -109,18 +104,6 @@ export default async function DashboardPage({
     <>
       <DashboardTopBar />
       <main className="mx-auto max-w-5xl px-4 py-8">
-        {error === "borrado" && (
-          <p className="nota mb-5 rounded-xl px-4 py-3 text-sm">
-            No se pudo borrar el álbum del todo. Si sigue apareciendo en la
-            lista, vuelve a intentarlo; si ya no está, se borró bien.
-          </p>
-        )}
-        {error === "creacion" && (
-          <p className="nota mb-5 rounded-xl px-4 py-3 text-sm">
-            No se pudo crear el álbum. Vuelve a intentarlo; si sigue fallando,
-            abre <code>/api/diagnostico</code> para ver qué está pasando.
-          </p>
-        )}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1
