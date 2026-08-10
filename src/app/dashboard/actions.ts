@@ -37,29 +37,69 @@ export async function createAlbum(formData: FormData) {
   redirect(`/dashboard/${album.id}`);
 }
 
+/**
+ * Borra los archivos de Blob sin poner en riesgo la respuesta.
+ *
+ * Un álbum de boda son miles de archivos, y `del` va por tandas contra la red.
+ * Con un álbum grande eso se comía el tiempo de la función entera: el usuario
+ * veía "algo se ha torcido" aunque el álbum ya estuviera borrado, porque la
+ * fila se quita antes que los archivos. Ahora hay presupuesto de tiempo: lo
+ * que no dé tiempo a borrar se queda huérfano y se anota, que es mucho menos
+ * malo que dejar al organizador mirando una pantalla de error.
+ */
+const TANDA_BLOBS = 100;
+const MARGEN_MS = 6000;
+
+async function borrarArchivos(urls: string[]) {
+  const empezado = Date.now();
+  let borrados = 0;
+  for (let i = 0; i < urls.length; i += TANDA_BLOBS) {
+    if (Date.now() - empezado > MARGEN_MS) {
+      console.error(
+        `Quedaron ${urls.length - borrados} archivos sin borrar por falta de tiempo.`,
+      );
+      break;
+    }
+    try {
+      await del(urls.slice(i, i + TANDA_BLOBS));
+      borrados += Math.min(TANDA_BLOBS, urls.length - i);
+    } catch (err) {
+      console.error("No se pudo borrar una tanda de archivos:", err);
+    }
+  }
+}
+
 export async function deleteAlbum(albumId: string) {
   const { userId } = await auth();
   if (!userId) return;
 
-  const rows = await db()
-    .select({ url: media.url })
-    .from(media)
-    .where(eq(media.albumId, albumId));
+  // Fuera del try: `redirect` funciona lanzando una excepción propia de Next,
+  // así que atraparla aquí dejaría al usuario en la misma página.
+  let fallo: string | null = null;
 
-  const deleted = await db()
-    .delete(albums)
-    .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)))
-    .returning({ id: albums.id });
+  try {
+    const rows = await db()
+      .select({ url: media.url })
+      .from(media)
+      .where(eq(media.albumId, albumId));
 
-  if (deleted.length > 0 && rows.length > 0) {
-    try {
-      await del(rows.map((r) => r.url));
-    } catch (err) {
-      console.error("No se pudieron borrar los blobs del álbum:", err);
+    const deleted = await db()
+      .delete(albums)
+      .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)))
+      .returning({ id: albums.id });
+
+    if (deleted.length > 0 && rows.length > 0) {
+      await borrarArchivos(rows.map((r) => r.url));
     }
+  } catch (err) {
+    console.error("No se pudo borrar el álbum:", err);
+    fallo = err instanceof Error ? err.message : "error desconocido";
   }
 
-  redirect("/dashboard");
+  // Aunque algo falle, se vuelve al panel: si el álbum se borró, allí se ve
+  // que ya no está; y si no, se ve que sigue. Cualquiera de las dos cosas se
+  // entiende mejor que una pantalla de error.
+  redirect(fallo ? "/dashboard?error=borrado" : "/dashboard");
 }
 
 export async function deleteMedia(mediaId: string) {
