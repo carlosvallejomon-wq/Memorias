@@ -17,6 +17,8 @@ import {
 import { db } from "@/db";
 import { albums, challenges, comments, guestbookEntries, media, reactions } from "@/db/schema";
 import { ShareCard } from "@/components/ShareCard";
+import { ClientLinkCard } from "@/components/ClientLinkCard";
+import { clientLinkPath } from "@/lib/client-link";
 import { ModerationToggle } from "@/components/ModerationToggle";
 import { InvitationGenerator } from "@/components/InvitationGenerator";
 import { DotbookGenerator } from "@/components/DotbookGenerator";
@@ -155,6 +157,7 @@ export default async function AlbumAdminPage({
   const proto = h.get("x-forwarded-proto") ?? "https";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const shareUrl = `${proto}://${host}/a/${album.shareCode}`;
+  const clientUrl = `${proto}://${host}${clientLinkPath(album.shareCode, album.id)}`;
   const eventDateLabel = album.eventDate
     ? new Date(album.eventDate + "T00:00:00").toLocaleDateString("es-ES", {
         day: "numeric",
@@ -270,6 +273,8 @@ export default async function AlbumAdminPage({
         </section>
 
         <ShareCard shareUrl={shareUrl} />
+
+        <ClientLinkCard clientUrl={clientUrl} />
 
         <div className="mt-4 flex justify-center sm:justify-start">
           <ModerationToggle albumId={album.id} enabled={album.moderationEnabled} />

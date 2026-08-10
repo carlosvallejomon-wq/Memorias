@@ -35,7 +35,20 @@ const ALL_LABELS: Record<StyleId, string> = Object.fromEntries([
   ...VECTOR_STYLES.map((s) => [s.id, s.label]),
 ]) as Record<StyleId, string>;
 
-export function DotbookGenerator({ albumId }: { albumId: string }) {
+export function DotbookGenerator({
+  albumId,
+  /**
+   * De dónde se descarga el libro. Por defecto la ruta del panel, que pide
+   * cuenta; el dueño del evento entra con su enlace firmado y descarga desde
+   * la ruta pública, que es la misma pantalla pero otra puerta.
+   */
+  downloadBase,
+}: {
+  albumId: string;
+  downloadBase?: string;
+}) {
+  const base = downloadBase ?? `/api/albums/${albumId}/dotbook`;
+  const separador = base.includes("?") ? "&" : "?";
   const [open, setOpen] = useState(false);
   const [styleId, setStyleId] = useState<StyleId>(REAL_STYLES[0].id);
   const [grupo, setGrupo] = useState<TemplateCoverGroup>("todas");
@@ -141,7 +154,7 @@ export function DotbookGenerator({ albumId }: { albumId: string }) {
             <p className="mt-3 text-xs text-tinta/50">{ALL_LABELS[styleId]}</p>
 
             <a
-              href={`/api/albums/${albumId}/dotbook?style=${styleId}`}
+              href={`${base}${separador}style=${styleId}`}
               className="shimmer mt-3 flex items-center justify-center gap-2 rounded-lg bg-teja py-2.5 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro"
             >
               <Download size={16} /> Descargar Dotbook

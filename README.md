@@ -93,6 +93,23 @@ más pequeña, y si va pintado de esquina a esquina —una portada infantil, por
 ejemplo— la pone al pie, que es donde queda como el pie de una foto y nunca
 se come el título del diseño.
 
+## Si creas álbumes para otros (agencias y fotógrafos)
+
+Cuando el álbum lo creas tú para un cliente —una agencia que organiza la boda,
+un fotógrafo que lo incluye en su paquete—, el cliente no tiene cuenta y no
+puede entrar al panel. Pero la portada de su libro y su invitación son
+decisiones suyas.
+
+Para eso, en la página de cada álbum hay un **enlace para el dueño del
+evento**. Se lo mandas y él, sin registrarse:
+
+- elige el diseño de su invitación y escribe los datos de su evento;
+- elige entre las 52 portadas y se descarga su libro las veces que quiera.
+
+No ve el panel ni el resto de tus álbumes. El enlace va firmado, así que no lo
+puede adivinar un invitado que tenga el QR, y respeta el código de acceso y la
+fecha de borrado si los has puesto.
+
 ## Dos ajustes opcionales por álbum
 
 Los dos vienen **apagados**. Si no los tocas, el álbum funciona como siempre:
