@@ -641,8 +641,13 @@ type Hueco = { x: number; y: number; suciedad: number };
  * A partir de aquí el mejor hueco ya no está limpio: hay dibujo o texto del
  * propio diseño donde iría la placa. Cuando pasa, se vuelve a buscar con la
  * placa pequeña antes de resignarse a taparlo.
+ *
+ * Va en tanto por uno del contraste de la propia portada, no en valor
+ * absoluto. Un número fijo se equivocaba en los dos sentidos: en una foto
+ * nocturna llamaba "sucio" a un cielo liso, y en un dibujo de línea pálida
+ * llamaba "limpio" al dibujo entero.
  */
-const HUECO_LIMPIO = 45;
+const HUECO_LIMPIO = 0.09;
 
 /**
  * Y a partir de aquí no hay hueco en toda la portada: el diseño va ilustrado
@@ -650,7 +655,7 @@ const HUECO_LIMPIO = 45;
  * Entonces se deja de buscar y se pone abajo del todo, como el pie de una
  * foto — que es donde menos raro queda y donde nunca se come el título.
  */
-const PORTADA_LLENA = 120;
+const PORTADA_LLENA = 0.24;
 
 /**
  * Busca en la portada el hueco más despejado donde quepa la placa del título.
@@ -739,6 +744,13 @@ async function huecoParaLaPlaca(
     let mejorY = -1;
     let mejorCoste = Infinity;
     let mejorSuciedad = Infinity;
+    // Detalle más fuerte de toda la portada: es la vara de medir. Sin esto los
+    // umbrales eran números fijos, y en un diseño de trazo pálido —una tarta
+    // dibujada en rosa claro sobre rosa— el dibujo puntuaba 40 sobre un máximo
+    // de 210 y pasaba por "zona limpia", cuando en esa portada 40 es muchísimo.
+    let techo = 0;
+    for (let i = 0; i < detalle.length; i++) if (detalle[i] > techo) techo = detalle[i];
+    if (techo < 1) techo = 1;
 
     for (const x0 of posicionesX) {
       const x1 = Math.min(ANCHO, x0 + anchoCaja);
@@ -785,7 +797,8 @@ async function huecoParaLaPlaca(
     return {
       x: ((mejorX + anchoCaja / 2) / ANCHO) * PAGE_WIDTH - anchoPlaca / 2,
       y: PAGE_HEIGHT * (1 - centroDesdeArriba) - altoPlaca / 2,
-      suciedad: mejorSuciedad,
+      // En tanto por uno del contraste de esta portada, no en valor absoluto.
+      suciedad: mejorSuciedad / techo,
     };
   } catch (err) {
     console.error("No se pudo analizar la portada para colocar el título:", err);
