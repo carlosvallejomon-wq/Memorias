@@ -19,6 +19,11 @@ import {
 import QRCode from "qrcode";
 import type { albums, media } from "@/db/schema";
 import {
+  formaDe,
+  repartirEnPaginas,
+  type CandidataMosaico,
+} from "@/lib/dotbook-mosaico";
+import {
   TEMPLATE_COVER_LIST,
   isTemplateDotbookStyle,
   type TemplateCoverMeta,
@@ -1439,17 +1444,95 @@ function dibujarPie(
 }
 
 /**
- * ¿Esta foto merece ir a sangre, ocupando la hoja entera?
+ * Página de varias fotos: dos apiladas, dos lado a lado, o una grande con dos
+ * pequeñas debajo. Es lo que le da ritmo al libro; con una foto por hoja
+ * doscientas veces seguidas parecía un listado.
  *
- * Solo las verticales: recortadas a proporción de folio pierden muy poco. Una
- * foto apaisada a sangre habría que recortarla por la mitad para que llenara
- * la página, y se comería justo a quien sale en ella. Además se alternan (una
- * de cada tres) para que el libro tenga ritmo en vez de doscientas páginas
- * clavadas iguales, que es lo que lo hacía parecer generado por una máquina.
+ * Aquí no van comentarios: las fotos que llevan uno se imprimen solas, con su
+ * página entera, porque lo que escribió alguien merece leerse. Debajo de cada
+ * foto queda una línea discreta con quién la subió.
  */
-function vaASangre(image: PDFImage, index: number, tieneComentarios: boolean): boolean {
-  const esVertical = image.height / image.width > 1.15;
-  return esVertical && !tieneComentarios && index % 3 === 0;
+async function addMosaicPage(
+  pdf: PDFDocument,
+  fonts: Fonts,
+  tipo: "dosApiladas" | "dosLado" | "tres",
+  fotos: { item: MediaItem; image: PDFImage }[],
+  palette: Palette,
+  etiqueta: string,
+) {
+  const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  drawBackground(page, palette);
+  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, fotos.length * 7 + 3);
+  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
+
+  const izq = MARGIN - 6;
+  const anchoTotal = PAGE_WIDTH - izq * 2;
+  const arriba = PAGE_HEIGHT - 96;
+  const abajo = 64;
+  const hueco = 16;          // aire entre fotos
+  const pieFoto = 15;        // línea de "subido por" bajo cada foto
+
+  // Dibuja una foto encajada en su hueco, con su marco ajustado y su pie.
+  const celda = (
+    f: { item: MediaItem; image: PDFImage },
+    cx: number,
+    cy: number,
+    cw: number,
+    ch: number,
+  ) => {
+    const pad = 10;
+    const disponibleH = ch - pieFoto;
+    const prop = f.image.width / f.image.height;
+    let h = Math.min(disponibleH, (cw - pad * 2) / prop + pad * 2);
+    let w = Math.min(cw, (h - pad * 2) * prop + pad * 2);
+    if (!Number.isFinite(w) || w <= 0) { w = cw; h = disponibleH; }
+    const x = cx + (cw - w) / 2;
+    const y = cy + pieFoto + (disponibleH - h) / 2;
+
+    drawFrame(page, x, y, w, h, palette.accent);
+    const iw = w - pad * 2;
+    const ih = h - pad * 2;
+    const escala = Math.min(iw / f.image.width, ih / f.image.height);
+    page.drawImage(f.image, {
+      x: x + (w - f.image.width * escala) / 2,
+      y: y + (h - f.image.height * escala) / 2,
+      width: f.image.width * escala,
+      height: f.image.height * escala,
+    });
+
+    const quien = f.item.uploaderName ? `Subido por ${f.item.uploaderName}` : "Anónimo";
+    drawCentered(page, textoParaPdf(quien), y - 12, fonts.regular, 8.5, palette.inkFaint, x + w / 2);
+  };
+
+  if (tipo === "dosLado") {
+    const cw = (anchoTotal - hueco) / 2;
+    celda(fotos[0], izq, abajo, cw, arriba - abajo);
+    celda(fotos[1], izq + cw + hueco, abajo, cw, arriba - abajo);
+  } else if (tipo === "dosApiladas") {
+    // Las alturas se reparten según la forma de cada foto, no a mitades: con
+    // celdas iguales, una vertical junto a una apaisada salía diminuta porque
+    // no podía usar el ancho que le sobraba a la otra.
+    const alturaAlAncho = (f: { image: PDFImage }) =>
+      (anchoTotal - 20) / (f.image.width / f.image.height) + 20 + pieFoto;
+    const quiere = fotos.map(alturaAlAncho);
+    const disponible = arriba - abajo - hueco;
+    const factor = disponible / (quiere[0] + quiere[1]);
+    const h0 = quiere[0] * factor;
+    const h1 = disponible - h0;
+    celda(fotos[0], izq, abajo + h1 + hueco, anchoTotal, h0);
+    celda(fotos[1], izq, abajo, anchoTotal, h1);
+  } else {
+    // Una grande arriba y dos pequeñas debajo: la proporción clásica de
+    // álbum, que evita que las tres salgan del mismo tamaño y aburran.
+    const chGrande = (arriba - abajo - hueco) * 0.58;
+    const chPeque = arriba - abajo - hueco - chGrande;
+    const cwPeque = (anchoTotal - hueco) / 2;
+    celda(fotos[0], izq, abajo + chPeque + hueco, anchoTotal, chGrande);
+    celda(fotos[1], izq, abajo, cwPeque, chPeque);
+    celda(fotos[2], izq + cwPeque + hueco, abajo, cwPeque, chPeque);
+  }
+
+  drawCentered(page, etiqueta, 32, fonts.regular, 9, palette.inkFaint);
 }
 
 async function addPhotoPage(
@@ -1462,6 +1545,8 @@ async function addPhotoPage(
   index: number,
   total: number,
   cache: Map<string, Descarga>,
+  /** Lo decide el repartidor de páginas, que es quien conoce el ritmo. */
+  aSangre = false,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
 
@@ -1477,7 +1562,7 @@ async function addPhotoPage(
   const image = printable ? await tryEmbedImage(pdf, printable, cache.get(printable)) : null;
 
   // ---- Página a sangre: la foto es la página -------------------------------
-  if (image && item.type === "image" && vaASangre(image, index, comments.length > 0)) {
+  if (image && item.type === "image" && aSangre) {
     drawImageCover(page, image, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
     // Franja de papel abajo para que el pie se lea sobre cualquier foto, por
@@ -1851,18 +1936,62 @@ export async function buildDotbookPdf(
     addCoverPage(pdf, album, fonts, stats, previewImages, palette);
   }
 
-  for (let i = 0; i < sorted.length; i++) {
-    const item = sorted[i];
-    await addPhotoPage(
+  // Se incrustan primero las imágenes para saber la forma de cada una: el
+  // reparto en páginas depende de si son verticales o apaisadas, y eso no se
+  // sabe hasta tenerlas. `tryEmbedImage` reutiliza lo ya descargado.
+  const incrustadas = new Map<string, PDFImage>();
+  for (const item of sorted) {
+    const url = item.type === "image" ? item.url : item.posterUrl;
+    if (!url) continue;
+    const img = await tryEmbedImage(pdf, url, cache.get(url));
+    if (img) incrustadas.set(item.id, img);
+  }
+
+  const candidatas: CandidataMosaico[] = sorted.map((item, i) => {
+    const img = incrustadas.get(item.id);
+    return {
+      indice: i,
+      forma: img ? formaDe(img.width, img.height) : "vertical",
+      // Va sola si lleva comentario (hay que poder leerlo), si es un vídeo
+      // (lleva su QR y su leyenda) o si no se pudo incrustar (QR grande).
+      sola:
+        !img ||
+        item.type === "video" ||
+        (extras.commentsByMedia.get(item.id) ?? []).length > 0,
+    };
+  });
+
+  for (const pagina of repartirEnPaginas(candidatas)) {
+    const numeros = pagina.indices.map((i) => i + 1);
+    const etiqueta =
+      numeros.length === 1
+        ? `${numeros[0]} / ${sorted.length}`
+        : `${numeros[0]}–${numeros[numeros.length - 1]} / ${sorted.length}`;
+
+    if (pagina.tipo === "una" || pagina.tipo === "sangre") {
+      const item = sorted[pagina.indices[0]];
+      await addPhotoPage(
+        pdf,
+        fonts,
+        item,
+        extras.commentsByMedia.get(item.id) ?? [],
+        extras.reactionCountByMedia.get(item.id) ?? 0,
+        palette,
+        numeros[0],
+        sorted.length,
+        cache,
+        pagina.tipo === "sangre",
+      );
+      continue;
+    }
+
+    await addMosaicPage(
       pdf,
       fonts,
-      item,
-      extras.commentsByMedia.get(item.id) ?? [],
-      extras.reactionCountByMedia.get(item.id) ?? 0,
+      pagina.tipo,
+      pagina.indices.map((i) => ({ item: sorted[i], image: incrustadas.get(sorted[i].id)! })),
       palette,
-      i + 1,
-      sorted.length,
-      cache,
+      etiqueta,
     );
   }
 
