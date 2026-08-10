@@ -1,4 +1,5 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { firmar, firmaValida } from "@/lib/firma";
 
 // Código de acceso OPCIONAL por álbum.
 //
@@ -45,14 +46,8 @@ export function accessCookieName(albumId: string): string {
   return COOKIE_PREFIX + albumId;
 }
 
-function secret(): string {
-  // Si no hay clave propia, se usa el hash del propio álbum como semilla: no
-  // es ideal, pero evita que la función se caiga por una variable sin poner.
-  return process.env.CLERK_SECRET_KEY || process.env.DATABASE_URL || "memorias-vivas";
-}
-
 export function accessCookieValue(albumId: string, pinHash: string): string {
-  return createHmac("sha256", secret()).update(`${albumId}:${pinHash}`).digest("hex");
+  return firmar(`${albumId}:${pinHash}`);
 }
 
 /**
@@ -66,8 +61,5 @@ export function hasAccess(
   cookieValue: string | undefined,
 ): boolean {
   if (!pinHash) return true;
-  if (!cookieValue) return false;
-  const esperado = accessCookieValue(albumId, pinHash);
-  if (cookieValue.length !== esperado.length) return false;
-  return timingSafeEqual(Buffer.from(cookieValue), Buffer.from(esperado));
+  return firmaValida(`${albumId}:${pinHash}`, cookieValue);
 }
