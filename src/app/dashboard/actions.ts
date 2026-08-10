@@ -23,18 +23,27 @@ export async function createAlbum(formData: FormData) {
   const kind = formData.get("kind") === "familia" ? "familia" : "evento";
   if (!name) return;
 
-  const [album] = await db()
-    .insert(albums)
-    .values({
-      ownerId: userId,
-      name,
-      kind,
-      eventDate: kind === "familia" ? null : eventDate || null,
-      shareCode: makeCode(),
-    })
-    .returning();
+  // Fuera del try, porque `redirect` funciona lanzando una excepción de Next
+  // y atraparla dejaría al usuario mirando el formulario sin explicación.
+  let destino = "/dashboard?error=creacion";
 
-  redirect(`/dashboard/${album.id}`);
+  try {
+    const [album] = await db()
+      .insert(albums)
+      .values({
+        ownerId: userId,
+        name,
+        kind,
+        eventDate: kind === "familia" ? null : eventDate || null,
+        shareCode: makeCode(),
+      })
+      .returning();
+    if (album) destino = `/dashboard/${album.id}`;
+  } catch (err) {
+    console.error("No se pudo crear el álbum:", err);
+  }
+
+  redirect(destino);
 }
 
 /**

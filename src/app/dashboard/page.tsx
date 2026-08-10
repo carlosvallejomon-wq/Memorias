@@ -115,6 +115,12 @@ export default async function DashboardPage({
             lista, vuelve a intentarlo; si ya no está, se borró bien.
           </p>
         )}
+        {error === "creacion" && (
+          <p className="nota mb-5 rounded-xl px-4 py-3 text-sm">
+            No se pudo crear el álbum. Vuelve a intentarlo; si sigue fallando,
+            abre <code>/api/diagnostico</code> para ver qué está pasando.
+          </p>
+        )}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1
