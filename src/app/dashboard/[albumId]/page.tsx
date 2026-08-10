@@ -40,11 +40,13 @@ export default async function AlbumAdminPage({
 }) {
   const { albumId } = await params;
   const { userId } = await auth();
+  // Mismo motivo que en la lista: sin sesión no se inventa un identificador.
+  if (!userId) notFound();
 
   const [album] = await db()
     .select()
     .from(albums)
-    .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId!)));
+    .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)));
   if (!album) notFound();
 
   const allItems = await db()

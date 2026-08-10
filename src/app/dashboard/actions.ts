@@ -48,7 +48,10 @@ export async function createAlbum(formData: FormData): Promise<ResultadoAlbum> {
       })
       .returning();
     if (!album) return { ok: false, error: "La base de datos no devolvió el álbum." };
-    revalidatePath("/dashboard");
+    // Sin `revalidatePath` ni `redirect`: los dos hacen que el servidor vuelva
+    // a dibujar una página como parte de la respuesta de la acción, y era ese
+    // redibujado el que fallaba ("An error occurred in the Server Components
+    // render"), no la acción. La lista la refresca el navegador al navegar.
     return { ok: true, albumId: album.id };
   } catch (err) {
     console.error("No se pudo crear el álbum:", err);
@@ -111,7 +114,8 @@ export async function deleteAlbum(albumId: string): Promise<{ ok: boolean; error
     fallo = err instanceof Error ? err.message : "error desconocido";
   }
 
-  revalidatePath("/dashboard");
+  // Igual que al crear: nada de redibujar aquí. El navegador vuelve al panel
+  // y lo refresca él.
   return fallo ? { ok: false, error: fallo } : { ok: true };
 }
 

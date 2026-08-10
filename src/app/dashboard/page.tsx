@@ -15,7 +15,15 @@ const COVERS_PER_ALBUM = 3;
 export default async function DashboardPage() {
   const { userId } = await auth();
 
-  const rows = await db()
+  // El middleware ya protege esta ruta, pero durante el redibujado que dispara
+  // una acción de servidor la sesión puede no llegar. Antes se resolvía con
+  // `userId!`, o sea mintiéndole al compilador: la consulta salía con un
+  // identificador nulo y la página entera reventaba, que es lo que hacía
+  // fallar crear y borrar. Sin sesión no hay álbumes que enseñar, y ya está;
+  // redirigir desde aquí sería un bucle, porque el destino es esta página.
+  const rows = !userId
+    ? []
+    : await db()
     .select({
       id: albums.id,
       name: albums.name,
@@ -30,7 +38,7 @@ export default async function DashboardPage() {
     })
     .from(albums)
     .leftJoin(media, eq(media.albumId, albums.id))
-    .where(eq(albums.ownerId, userId!))
+    .where(eq(albums.ownerId, userId))
     .groupBy(albums.id)
     .orderBy(desc(albums.createdAt));
 
