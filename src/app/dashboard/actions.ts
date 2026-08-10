@@ -2,7 +2,6 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { del } from "@vercel/blob";
@@ -14,18 +13,28 @@ import { hashPin, isValidPin } from "@/lib/album-pin";
 // Alfabeto sin caracteres ambiguos (0/O, 1/l/I) para códigos fáciles de leer.
 const makeCode = customAlphabet("23456789abcdefghjkmnpqrstuvwxyz", 10);
 
-export async function createAlbum(formData: FormData) {
+/**
+ * Crear y borrar devuelven el resultado en vez de redirigir.
+ *
+ * Antes las dos terminaban con `redirect()`, que en Next funciona lanzando una
+ * excepción propia. Esa excepción, viajando desde una acción de servidor hasta
+ * un `startTransition` o un formulario, es lo único que distinguía a estas dos
+ * de las demás acciones del panel — que funcionaban todas. Devolver un dato
+ * normal y navegar desde el navegador quita ese camino de en medio, y además
+ * permite enseñar el motivo cuando algo falla en vez de la pantalla genérica.
+ */
+export type ResultadoAlbum =
+  | { ok: true; albumId: string }
+  | { ok: false; error: string };
+
+export async function createAlbum(formData: FormData): Promise<ResultadoAlbum> {
   const { userId } = await auth();
-  if (!userId) redirect("/dashboard");
+  if (!userId) return { ok: false, error: "No has iniciado sesión." };
 
   const name = String(formData.get("name") ?? "").trim();
   const eventDate = String(formData.get("eventDate") ?? "").trim();
   const kind = formData.get("kind") === "familia" ? "familia" : "evento";
-  if (!name) return;
-
-  // Fuera del try, porque `redirect` funciona lanzando una excepción de Next
-  // y atraparla dejaría al usuario mirando el formulario sin explicación.
-  let destino = "/dashboard?error=creacion";
+  if (!name) return { ok: false, error: "Ponle un nombre al álbum." };
 
   try {
     const [album] = await db()
@@ -38,23 +47,22 @@ export async function createAlbum(formData: FormData) {
         shareCode: makeCode(),
       })
       .returning();
-    if (album) destino = `/dashboard/${album.id}`;
+    if (!album) return { ok: false, error: "La base de datos no devolvió el álbum." };
+    revalidatePath("/dashboard");
+    return { ok: true, albumId: album.id };
   } catch (err) {
     console.error("No se pudo crear el álbum:", err);
+    return { ok: false, error: err instanceof Error ? err.message : "error desconocido" };
   }
-
-  redirect(destino);
 }
 
 /**
  * Borra los archivos de Blob sin poner en riesgo la respuesta.
  *
  * Un álbum de boda son miles de archivos, y `del` va por tandas contra la red.
- * Con un álbum grande eso se comía el tiempo de la función entera: el usuario
- * veía "algo se ha torcido" aunque el álbum ya estuviera borrado, porque la
- * fila se quita antes que los archivos. Ahora hay presupuesto de tiempo: lo
- * que no dé tiempo a borrar se queda huérfano y se anota, que es mucho menos
- * malo que dejar al organizador mirando una pantalla de error.
+ * Con un álbum grande eso se comía el tiempo de la función entera. Con
+ * presupuesto de tiempo, lo que no dé tiempo a borrar se queda huérfano y se
+ * anota, que es mucho menos malo que dejar al organizador sin respuesta.
  */
 const TANDA_BLOBS = 100;
 const MARGEN_MS = 6000;
@@ -78,12 +86,10 @@ async function borrarArchivos(urls: string[]) {
   }
 }
 
-export async function deleteAlbum(albumId: string) {
+export async function deleteAlbum(albumId: string): Promise<{ ok: boolean; error?: string }> {
   const { userId } = await auth();
-  if (!userId) return;
+  if (!userId) return { ok: false, error: "No has iniciado sesión." };
 
-  // Fuera del try: `redirect` funciona lanzando una excepción propia de Next,
-  // así que atraparla aquí dejaría al usuario en la misma página.
   let fallo: string | null = null;
 
   try {
@@ -105,10 +111,8 @@ export async function deleteAlbum(albumId: string) {
     fallo = err instanceof Error ? err.message : "error desconocido";
   }
 
-  // Aunque algo falle, se vuelve al panel: si el álbum se borró, allí se ve
-  // que ya no está; y si no, se ve que sigue. Cualquiera de las dos cosas se
-  // entiende mejor que una pantalla de error.
-  redirect(fallo ? "/dashboard?error=borrado" : "/dashboard");
+  revalidatePath("/dashboard");
+  return fallo ? { ok: false, error: fallo } : { ok: true };
 }
 
 export async function deleteMedia(mediaId: string) {

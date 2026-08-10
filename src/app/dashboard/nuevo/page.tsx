@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Camera,
@@ -44,7 +45,31 @@ const HIGHLIGHTS = [
 const TILE_PHOTOS = ["/decor/familia.jpg", "/decor/boda.jpg", "/decor/cumple.jpg", "/decor/viaje.jpg"];
 
 export default function NewAlbumPage() {
+  const router = useRouter();
+  const [enviando, empezar] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
+
+  // Se envía desde el navegador y se navega aquí, en vez de dejar que la
+  // acción redirija por su cuenta: así, si algo falla, se ve el motivo en la
+  // propia pantalla en lugar de la página de error.
+  function enviar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const datos = new FormData(e.currentTarget);
+    setError(null);
+    empezar(async () => {
+      try {
+        const r = await createAlbum(datos);
+        if (r.ok) {
+          router.push(`/dashboard/${r.albumId}`);
+        } else {
+          setError(r.error);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "No se pudo crear el álbum.");
+      }
+    });
+  }
 
   return (
     <>
@@ -82,7 +107,12 @@ export default function NewAlbumPage() {
             listo para compartir con tus invitados.
           </p>
 
-          <form action={createAlbum} className="mt-8 flex flex-col gap-5">
+          <form onSubmit={enviar} className="mt-8 flex flex-col gap-5">
+            {error && (
+              <p className="nota rounded-xl px-4 py-3 text-sm" role="alert">
+                {error}
+              </p>
+            )}
             <div>
               <label className="mb-1 block text-sm font-semibold text-tinta/70">
                 Nombre
@@ -101,9 +131,10 @@ export default function NewAlbumPage() {
 
             <button
               type="submit"
-              className="shimmer mt-2 flex items-center justify-center gap-2 rounded-full bg-teja px-7 py-3.5 text-lg font-semibold text-white shadow-lift transition hover:bg-teja-oscuro"
+              disabled={enviando}
+              className="shimmer mt-2 flex items-center justify-center gap-2 rounded-full bg-teja px-7 py-3.5 text-lg font-semibold text-white shadow-lift transition hover:bg-teja-oscuro disabled:opacity-60"
             >
-              <Sparkles size={18} /> Crear álbum
+              <Sparkles size={18} /> {enviando ? "Creando…" : "Crear álbum"}
             </button>
           </form>
         </div>
