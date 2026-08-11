@@ -28,15 +28,18 @@ export type ResultadoAlbum =
   | { ok: false; error: string };
 
 export async function createAlbum(formData: FormData): Promise<ResultadoAlbum> {
-  const { userId } = await auth();
-  if (!userId) return { ok: false, error: "No has iniciado sesión." };
-
-  const name = String(formData.get("name") ?? "").trim();
-  const eventDate = String(formData.get("eventDate") ?? "").trim();
-  const kind = formData.get("kind") === "familia" ? "familia" : "evento";
-  if (!name) return { ok: false, error: "Ponle un nombre al álbum." };
-
+  // El try envuelve TODO, incluida la sesión: cualquier cosa que se escapara
+  // de aquí llegaba al navegador como "An error occurred in the Server
+  // Components render", sin decir qué había pasado.
   try {
+    const { userId } = await auth();
+    if (!userId) return { ok: false, error: "No has iniciado sesión." };
+
+    const name = String(formData.get("name") ?? "").trim();
+    const eventDate = String(formData.get("eventDate") ?? "").trim();
+    const kind = formData.get("kind") === "familia" ? "familia" : "evento";
+    if (!name) return { ok: false, error: "Ponle un nombre al álbum." };
+
     const [album] = await db()
       .insert(albums)
       .values({
@@ -90,12 +93,13 @@ async function borrarArchivos(urls: string[]) {
 }
 
 export async function deleteAlbum(albumId: string): Promise<{ ok: boolean; error?: string }> {
-  const { userId } = await auth();
-  if (!userId) return { ok: false, error: "No has iniciado sesión." };
-
   let fallo: string | null = null;
 
+  // Igual que al crear: nada se escapa sin explicarse.
   try {
+    const { userId } = await auth();
+    if (!userId) return { ok: false, error: "No has iniciado sesión." };
+
     const rows = await db()
       .select({ url: media.url })
       .from(media)
@@ -182,7 +186,13 @@ export async function approveMedia(mediaId: string) {
 
 // Retos sugeridos según el tipo de álbum, para que el organizador no tenga
 // que pensarlos desde cero (un clic y ya tiene la lista).
-export const SUGGESTED_CHALLENGES: Record<string, { emoji: string; title: string }[]> = {
+// OJO: sin `export`. Un archivo con "use server" solo puede exportar
+// funciones asíncronas; al exportar aquí un objeto, Next no puede montar el
+// módulo como conjunto de acciones y fallan TODAS las de este archivo — que es
+// justo lo que pasaba con crear y borrar, mientras la acción de diagnóstico,
+// que vive en otro archivo y solo exporta funciones, funcionaba. No hacía
+// falta exportarlo: solo se usa aquí abajo.
+const SUGGESTED_CHALLENGES: Record<string, { emoji: string; title: string }[]> = {
   evento: [
     { emoji: "brindis", title: "El brindis" },
     { emoji: "baile", title: "El mejor momento de baile" },
