@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { textoParaPdf } from "./build-dotbook";
+import { textoParaPdf, trocearTexto } from "./build-dotbook";
 
 // Las fuentes estándar del PDF lanzan una excepción con cualquier carácter
 // fuera de WinAnsi. Como los comentarios los escriben los invitados desde el
@@ -8,12 +8,6 @@ import { textoParaPdf } from "./build-dotbook";
 test("el español entero pasa intacto", () => {
   const frase = "¡Qué día! La abuela Begoña cumplió 90 años — ¿te acuerdas?";
   assert.equal(textoParaPdf(frase), "¡Qué día! La abuela Begoña cumplió 90 años - ¿te acuerdas?");
-});
-
-test("los emoji corrientes se cambian por su equivalente escrito", () => {
-  assert.equal(textoParaPdf("Qué guapos ❤️"), "Qué guapos <3");
-  assert.equal(textoParaPdf("No puedo parar de reír 😂"), "No puedo parar de reír :D");
-  assert.equal(textoParaPdf("Enhorabuena 👏"), "Enhorabuena !");
 });
 
 test("lo que no se puede escribir se quita, sin dejar la frase rota", () => {
@@ -39,14 +33,38 @@ test("todo lo que sale se puede escribir en WinAnsi", async () => {
   for (const e of entradas) {
     // Si algo no fuera representable, esto lanzaría; el test es que no lo haga.
     assert.doesNotThrow(() => font.widthOfTextAtSize(textoParaPdf(e), 12));
+    for (const t of trocearTexto(e)) {
+      if (t.tipo === "texto") {
+        assert.doesNotThrow(() => font.widthOfTextAtSize(t.texto, 12));
+      }
+    }
   }
 });
 
 // El encabezado de cada página lleva espacios de más a propósito, para que las
 // letras salgan separadas. Colapsar espacios se lo cargaba.
 test("los espacios puestos a propósito no se tocan", () => {
-  assert.equal(
-    textoParaPdf("M E M O R I A S   V I V A S"),
-    "M E M O R I A S   V I V A S",
-  );
+  assert.equal(textoParaPdf("M E M O R I A S   V I V A S"), "M E M O R I A S   V I V A S");
+});
+
+// Impreso, un "<3" en mitad de una dedicatoria se lee como un mensaje de
+// móvil. Los emoji conocidos salen del texto para dibujarse como icono.
+test("los emoji conocidos se convierten en iconos, no en texto", () => {
+  assert.deepEqual(trocearTexto("Qué guapos ❤️"), [
+    { tipo: "texto", texto: "Qué guapos " },
+    { tipo: "icono", icono: "corazon" },
+  ]);
+  assert.deepEqual(trocearTexto("😂"), [{ tipo: "icono", icono: "risa" }]);
+});
+
+test("el emoji del medio no se come el espacio de sus vecinos", () => {
+  assert.deepEqual(trocearTexto("Viva 🎉 la novia"), [
+    { tipo: "texto", texto: "Viva " },
+    { tipo: "icono", icono: "globo" },
+    { tipo: "texto", texto: " la novia" },
+  ]);
+});
+
+test("un emoji sin icono se quita y no deja hueco", () => {
+  assert.deepEqual(trocearTexto("Buen viaje 🛫"), [{ tipo: "texto", texto: "Buen viaje" }]);
 });

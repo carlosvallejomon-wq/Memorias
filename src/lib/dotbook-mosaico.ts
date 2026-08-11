@@ -9,14 +9,16 @@
  *
  * Reglas, en orden:
  *
- * 1. Una foto **con comentarios** siempre va sola: el comentario es de
- *    alguien y merece sitio para leerse.
+ * 1. Una foto con **mucho que leer** —varios comentarios, o uno largo— va
+ *    sola: el texto es de alguien y merece sitio. Un comentario corto NO
+ *    obliga a página entera; se imprime de pie de foto dentro del mosaico.
+ *    (Antes bastaba un comentario para separarla, y en un álbum real donde la
+ *    gente comenta casi todo el libro volvía a ser una foto por hoja.)
  * 2. Un **vídeo** también va solo, porque lleva su QR y su leyenda.
  * 3. Lo que **no se puede incrustar** (un HEIC, un formato raro) va solo, con
  *    su QR grande.
- * 4. El resto se agrupa siguiendo un ritmo fijo, ajustado a la forma de las
- *    fotos: dos apaisadas se apilan, dos verticales van lado a lado, y una
- *    vertical suelta puede ir a sangre.
+ * 4. El resto se agrupa siguiendo un ritmo fijo: páginas de dos, de tres, y
+ *    de vez en cuando una vertical a toda hoja.
  *
  * El ritmo es fijo a propósito (no aleatorio): el mismo álbum genera siempre
  * el mismo libro, que es lo que se espera al volver a descargarlo.
@@ -33,9 +35,24 @@ export type CandidataMosaico = {
 };
 
 export type Composicion = {
-  tipo: "sangre" | "una" | "dosApiladas" | "dosLado" | "tres";
+  /**
+   * Cuántas fotos lleva la página. Si van apiladas o lado a lado no se decide
+   * aquí: eso depende de los píxeles de verdad de cada foto, que solo conoce
+   * quien la dibuja. Aquí solo se sabe la forma a grandes rasgos.
+   */
+  tipo: "sangre" | "una" | "dos" | "tres";
   indices: number[];
 };
+
+/**
+ * Hasta aquí cabe un comentario como pie de foto dentro de un mosaico. Más
+ * largo que esto pide su propia página para poder leerse.
+ */
+export const PIE_MAX_CARACTERES = 90;
+
+export function cabeDePie(comentarios: string[]): boolean {
+  return comentarios.length === 1 && comentarios[0].trim().length <= PIE_MAX_CARACTERES;
+}
 
 export function formaDe(ancho: number, alto: number): FormaFoto {
   const r = alto / ancho;
@@ -45,10 +62,16 @@ export function formaDe(ancho: number, alto: number): FormaFoto {
 }
 
 /**
- * El ritmo del libro. Se recorre en bucle y de cada posición se coge lo que
- * quepa: si toca "tres" pero solo quedan dos fotas agrupables, se hace "dos".
+ * El ritmo del libro. Se recorre en bucle, y de cada posición se coge lo que
+ * quepa.
+ *
+ * Solo hay **una** página de foto suelta en la vuelta entera, y es a
+ * propósito: cuando una composición no se puede montar —toca "tres" y solo
+ * quedan dos agrupables, o toca una a sangre y la foto es apaisada— se junta
+ * lo que haya en vez de sacar la foto sola. Antes esos casos caían todos en
+ * "una" y el libro volvía a llenarse de páginas de una foto sin quererlo.
  */
-const RITMO: Composicion["tipo"][] = ["sangre", "dosApiladas", "una", "tres", "dosLado", "una"];
+const RITMO: Composicion["tipo"][] = ["dos", "tres", "sangre", "dos", "tres", "una"];
 
 export function repartirEnPaginas(fotos: CandidataMosaico[]): Composicion[] {
   const paginas: Composicion[] = [];
@@ -56,10 +79,8 @@ export function repartirEnPaginas(fotos: CandidataMosaico[]): Composicion[] {
   let paso = 0;
 
   while (i < fotos.length) {
-    const foto = fotos[i];
-
-    if (foto.sola) {
-      paginas.push({ tipo: "una", indices: [foto.indice] });
+    if (fotos[i].sola) {
+      paginas.push({ tipo: "una", indices: [fotos[i].indice] });
       i++;
       continue;
     }
@@ -81,14 +102,13 @@ export function repartirEnPaginas(fotos: CandidataMosaico[]): Composicion[] {
       continue;
     }
 
-    if ((quiere === "dosApiladas" || quiere === "dosLado") && b) {
-      // La forma manda sobre el ritmo: dos verticales lado a lado aprovechan
-      // la hoja, apiladas saldrían diminutas. Y al revés con las apaisadas.
-      const dosVerticales = a.forma === "vertical" && b.forma === "vertical";
-      paginas.push({
-        tipo: dosVerticales ? "dosLado" : "dosApiladas",
-        indices: [a.indice, b.indice],
-      });
+    // Una a sangre solo luce con una foto vertical: es la que llena la hoja.
+    // Si la que toca es apaisada, mejor emparejarla que dejarla suelta.
+    const quiereDos =
+      quiere === "dos" || quiere === "tres" || (quiere === "sangre" && a.forma !== "vertical");
+
+    if (quiereDos && b) {
+      paginas.push({ tipo: "dos", indices: [a.indice, b.indice] });
       i += 2;
       continue;
     }

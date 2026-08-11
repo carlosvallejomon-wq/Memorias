@@ -68,19 +68,42 @@ export function DeleteAlbumButton({
   );
 }
 
+/**
+ * Borrar un recuerdo.
+ *
+ * El refresco lo pide el navegador cuando la acción ya ha terminado. Antes lo
+ * hacía la propia acción con `revalidatePath`, y eso significaba volver a
+ * dibujar la página entera del álbum como parte de la respuesta: el botón se
+ * quedaba girando hasta que terminaba todo, y muchas veces no llegaba a
+ * terminar. Así se ve el resultado en cuanto la foto está borrada.
+ */
 export function DeleteMediaButton({ mediaId }: { mediaId: string }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function borrar() {
+    if (!confirm("¿Borrar este recuerdo del álbum?")) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        const r = await deleteMedia(mediaId);
+        if (r.ok) router.refresh();
+        else setError(r.error ?? "No se pudo borrar.");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "No se pudo borrar.");
+      }
+    });
+  }
 
   return (
     <button
       disabled={pending}
-      onClick={() => {
-        if (confirm("¿Borrar este recuerdo del álbum?")) {
-          startTransition(() => deleteMedia(mediaId));
-        }
-      }}
-      title="Borrar"
-      className="rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 disabled:opacity-50"
+      onClick={borrar}
+      title={error ?? "Borrar"}
+      className={`rounded-full p-1.5 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 disabled:opacity-50 ${
+        error ? "bg-red-600 opacity-100" : "bg-black/50"
+      }`}
     >
       {pending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
     </button>
@@ -142,15 +165,18 @@ export function ApproveMediaButton({ mediaId }: { mediaId: string }) {
 }
 
 export function RejectMediaButton({ mediaId }: { mediaId: string }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   return (
     <button
       disabled={pending}
       onClick={() => {
-        if (confirm("¿Rechazar y borrar esta foto?")) {
-          startTransition(() => deleteMedia(mediaId));
-        }
+        if (!confirm("¿Rechazar y borrar esta foto?")) return;
+        startTransition(async () => {
+          await deleteMedia(mediaId);
+          router.refresh();
+        });
       }}
       title="Rechazar"
       className="flex items-center gap-1 rounded-full border border-tinta/15 bg-white px-3 py-1.5 text-xs font-semibold text-tinta/70 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"

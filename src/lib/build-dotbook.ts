@@ -18,7 +18,9 @@ import {
 } from "pdf-lib";
 import QRCode from "qrcode";
 import type { albums, media } from "@/db/schema";
+import { EMOJI_A_ICONO, ICONOS } from "@/lib/dotbook-icons";
 import {
+  cabeDePie,
   formaDe,
   repartirEnPaginas,
   type CandidataMosaico,
@@ -327,37 +329,192 @@ type Fonts = { bold: PDFFont; regular: PDFFont; italic: PDFFont };
  * Dotbook entero se caía con un error 500 — justo el día del evento y sin que
  * el organizador pudiera hacer nada.
  *
- * Los emoji más habituales se cambian por su equivalente escrito, para que la
- * frase siga teniendo sentido; el resto de lo que no se puede escribir se
- * quita. Las tildes, la eñe y los signos de apertura se quedan como están.
+ * Lo que no se puede escribir se quita. Las tildes, la eñe y los signos de
+ * apertura se quedan como están. Los emoji que escriben los invitados no se
+ * pierden por el camino: se sacan aparte antes de limpiar y se dibujan como
+ * iconos (ver `trocearTexto`).
  */
-const EMOJI_A_TEXTO: [RegExp, string][] = [
-  [/[\u{2764}\u{2665}\u{2661}\u{1F494}]|[\u{1F495}-\u{1F49F}]/gu, "<3"],
-  // El de llorar de risa va antes que la carita genérica: cae dentro del mismo
-  // rango y si no se comprueba primero salía como una sonrisa cualquiera.
-  [/[\u{1F602}\u{1F923}]/gu, ":D"],
-  [/[\u{1F600}-\u{1F607}]|[\u{1F642}-\u{1F643}]|\u{1F60A}|\u{1F60D}/gu, ":)"],
-  [/[\u{1F622}\u{1F62D}\u{1F97A}]/gu, ":'("],
-  [/[\u{1F44F}\u{1F389}\u{1F38A}✨]/gu, "!"],
-];
-
-export function textoParaPdf(text: string): string {
+function limpiarTexto(text: string): string {
   // Fuera los selectores de variante y los "juntadores" antes de nada: sin
-  // esto, "❤️" son dos puntos de código y el corazón salía duplicado.
-  let limpio = text.replace(/[\u{FE0E}\u{FE0F}\u{200D}]/gu, "");
-  for (const [patron, reemplazo] of EMOJI_A_TEXTO) limpio = limpio.replace(patron, reemplazo);
-  // Lo que quede fuera de WinAnsi (otros emoji, alfabetos no latinos, comillas
-  // exóticas) se cae, y con él el espacio que lo precede, para no dejar un
-  // hueco doble en mitad de la frase. Ojo con colapsar espacios a lo bruto:
-  // eso se cargaba el "M E M O R I A S   V I V A S" del encabezado, que
-  // lleva los espacios de más a propósito.
-  limpio = limpio
+  // esto, un corazón son dos puntos de código y salía duplicado.
+  // Lo que quede fuera de WinAnsi (emoji sin icono, alfabetos no latinos,
+  // comillas exóticas) se cae, y con él el espacio que lo precede, para no
+  // dejar un hueco doble en mitad de la frase. Ojo con colapsar espacios a lo
+  // bruto: eso se cargaba el "M E M O R I A S   V I V A S" del encabezado,
+  // que lleva los espacios de más a propósito.
+  return text
+    .replace(/[\u{FE0E}\u{FE0F}\u{200D}]/gu, "")
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
     .replace(/[–—]/g, "-")
     .replace(/…/g, "...")
-    .replace(/ ?[^ -ÿ€‚ƒ†‡ˆ‰ŠŽŒ]+/g, "");
-  return limpio.trim();
+    .replace(/ ?[^ -ÿ€‚ƒ†‡ˆ‰ŠŽŒ]+/g, "");
+}
+
+export function textoParaPdf(text: string): string {
+  return limpiarTexto(text).trim();
+}
+
+/**
+ * Un texto partido en lo que se escribe con la fuente y lo que se dibuja.
+ *
+ * La primera solución a los emoji fue cambiarlos por su equivalente escrito
+ * (un corazón por "<3"), y funcionaba, pero impreso en un libro de recuerdos
+ * eso se lee como un mensaje de móvil, no como un álbum.
+ *
+ * Ahora los emoji conocidos se sacan del texto y se dibujan a trazo, del mismo
+ * color que la frase que los rodea (`src/lib/dotbook-icons.ts`). Los que no
+ * tienen icono se siguen quitando: mejor una frase limpia que un cuadrado.
+ */
+type Trozo =
+  | { tipo: "texto"; texto: string }
+  | { tipo: "icono"; icono: keyof typeof ICONOS };
+
+export function trocearTexto(text: string): Trozo[] {
+  const sinVariantes = text.replace(/[\u{FE0E}\u{FE0F}\u{200D}]/gu, "");
+  const trozos: Trozo[] = [];
+  let pendiente = "";
+
+  const soltar = () => {
+    const limpio = limpiarTexto(pendiente);
+    if (limpio) trozos.push({ tipo: "texto", texto: limpio });
+    pendiente = "";
+  };
+
+  for (const caracter of sinVariantes) {
+    const icono = EMOJI_A_ICONO[caracter];
+    if (icono) {
+      soltar();
+      trozos.push({ tipo: "icono", icono });
+    } else {
+      pendiente += caracter;
+    }
+  }
+  soltar();
+
+  // Nada de espacios sueltos en los extremos: al sacar un emoji del final de
+  // la frase se queda el hueco que lo separaba de la última palabra.
+  const soloEspacios = (t: Trozo | undefined) => t?.tipo === "texto" && t.texto.trim() === "";
+  const primero = trozos[0];
+  if (trozos.length === 1 && primero.tipo === "texto") {
+    const solo = primero.texto.trim();
+    return solo ? [{ tipo: "texto", texto: solo }] : [];
+  }
+  while (soloEspacios(trozos[0])) trozos.shift();
+  while (soloEspacios(trozos[trozos.length - 1])) trozos.pop();
+  return trozos;
+}
+
+/**
+ * Cómo se sienta un icono dentro de una línea de texto, en veces el tamaño de
+ * la letra. A tamaño completo sobresalía por encima de las mayúsculas y
+ * parecía pegado de otro sitio; así ocupa de la línea base a la altura de las
+ * mayúsculas, como una letra más.
+ */
+const ANCHO_ICONO = 0.95;
+const ALTO_ICONO = 0.78;
+const TECHO_ICONO = 0.74;
+
+function anchoTrozo(t: Trozo, font: PDFFont, size: number): number {
+  return t.tipo === "icono" ? size * ANCHO_ICONO : font.widthOfTextAtSize(t.texto, size);
+}
+
+function anchoTrozos(trozos: Trozo[], font: PDFFont, size: number): number {
+  return trozos.reduce((total, t) => total + anchoTrozo(t, font, size), 0);
+}
+
+function dibujarIcono(
+  page: PDFPage,
+  nombre: keyof typeof ICONOS,
+  x: number,
+  yBase: number,
+  size: number,
+  color: RGB,
+) {
+  const icono = ICONOS[nombre];
+  if (!icono) return;
+  const escala = (size * ALTO_ICONO) / 24;
+  // `drawSvgPath` toma la esquina de arriba y dibuja hacia abajo, al revés que
+  // el texto, que se apoya en su línea base. De ahí el desplazamiento.
+  const arriba = yBase + size * TECHO_ICONO;
+  const x0 = x + size * 0.08;
+  if (icono.relleno) {
+    page.drawSvgPath(icono.relleno, { x: x0, y: arriba, scale: escala, color, borderWidth: 0 });
+  }
+  if (icono.trazo) {
+    page.drawSvgPath(icono.trazo, {
+      x: x0,
+      y: arriba,
+      scale: escala,
+      borderColor: color,
+      borderWidth: (icono.grosor ?? 1.3) * escala,
+    });
+  }
+}
+
+function dibujarTrozos(
+  page: PDFPage,
+  trozos: Trozo[],
+  x: number,
+  y: number,
+  font: PDFFont,
+  size: number,
+  color: RGB,
+) {
+  let cursor = x;
+  for (const t of trozos) {
+    if (t.tipo === "icono") dibujarIcono(page, t.icono, cursor, y, size, color);
+    else if (t.texto.trim()) page.drawText(t.texto, { x: cursor, y, size, font, color });
+    cursor += anchoTrozo(t, font, size);
+  }
+}
+
+/**
+ * Parte una frase con iconos en líneas que caben en `maxWidth`.
+ *
+ * Se trocea por espacios pero conservándolos como piezas propias, en vez de
+ * volver a unir con un espacio simple: así los espacios que alguien puso a
+ * propósito siguen donde estaban.
+ */
+function partirTrozos(trozos: Trozo[], maxWidth: number, font: PDFFont, size: number): Trozo[][] {
+  const piezas: Trozo[] = [];
+  for (const t of trozos) {
+    if (t.tipo === "icono") {
+      piezas.push(t);
+      continue;
+    }
+    for (const parte of t.texto.split(/(\n|[ \t]+)/)) {
+      if (parte) piezas.push({ tipo: "texto", texto: parte });
+    }
+  }
+
+  const lineas: Trozo[][] = [];
+  let linea: Trozo[] = [];
+  let ancho = 0;
+  const cerrar = () => {
+    lineas.push(linea);
+    linea = [];
+    ancho = 0;
+  };
+
+  for (const pieza of piezas) {
+    if (pieza.tipo === "texto" && pieza.texto === "\n") {
+      cerrar();
+      continue;
+    }
+    const w = anchoTrozo(pieza, font, size);
+    if (ancho + w > maxWidth && linea.length > 0) {
+      cerrar();
+      // Un espacio justo donde se parte la línea no se arrastra al principio
+      // de la siguiente: dejaría la primera palabra sangrada.
+      if (pieza.tipo === "texto" && pieza.texto.trim() === "") continue;
+    }
+    linea.push(pieza);
+    ancho += w;
+  }
+  cerrar();
+
+  return lineas;
 }
 
 function drawCentered(
@@ -400,6 +557,11 @@ function wrapLines(
   return lines;
 }
 
+/** Parte un texto —con sus emoji hechos icono— en líneas de `maxWidth`. */
+function envolver(text: string, maxWidth: number, font: PDFFont, size: number): Trozo[][] {
+  return partirTrozos(trocearTexto(text), maxWidth, font, size);
+}
+
 // Envuelve texto a un ancho máximo; devuelve la posición y tras la última línea.
 function drawWrapped(
   page: PDFPage,
@@ -413,10 +575,10 @@ function drawWrapped(
   color: RGB,
   align: "left" | "center" = "left",
 ): number {
-  const lines = wrapLines(text, maxWidth, font, size);
+  const lines = envolver(text, maxWidth, font, size);
   lines.forEach((l, i) => {
-    const lx = align === "center" ? x - font.widthOfTextAtSize(l, size) / 2 : x;
-    page.drawText(l, { x: lx, y: y - i * lineHeight, size, font, color });
+    const lx = align === "center" ? x - anchoTrozos(l, font, size) / 2 : x;
+    dibujarTrozos(page, l, lx, y - i * lineHeight, font, size, color);
   });
   return y - (lines.length - 1) * lineHeight;
 }
@@ -1406,7 +1568,7 @@ async function addTemplateCoverPage(
 function altoDelPie(comments: string[], fonts: Fonts, anchoTexto: number): number {
   let alto = 26 + 22; // separador + línea de autor y fecha
   for (const comment of comments.slice(0, 2)) {
-    const lineas = wrapLines(`"${comment.slice(0, 160)}"`, anchoTexto, fonts.italic, 11);
+    const lineas = envolver(`"${comment.slice(0, 160)}"`, anchoTexto, fonts.italic, 11);
     alto += lineas.length * 15 + 18;
   }
   return alto;
@@ -1461,15 +1623,16 @@ function dibujarPie(
  * pequeñas debajo. Es lo que le da ritmo al libro; con una foto por hoja
  * doscientas veces seguidas parecía un listado.
  *
- * Aquí no van comentarios: las fotos que llevan uno se imprimen solas, con su
- * página entera, porque lo que escribió alguien merece leerse. Debajo de cada
- * foto queda una línea discreta con quién la subió.
+ * Debajo de cada foto va quién la subió y, si dejó uno corto, su comentario
+ * de pie de foto. Solo lo que trae varios comentarios o uno largo se lleva
+ * página entera: obligar a página entera con cualquier comentario devolvía el
+ * libro a una foto por hoja en cuanto la gente comentaba de verdad.
  */
 async function addMosaicPage(
   pdf: PDFDocument,
   fonts: Fonts,
-  tipo: "dosApiladas" | "dosLado" | "tres",
-  fotos: { item: MediaItem; image: PDFImage }[],
+  tipo: "dos" | "tres",
+  fotos: { item: MediaItem; image: PDFImage; comentario?: string }[],
   palette: Palette,
   etiqueta: string,
 ) {
@@ -1483,24 +1646,58 @@ async function addMosaicPage(
   const arriba = PAGE_HEIGHT - 96;
   const abajo = 64;
   const hueco = 16;          // aire entre fotos
-  const pieFoto = 15;        // línea de "subido por" bajo cada foto
 
-  // Dibuja una foto encajada en su hueco, con su marco ajustado y su pie.
+  // Alto que hay que reservar debajo de cada foto: una línea para el "subido
+  // por", dos si además lleva comentario.
+  // Un comentario que solo eran emoji sin icono se queda en nada al prepararlo
+  // para el PDF; entonces no hay leyenda que poner y basta con una línea.
+  const pieDe = (f: { comentario?: string }) =>
+    f.comentario && trocearTexto(f.comentario).length > 0 ? 27 : 15;
+
+  type Celda = { item: MediaItem; image: PDFImage; comentario?: string };
+  const pad = 10;
+
+  /**
+   * Lo que ocupa de verdad una foto dentro de un hueco.
+   *
+   * Casi nunca llena el hueco entero: el marco se ajusta a la proporción de la
+   * imagen, así que una vertical en un hueco ancho deja aire a los lados y una
+   * apaisada en uno alto lo deja arriba y abajo. Saberlo por adelantado es lo
+   * que permite elegir la colocación que mejor aprovecha la hoja en vez de
+   * adivinarla por la forma.
+   */
+  const medir = (f: Celda, cw: number, ch: number, pie = pieDe(f)) => {
+    const disponibleH = ch - pie;
+    const prop = f.image.width / f.image.height;
+    let h = Math.min(disponibleH, (cw - pad * 2) / prop + pad * 2);
+    let w = Math.min(cw, (h - pad * 2) * prop + pad * 2);
+    if (!Number.isFinite(w) || w <= 0) {
+      w = cw;
+      h = disponibleH;
+    }
+    return { w, h, alto: h + pie, area: w * h };
+  };
+
+  /**
+   * Dibuja una foto encajada en su hueco, con su marco ajustado y su pie.
+   *
+   * Dos fotos que van una al lado de la otra se apoyan en el mismo suelo y
+   * reservan el mismo pie (`fila`): centrada cada una en su columna, la que
+   * era más baja dejaba su leyenda a media altura de la otra y la pareja se
+   * veía descuadrada.
+   */
   const celda = (
-    f: { item: MediaItem; image: PDFImage },
+    f: Celda,
     cx: number,
     cy: number,
     cw: number,
     ch: number,
+    fila?: { pie: number },
   ) => {
-    const pad = 10;
-    const disponibleH = ch - pieFoto;
-    const prop = f.image.width / f.image.height;
-    let h = Math.min(disponibleH, (cw - pad * 2) / prop + pad * 2);
-    let w = Math.min(cw, (h - pad * 2) * prop + pad * 2);
-    if (!Number.isFinite(w) || w <= 0) { w = cw; h = disponibleH; }
+    const pieFoto = fila?.pie ?? pieDe(f);
+    const { w, h } = medir(f, cw, ch, pieFoto);
     const x = cx + (cw - w) / 2;
-    const y = cy + pieFoto + (disponibleH - h) / 2;
+    const y = fila ? cy + pieFoto : cy + pieFoto + (ch - pieFoto - h) / 2;
 
     drawFrame(page, x, y, w, h, palette.accent);
     const iw = w - pad * 2;
@@ -1514,35 +1711,73 @@ async function addMosaicPage(
     });
 
     const quien = f.item.uploaderName ? `Subido por ${f.item.uploaderName}` : "Anónimo";
-    drawCentered(page, textoParaPdf(quien), y - 12, fonts.regular, 8.5, palette.inkFaint, x + w / 2);
+    const trozos = f.comentario ? trocearTexto(`«${f.comentario}»`) : [];
+    if (trozos.length > 0) {
+      // El comentario primero, en cursiva y en tinta normal: es lo que se lee.
+      // Se recorta a una línea del ancho de la foto para no invadir la celda
+      // de al lado ni comerse el aire de la de abajo.
+      const lineas = partirTrozos(trozos, w, fonts.italic, 9);
+      const linea: Trozo[] =
+        lineas.length > 1 ? [...lineas[0], { tipo: "texto", texto: "...»" }] : lineas[0];
+      const anchoLinea = anchoTrozos(linea, fonts.italic, 9);
+      dibujarTrozos(page, linea, x + (w - anchoLinea) / 2, y - 11, fonts.italic, 9, palette.ink);
+      drawCentered(page, quien, y - 22, fonts.regular, 8, palette.inkFaint, x + w / 2);
+    } else {
+      drawCentered(page, quien, y - 12, fonts.regular, 8.5, palette.inkFaint, x + w / 2);
+    }
   };
 
-  if (tipo === "dosLado") {
-    const cw = (anchoTotal - hueco) / 2;
-    celda(fotos[0], izq, abajo, cw, arriba - abajo);
-    celda(fotos[1], izq + cw + hueco, abajo, cw, arriba - abajo);
-  } else if (tipo === "dosApiladas") {
-    // Las alturas se reparten según la forma de cada foto, no a mitades: con
-    // celdas iguales, una vertical junto a una apaisada salía diminuta porque
-    // no podía usar el ancho que le sobraba a la otra.
-    const alturaAlAncho = (f: { image: PDFImage }) =>
-      (anchoTotal - 20) / (f.image.width / f.image.height) + 20 + pieFoto;
-    const quiere = fotos.map(alturaAlAncho);
-    const disponible = arriba - abajo - hueco;
-    const factor = disponible / (quiere[0] + quiere[1]);
-    const h0 = quiere[0] * factor;
-    const h1 = disponible - h0;
-    celda(fotos[0], izq, abajo + h1 + hueco, anchoTotal, h0);
-    celda(fotos[1], izq, abajo, anchoTotal, h1);
+  const alto = arriba - abajo;
+
+  if (tipo === "dos") {
+    // Dos verticales van una junto a otra; en cuanto hay una apaisada de por
+    // medio, apiladas. Apilar dos verticales las deja altas pero estrechas,
+    // con una franja en blanco a cada lado de la hoja; y poner dos apaisadas
+    // en columnas las encoge a la mitad sin ganar nada de alto. Se mira la
+    // proporción real de cada imagen y no la forma redondeada, porque una
+    // "cuadrada" de 1,05 y una de 0,95 se colocan distinto.
+    const ambasVerticales = fotos.every((f) => f.image.height > f.image.width);
+
+    if (ambasVerticales) {
+      // En columnas, dos verticales solo pueden ser tan anchas como media
+      // hoja, y a lo alto se quedan en la mitad: alineadas dejaban una franja
+      // vacía arriba y otra abajo del mismo tamaño que las fotos. Escalonadas
+      // —una arriba a la izquierda, otra abajo a la derecha— ocupan la hoja
+      // entera sin encogerlas ni recortarlas.
+      const cwLado = (anchoTotal - hueco) / 2;
+      const lado = fotos.map((f) => medir(f, cwLado, alto));
+      const masAlta = Math.max(lado[0].alto, lado[1].alto);
+      const desplazamiento = Math.min(alto - masAlta, masAlta * 0.55);
+      const usado = masAlta + desplazamiento;
+      const base = abajo + (alto - usado) / 2;
+      celda(fotos[0], izq, base + desplazamiento, cwLado, lado[0].alto);
+      celda(fotos[1], izq + cwLado + hueco, base, cwLado, lado[1].alto);
+    } else {
+      // Apiladas, las alturas se reparten según la forma de cada foto y no a
+      // mitades: con celdas iguales, una vertical junto a una apaisada salía
+      // diminuta porque no podía usar el ancho que le sobraba a la otra.
+      const disponible = alto - hueco;
+      const pide = fotos.map(
+        (f) => (anchoTotal - pad * 2) / (f.image.width / f.image.height) + pad * 2 + pieDe(f),
+      );
+      const h0 = (disponible * pide[0]) / (pide[0] + pide[1]);
+      const reparto = [h0, disponible - h0];
+      const api = fotos.map((f, i) => medir(f, anchoTotal, reparto[i]));
+      const usado = api[0].alto + api[1].alto + hueco;
+      const base = abajo + (alto - usado) / 2;
+      celda(fotos[0], izq, base + api[1].alto + hueco, anchoTotal, api[0].alto);
+      celda(fotos[1], izq, base, anchoTotal, api[1].alto);
+    }
   } else {
     // Una grande arriba y dos pequeñas debajo: la proporción clásica de
     // álbum, que evita que las tres salgan del mismo tamaño y aburran.
     const chGrande = (arriba - abajo - hueco) * 0.58;
     const chPeque = arriba - abajo - hueco - chGrande;
     const cwPeque = (anchoTotal - hueco) / 2;
+    const pieFila = Math.max(pieDe(fotos[1]), pieDe(fotos[2]));
     celda(fotos[0], izq, abajo + chPeque + hueco, anchoTotal, chGrande);
-    celda(fotos[1], izq, abajo, cwPeque, chPeque);
-    celda(fotos[2], izq + cwPeque + hueco, abajo, cwPeque, chPeque);
+    celda(fotos[1], izq, abajo, cwPeque, chPeque, { pie: pieFila });
+    celda(fotos[2], izq + cwPeque + hueco, abajo, cwPeque, chPeque, { pie: pieFila });
   }
 
   drawCentered(page, etiqueta, 32, fonts.regular, 9, palette.inkFaint);
@@ -1746,7 +1981,7 @@ function addMessagePages(
   startPage(true);
 
   for (const message of messages) {
-    const lines = wrapLines(message.body.slice(0, 900), textW, fonts.italic, bodySize);
+    const lines = envolver(message.body.slice(0, 900), textW, fonts.italic, bodySize);
     const cardH = lines.length * lineHeight + 54;
 
     if (y - cardH < bottomLimit) startPage(false);
@@ -1790,13 +2025,7 @@ function addMessagePages(
     });
 
     lines.forEach((line, i) => {
-      p.drawText(line, {
-        x: MARGIN + 30,
-        y: y - 26 - i * lineHeight,
-        size: bodySize,
-        font: fonts.italic,
-        color: palette.ink,
-      });
+      dibujarTrozos(p, line, MARGIN + 30, y - 26 - i * lineHeight, fonts.italic, bodySize, palette.ink);
     });
 
     const signature = textoParaPdf(
@@ -1962,15 +2191,16 @@ export async function buildDotbookPdf(
 
   const candidatas: CandidataMosaico[] = sorted.map((item, i) => {
     const img = incrustadas.get(item.id);
+    const comentarios = extras.commentsByMedia.get(item.id) ?? [];
     return {
       indice: i,
       forma: img ? formaDe(img.width, img.height) : "vertical",
-      // Va sola si lleva comentario (hay que poder leerlo), si es un vídeo
-      // (lleva su QR y su leyenda) o si no se pudo incrustar (QR grande).
+      // Va sola si es un vídeo (lleva su QR y su leyenda), si no se pudo
+      // incrustar (QR grande) o si trae texto que no cabe de pie de foto.
       sola:
         !img ||
         item.type === "video" ||
-        (extras.commentsByMedia.get(item.id) ?? []).length > 0,
+        (comentarios.length > 0 && !cabeDePie(comentarios)),
     };
   });
 
@@ -2002,7 +2232,15 @@ export async function buildDotbookPdf(
       pdf,
       fonts,
       pagina.tipo,
-      pagina.indices.map((i) => ({ item: sorted[i], image: incrustadas.get(sorted[i].id)! })),
+      pagina.indices.map((i) => {
+        const item = sorted[i];
+        const comentarios = extras.commentsByMedia.get(item.id) ?? [];
+        return {
+          item,
+          image: incrustadas.get(item.id)!,
+          comentario: cabeDePie(comentarios) ? comentarios[0].trim() : undefined,
+        };
+      }),
       palette,
       etiqueta,
     );
