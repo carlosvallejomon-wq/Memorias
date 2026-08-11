@@ -123,37 +123,57 @@ export async function deleteAlbum(albumId: string): Promise<{ ok: boolean; error
   return fallo ? { ok: false, error: fallo } : { ok: true };
 }
 
-export async function deleteMedia(mediaId: string) {
-  const { userId } = await auth();
-  if (!userId) return;
+/**
+ * Borrar una foto: devuelve el resultado y no redibuja nada.
+ *
+ * Antes terminaba con `revalidatePath`, que hace que el servidor vuelva a
+ * dibujar la página del álbum —con sus diez consultas— como parte de la
+ * respuesta. Encima había que esperar a que Blob confirmara el borrado del
+ * archivo. Entre las dos cosas, el botón se quedaba girando y no terminaba: la
+ * foto se borraba, pero había que refrescar para verlo. La lista la refresca
+ * ahora el navegador, que para eso ya está delante.
+ */
+export async function deleteMedia(mediaId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { ok: false, error: "No has iniciado sesión." };
 
-  // Solo el dueño del álbum puede borrar contenido.
-  const owned = await db()
-    .select({ id: albums.id })
-    .from(albums)
-    .where(eq(albums.ownerId, userId));
-  if (owned.length === 0) return;
+    // Solo el dueño del álbum puede borrar contenido.
+    const owned = await db()
+      .select({ id: albums.id })
+      .from(albums)
+      .where(eq(albums.ownerId, userId));
+    if (owned.length === 0) return { ok: false, error: "No es tu álbum." };
 
-  const deleted = await db()
-    .delete(media)
-    .where(
-      and(
-        eq(media.id, mediaId),
-        inArray(
-          media.albumId,
-          owned.map((a) => a.id),
+    const deleted = await db()
+      .delete(media)
+      .where(
+        and(
+          eq(media.id, mediaId),
+          inArray(
+            media.albumId,
+            owned.map((a) => a.id),
+          ),
         ),
-      ),
-    )
-    .returning({ url: media.url, albumId: media.albumId });
+      )
+      .returning({ url: media.url, posterUrl: media.posterUrl });
 
-  if (deleted.length > 0) {
-    try {
-      await del(deleted[0].url);
-    } catch (err) {
-      console.error("No se pudo borrar el blob:", err);
+    if (deleted.length > 0) {
+      const archivos = [deleted[0].url, deleted[0].posterUrl].filter(
+        (u): u is string => !!u,
+      );
+      try {
+        await del(archivos);
+      } catch (err) {
+        // El archivo puede quedar huérfano; la fila ya no está, que es lo que
+        // ve el organizador. No merece hacerle esperar ni fallar por esto.
+        console.error("No se pudo borrar el archivo:", err);
+      }
     }
-    revalidatePath(`/dashboard/${deleted[0].albumId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("No se pudo borrar la foto:", err);
+    return { ok: false, error: err instanceof Error ? err.message : "error desconocido" };
   }
 }
 

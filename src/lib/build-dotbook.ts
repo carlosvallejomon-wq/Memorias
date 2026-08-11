@@ -19,6 +19,7 @@ import {
 import QRCode from "qrcode";
 import type { albums, media } from "@/db/schema";
 import {
+  cabeDePie,
   formaDe,
   repartirEnPaginas,
   type CandidataMosaico,
@@ -1461,15 +1462,16 @@ function dibujarPie(
  * pequeñas debajo. Es lo que le da ritmo al libro; con una foto por hoja
  * doscientas veces seguidas parecía un listado.
  *
- * Aquí no van comentarios: las fotos que llevan uno se imprimen solas, con su
- * página entera, porque lo que escribió alguien merece leerse. Debajo de cada
- * foto queda una línea discreta con quién la subió.
+ * Debajo de cada foto va quién la subió y, si dejó uno corto, su comentario
+ * de pie de foto. Solo lo que trae varios comentarios o uno largo se lleva
+ * página entera: obligar a página entera con cualquier comentario devolvía el
+ * libro a una foto por hoja en cuanto la gente comentaba de verdad.
  */
 async function addMosaicPage(
   pdf: PDFDocument,
   fonts: Fonts,
-  tipo: "dosApiladas" | "dosLado" | "tres",
-  fotos: { item: MediaItem; image: PDFImage }[],
+  tipo: "dos" | "tres",
+  fotos: { item: MediaItem; image: PDFImage; comentario?: string }[],
   palette: Palette,
   etiqueta: string,
 ) {
@@ -1483,24 +1485,56 @@ async function addMosaicPage(
   const arriba = PAGE_HEIGHT - 96;
   const abajo = 64;
   const hueco = 16;          // aire entre fotos
-  const pieFoto = 15;        // línea de "subido por" bajo cada foto
 
-  // Dibuja una foto encajada en su hueco, con su marco ajustado y su pie.
+  // Alto que hay que reservar debajo de cada foto: una línea para el "subido
+  // por", dos si además lleva comentario.
+  const pieDe = (f: { comentario?: string }) =>
+    f.comentario && textoParaPdf(f.comentario) ? 27 : 15;
+
+  type Celda = { item: MediaItem; image: PDFImage; comentario?: string };
+  const pad = 10;
+
+  /**
+   * Lo que ocupa de verdad una foto dentro de un hueco.
+   *
+   * Casi nunca llena el hueco entero: el marco se ajusta a la proporción de la
+   * imagen, así que una vertical en un hueco ancho deja aire a los lados y una
+   * apaisada en uno alto lo deja arriba y abajo. Saberlo por adelantado es lo
+   * que permite elegir la colocación que mejor aprovecha la hoja en vez de
+   * adivinarla por la forma.
+   */
+  const medir = (f: Celda, cw: number, ch: number, pie = pieDe(f)) => {
+    const disponibleH = ch - pie;
+    const prop = f.image.width / f.image.height;
+    let h = Math.min(disponibleH, (cw - pad * 2) / prop + pad * 2);
+    let w = Math.min(cw, (h - pad * 2) * prop + pad * 2);
+    if (!Number.isFinite(w) || w <= 0) {
+      w = cw;
+      h = disponibleH;
+    }
+    return { w, h, alto: h + pie, area: w * h };
+  };
+
+  /**
+   * Dibuja una foto encajada en su hueco, con su marco ajustado y su pie.
+   *
+   * Dos fotos que van una al lado de la otra se apoyan en el mismo suelo y
+   * reservan el mismo pie (`fila`): centrada cada una en su columna, la que
+   * era más baja dejaba su leyenda a media altura de la otra y la pareja se
+   * veía descuadrada.
+   */
   const celda = (
-    f: { item: MediaItem; image: PDFImage },
+    f: Celda,
     cx: number,
     cy: number,
     cw: number,
     ch: number,
+    fila?: { pie: number },
   ) => {
-    const pad = 10;
-    const disponibleH = ch - pieFoto;
-    const prop = f.image.width / f.image.height;
-    let h = Math.min(disponibleH, (cw - pad * 2) / prop + pad * 2);
-    let w = Math.min(cw, (h - pad * 2) * prop + pad * 2);
-    if (!Number.isFinite(w) || w <= 0) { w = cw; h = disponibleH; }
+    const pieFoto = fila?.pie ?? pieDe(f);
+    const { w, h } = medir(f, cw, ch, pieFoto);
     const x = cx + (cw - w) / 2;
-    const y = cy + pieFoto + (disponibleH - h) / 2;
+    const y = fila ? cy + pieFoto : cy + pieFoto + (ch - pieFoto - h) / 2;
 
     drawFrame(page, x, y, w, h, palette.accent);
     const iw = w - pad * 2;
@@ -1514,35 +1548,73 @@ async function addMosaicPage(
     });
 
     const quien = f.item.uploaderName ? `Subido por ${f.item.uploaderName}` : "Anónimo";
-    drawCentered(page, textoParaPdf(quien), y - 12, fonts.regular, 8.5, palette.inkFaint, x + w / 2);
+    // Un comentario que solo eran emoji se queda en nada al limpiarlo para el
+    // PDF; entonces no hay pie que poner.
+    const limpio = f.comentario ? textoParaPdf(f.comentario) : "";
+    if (limpio) {
+      // El comentario primero, en cursiva y en tinta normal: es lo que se lee.
+      // Se recorta a una línea del ancho de la foto para no invadir la celda
+      // de al lado ni comerse el aire de la de abajo.
+      const lineas = wrapLines(`«${limpio}»`, w, fonts.italic, 9);
+      const linea = lineas.length > 1 ? `${lineas[0].trimEnd()}…»` : lineas[0];
+      drawCentered(page, linea, y - 11, fonts.italic, 9, palette.ink, x + w / 2);
+      drawCentered(page, quien, y - 22, fonts.regular, 8, palette.inkFaint, x + w / 2);
+    } else {
+      drawCentered(page, quien, y - 12, fonts.regular, 8.5, palette.inkFaint, x + w / 2);
+    }
   };
 
-  if (tipo === "dosLado") {
-    const cw = (anchoTotal - hueco) / 2;
-    celda(fotos[0], izq, abajo, cw, arriba - abajo);
-    celda(fotos[1], izq + cw + hueco, abajo, cw, arriba - abajo);
-  } else if (tipo === "dosApiladas") {
-    // Las alturas se reparten según la forma de cada foto, no a mitades: con
-    // celdas iguales, una vertical junto a una apaisada salía diminuta porque
-    // no podía usar el ancho que le sobraba a la otra.
-    const alturaAlAncho = (f: { image: PDFImage }) =>
-      (anchoTotal - 20) / (f.image.width / f.image.height) + 20 + pieFoto;
-    const quiere = fotos.map(alturaAlAncho);
-    const disponible = arriba - abajo - hueco;
-    const factor = disponible / (quiere[0] + quiere[1]);
-    const h0 = quiere[0] * factor;
-    const h1 = disponible - h0;
-    celda(fotos[0], izq, abajo + h1 + hueco, anchoTotal, h0);
-    celda(fotos[1], izq, abajo, anchoTotal, h1);
+  const alto = arriba - abajo;
+
+  if (tipo === "dos") {
+    // Dos verticales van una junto a otra; en cuanto hay una apaisada de por
+    // medio, apiladas. Apilar dos verticales las deja altas pero estrechas,
+    // con una franja en blanco a cada lado de la hoja; y poner dos apaisadas
+    // en columnas las encoge a la mitad sin ganar nada de alto. Se mira la
+    // proporción real de cada imagen y no la forma redondeada, porque una
+    // "cuadrada" de 1,05 y una de 0,95 se colocan distinto.
+    const ambasVerticales = fotos.every((f) => f.image.height > f.image.width);
+
+    if (ambasVerticales) {
+      // En columnas, dos verticales solo pueden ser tan anchas como media
+      // hoja, y a lo alto se quedan en la mitad: alineadas dejaban una franja
+      // vacía arriba y otra abajo del mismo tamaño que las fotos. Escalonadas
+      // —una arriba a la izquierda, otra abajo a la derecha— ocupan la hoja
+      // entera sin encogerlas ni recortarlas.
+      const cwLado = (anchoTotal - hueco) / 2;
+      const lado = fotos.map((f) => medir(f, cwLado, alto));
+      const masAlta = Math.max(lado[0].alto, lado[1].alto);
+      const desplazamiento = Math.min(alto - masAlta, masAlta * 0.55);
+      const usado = masAlta + desplazamiento;
+      const base = abajo + (alto - usado) / 2;
+      celda(fotos[0], izq, base + desplazamiento, cwLado, lado[0].alto);
+      celda(fotos[1], izq + cwLado + hueco, base, cwLado, lado[1].alto);
+    } else {
+      // Apiladas, las alturas se reparten según la forma de cada foto y no a
+      // mitades: con celdas iguales, una vertical junto a una apaisada salía
+      // diminuta porque no podía usar el ancho que le sobraba a la otra.
+      const disponible = alto - hueco;
+      const pide = fotos.map(
+        (f) => (anchoTotal - pad * 2) / (f.image.width / f.image.height) + pad * 2 + pieDe(f),
+      );
+      const h0 = (disponible * pide[0]) / (pide[0] + pide[1]);
+      const reparto = [h0, disponible - h0];
+      const api = fotos.map((f, i) => medir(f, anchoTotal, reparto[i]));
+      const usado = api[0].alto + api[1].alto + hueco;
+      const base = abajo + (alto - usado) / 2;
+      celda(fotos[0], izq, base + api[1].alto + hueco, anchoTotal, api[0].alto);
+      celda(fotos[1], izq, base, anchoTotal, api[1].alto);
+    }
   } else {
     // Una grande arriba y dos pequeñas debajo: la proporción clásica de
     // álbum, que evita que las tres salgan del mismo tamaño y aburran.
     const chGrande = (arriba - abajo - hueco) * 0.58;
     const chPeque = arriba - abajo - hueco - chGrande;
     const cwPeque = (anchoTotal - hueco) / 2;
+    const pieFila = Math.max(pieDe(fotos[1]), pieDe(fotos[2]));
     celda(fotos[0], izq, abajo + chPeque + hueco, anchoTotal, chGrande);
-    celda(fotos[1], izq, abajo, cwPeque, chPeque);
-    celda(fotos[2], izq + cwPeque + hueco, abajo, cwPeque, chPeque);
+    celda(fotos[1], izq, abajo, cwPeque, chPeque, { pie: pieFila });
+    celda(fotos[2], izq + cwPeque + hueco, abajo, cwPeque, chPeque, { pie: pieFila });
   }
 
   drawCentered(page, etiqueta, 32, fonts.regular, 9, palette.inkFaint);
@@ -1962,15 +2034,16 @@ export async function buildDotbookPdf(
 
   const candidatas: CandidataMosaico[] = sorted.map((item, i) => {
     const img = incrustadas.get(item.id);
+    const comentarios = extras.commentsByMedia.get(item.id) ?? [];
     return {
       indice: i,
       forma: img ? formaDe(img.width, img.height) : "vertical",
-      // Va sola si lleva comentario (hay que poder leerlo), si es un vídeo
-      // (lleva su QR y su leyenda) o si no se pudo incrustar (QR grande).
+      // Va sola si es un vídeo (lleva su QR y su leyenda), si no se pudo
+      // incrustar (QR grande) o si trae texto que no cabe de pie de foto.
       sola:
         !img ||
         item.type === "video" ||
-        (extras.commentsByMedia.get(item.id) ?? []).length > 0,
+        (comentarios.length > 0 && !cabeDePie(comentarios)),
     };
   });
 
@@ -2002,7 +2075,15 @@ export async function buildDotbookPdf(
       pdf,
       fonts,
       pagina.tipo,
-      pagina.indices.map((i) => ({ item: sorted[i], image: incrustadas.get(sorted[i].id)! })),
+      pagina.indices.map((i) => {
+        const item = sorted[i];
+        const comentarios = extras.commentsByMedia.get(item.id) ?? [];
+        return {
+          item,
+          image: incrustadas.get(item.id)!,
+          comentario: cabeDePie(comentarios) ? comentarios[0].trim() : undefined,
+        };
+      }),
       palette,
       etiqueta,
     );
