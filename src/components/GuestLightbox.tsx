@@ -12,8 +12,10 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { IconoReaccion } from "@/components/IconoReaccion";
 import {
   EMOJIS,
+  NOMBRE_REACCION,
   type Comment,
   type MediaItem,
   avatarColor,
@@ -264,14 +266,21 @@ export function GuestLightbox({
                 key={emoji}
                 onClick={() => onReact(emoji)}
                 disabled={!guestId}
-                className={`rounded-full border px-3.5 py-1.5 text-lg transition active:scale-95 ${
+                title={NOMBRE_REACCION[emoji]}
+                aria-label={NOMBRE_REACCION[emoji]}
+                aria-pressed={mineReacted}
+                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 transition active:scale-95 ${
                   mineReacted
-                    ? "border-teja bg-teja/10 shadow-soft"
-                    : "border-tinta/15 bg-white/70 hover:bg-white"
+                    ? "border-teja bg-teja/10 text-teja shadow-soft"
+                    : "border-tinta/15 bg-white/70 text-tinta/45 hover:bg-white hover:text-tinta/70"
                 }`}
               >
-                {emoji}
-                {count > 0 && <span className="ml-1 text-sm text-tinta/60">{count}</span>}
+                <IconoReaccion emoji={emoji} />
+                {count > 0 && (
+                  <span className={`text-sm ${mineReacted ? "text-teja" : "text-tinta/60"}`}>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}

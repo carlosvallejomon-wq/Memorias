@@ -419,7 +419,9 @@ function dibujarIcono(
       y: arriba,
       scale: escala,
       borderColor: color,
-      borderWidth: (icono.grosor ?? 1.3) * escala,
+      // Suelo de grosor: a tamaño de pie de foto (9 pt) la línea salía en
+      // 0,38 pt y el dibujo se deshacía en una mancha al imprimirlo.
+      borderWidth: Math.max(0.55, (icono.grosor ?? 1.3) * escala),
     });
   }
 }
@@ -603,6 +605,91 @@ function drawBackground(page: PDFPage, palette: Palette) {
     drawGradientBg(page, palette.bgGradient[0], palette.bgGradient[1]);
   } else {
     page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
+  }
+}
+
+/**
+ * La cenefa de las páginas de recuerdo.
+ *
+ * Un filete doble metido hacia dentro, con una marca en cada esquina. Es el
+ * recurso de toda la vida de los álbumes impresos y hace mucho: sin él, la
+ * foto flotaba en medio de una hoja vacía y la página parecía sin terminar.
+ * Va en el color del diseño y muy bajito de tinta, para enmarcar sin competir
+ * con la foto.
+ */
+const CENEFA = 20;
+
+function drawPageBorder(page: PDFPage, palette: Palette) {
+  const marco = (m: number, ancho: number, opacidad: number) => {
+    page.drawRectangle({
+      x: m,
+      y: m,
+      width: PAGE_WIDTH - m * 2,
+      height: PAGE_HEIGHT - m * 2,
+      borderColor: palette.accent,
+      borderWidth: ancho,
+      borderOpacity: opacidad,
+    });
+  };
+  marco(CENEFA, 0.8, 0.35);
+  marco(CENEFA + 4, 0.4, 0.22);
+
+  // Marquitas en las esquinas, donde se cruzan los dos filetes.
+  const t = 7;
+  for (const [ex, ey] of [
+    [CENEFA, CENEFA],
+    [PAGE_WIDTH - CENEFA, CENEFA],
+    [CENEFA, PAGE_HEIGHT - CENEFA],
+    [PAGE_WIDTH - CENEFA, PAGE_HEIGHT - CENEFA],
+  ]) {
+    const hx = ex < PAGE_WIDTH / 2 ? 1 : -1;
+    const hy = ey < PAGE_HEIGHT / 2 ? 1 : -1;
+    page.drawLine({
+      start: { x: ex + hx * 4, y: ey + hy * 4 },
+      end: { x: ex + hx * (4 + t), y: ey + hy * 4 },
+      thickness: 0.8,
+      color: palette.accent,
+      opacity: 0.5,
+    });
+    page.drawLine({
+      start: { x: ex + hx * 4, y: ey + hy * 4 },
+      end: { x: ex + hx * 4, y: ey + hy * (4 + t) },
+      thickness: 0.8,
+      color: palette.accent,
+      opacity: 0.5,
+    });
+  }
+}
+
+/**
+ * Encabezado de día.
+ *
+ * Un evento de varios días —o un álbum de familia de todo un año— era una
+ * ristra de fotos sin costuras. Con la fecha impresa la primera vez que
+ * aparece, el libro se lee por capítulos: se sabe cuándo empieza el día
+ * siguiente sin tener que mirar los pies de foto.
+ */
+function drawDayHeader(page: PDFPage, fonts: Fonts, texto: string, y: number, palette: Palette) {
+  const size = 10;
+  const limpio = textoParaPdf(texto);
+  const ancho = fonts.italic.widthOfTextAtSize(limpio, size);
+  const centro = PAGE_WIDTH / 2;
+  page.drawText(limpio, {
+    x: centro - ancho / 2,
+    y,
+    size,
+    font: fonts.italic,
+    color: palette.accent,
+    opacity: 0.85,
+  });
+  for (const lado of [-1, 1]) {
+    page.drawLine({
+      start: { x: centro + lado * (ancho / 2 + 12), y: y + 3 },
+      end: { x: centro + lado * (ancho / 2 + 46), y: y + 3 },
+      thickness: 0.6,
+      color: palette.accent,
+      opacity: 0.45,
+    });
   }
 }
 
@@ -1383,11 +1470,18 @@ async function addMosaicPage(
   fotos: { item: MediaItem; image: PDFImage; comentario?: string }[],
   palette: Palette,
   etiqueta: string,
+  /** Fecha a imprimir arriba, solo la primera página de cada día. */
+  diaLabel: string | null,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   drawBackground(page, palette);
-  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, fotos.length * 7 + 3);
+  drawPageBorder(page, palette);
+  // La rama en las dos esquinas opuestas, no solo arriba: con una sola, la
+  // mitad de abajo de la hoja se quedaba desnuda.
+  drawCornerDecoration(page, 40, PAGE_HEIGHT - 40, -20, false, palette, fotos.length * 7 + 3);
+  drawCornerDecoration(page, PAGE_WIDTH - 56, 54, 160, true, palette, fotos.length * 7 + 4);
   drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
+  if (diaLabel) drawDayHeader(page, fonts, diaLabel, PAGE_HEIGHT - 68, palette);
 
   const izq = MARGIN - 6;
   const anchoTotal = PAGE_WIDTH - izq * 2;
@@ -1543,6 +1637,8 @@ async function addPhotoPage(
   cache: Map<string, Descarga>,
   /** Lo decide el repartidor de páginas, que es quien conoce el ritmo. */
   aSangre = false,
+  /** Fecha a imprimir arriba, solo la primera página de cada día. */
+  diaLabel: string | null = null,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
 
@@ -1582,8 +1678,11 @@ async function addPhotoPage(
 
   // ---- Página con marco: la foto se estira hasta donde empieza el pie ------
   drawBackground(page, palette);
-  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, index * 2 + 11);
+  drawPageBorder(page, palette);
+  drawCornerDecoration(page, 40, PAGE_HEIGHT - 40, -20, false, palette, index * 2 + 11);
+  drawCornerDecoration(page, PAGE_WIDTH - 56, 54, 160, true, palette, index * 2 + 12);
   drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
+  if (diaLabel) drawDayHeader(page, fonts, diaLabel, PAGE_HEIGHT - 68, palette);
 
   const arribaDelArea = PAGE_HEIGHT - 96;
   const abajoDelArea = 64; // hueco para el número de página
@@ -1792,6 +1891,85 @@ function addMessagePages(
   }
 }
 
+/**
+ * Página de participantes.
+ *
+ * El libro tenía las fotos y las dedicatorias, pero en ningún sitio ponía
+ * quiénes lo habían llenado. Es de lo que más se mira años después: quién
+ * estaba. Se imprimen los nombres de quien subió algo, cada uno en su
+ * medallón, ordenados por cuánto aportaron.
+ */
+function addThanksPage(
+  pdf: PDFDocument,
+  fonts: Fonts,
+  nombres: string[],
+  palette: Palette,
+) {
+  const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  drawBackground(page, palette);
+  drawPageBorder(page, palette);
+  drawCornerDecoration(page, 40, PAGE_HEIGHT - 40, -20, false, palette, 91);
+  drawCornerDecoration(page, PAGE_WIDTH - 56, 54, 160, true, palette, 92);
+
+  // Se reparten primero y se dibujan después: hay que saber cuántas filas
+  // salen para centrar el bloque entero en la hoja. Empezando por arriba, un
+  // álbum de seis personas dejaba dos tercios de página en blanco.
+  const altoFila = 34;
+  const hueco = 14;
+  const anchoDe = (n: string) => 26 + fonts.regular.widthOfTextAtSize(textoParaPdf(n) || "Invitado", 11) + 14;
+  const disponible = PAGE_WIDTH - MARGIN * 2;
+  const MAX_FILAS = 16;
+
+  const filas: string[][] = [];
+  let fila: string[] = [];
+  let anchoFila = 0;
+  for (const nombre of nombres) {
+    const w = anchoDe(nombre) + hueco;
+    if (anchoFila + w > disponible && fila.length > 0) {
+      filas.push(fila);
+      if (filas.length === MAX_FILAS) break;
+      fila = [];
+      anchoFila = 0;
+    }
+    fila.push(nombre);
+    anchoFila += w;
+  }
+  if (fila.length > 0 && filas.length < MAX_FILAS) filas.push(fila);
+
+  const altoTitulo = 22 + 34 + 44;
+  const altoBloque = 26 + altoTitulo + filas.length * altoFila;
+  let y = (PAGE_HEIGHT + altoBloque) / 2 - 26;
+
+  drawCentered(page, "Quienes lo hicieron posible", y, fonts.bold, 26, palette.ink);
+  y -= 22;
+  drawDivider(page, y, palette.accent);
+  y -= 34;
+  drawCentered(
+    page,
+    `${nombres.length} personas compartieron sus fotos en este álbum`,
+    y,
+    fonts.italic,
+    11,
+    palette.inkSoft,
+  );
+  y -= 44;
+
+  for (const linea of filas) {
+    const ancho = linea.reduce((t, n) => t + anchoDe(n) + hueco, 0) - hueco;
+    let x = (PAGE_WIDTH - ancho) / 2;
+    for (const nombre of linea) {
+      const limpio = textoParaPdf(nombre) || "Invitado";
+      page.drawCircle({ x: x + 9, y: y + 4, size: 9, color: palette.accent, opacity: 0.18 });
+      drawCentered(page, limpio.slice(0, 1).toUpperCase(), y + 1, fonts.bold, 9, palette.accent, x + 9);
+      page.drawText(limpio, { x: x + 24, y, size: 11, font: fonts.regular, color: palette.ink });
+      x += anchoDe(nombre) + hueco;
+    }
+    y -= altoFila;
+  }
+
+  drawCentered(page, "M E M O R I A S   V I V A S", 40, fonts.regular, 9, palette.inkFaint);
+}
+
 function addClosingPage(
   pdf: PDFDocument,
   fonts: Fonts,
@@ -1950,8 +2128,20 @@ export async function buildDotbookPdf(
     };
   });
 
+  // La fecha se imprime solo la primera vez que aparece: repetirla en cada
+  // hoja sería ruido, y no ponerla nunca deja el libro sin capítulos.
+  let ultimoDia: string | null = null;
+  const diaDe = (item: MediaItem) => {
+    const fecha = item.takenAt ?? item.createdAt;
+    const clave = dayKey(fecha);
+    if (clave === ultimoDia) return null;
+    ultimoDia = clave;
+    return formatLongDate(fecha);
+  };
+
   for (const pagina of repartirEnPaginas(candidatas)) {
     const numeros = pagina.indices.map((i) => i + 1);
+    const diaLabel = diaDe(sorted[pagina.indices[0]]);
     const etiqueta =
       numeros.length === 1
         ? `${numeros[0]} / ${sorted.length}`
@@ -1970,6 +2160,7 @@ export async function buildDotbookPdf(
         sorted.length,
         cache,
         pagina.tipo === "sangre",
+        diaLabel,
       );
       continue;
     }
@@ -1989,11 +2180,26 @@ export async function buildDotbookPdf(
       }),
       palette,
       etiqueta,
+      diaLabel,
     );
   }
 
   if (extras.messages.length > 0) {
     addMessagePages(pdf, fonts, extras.messages, palette);
+  }
+
+  // Quién subió cuánto, de más a menos. Con uno solo no hay a quién dar las
+  // gracias, así que la página no sale.
+  const porPersona = new Map<string, number>();
+  for (const item of todos) {
+    const nombre = item.uploaderName?.trim();
+    if (nombre) porPersona.set(nombre, (porPersona.get(nombre) ?? 0) + 1);
+  }
+  if (porPersona.size > 1) {
+    const nombres = [...porPersona.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
+      .map(([nombre]) => nombre);
+    addThanksPage(pdf, fonts, nombres, palette);
   }
 
   const closingQr = await embedQr(pdf, extras.shareUrl, 300);

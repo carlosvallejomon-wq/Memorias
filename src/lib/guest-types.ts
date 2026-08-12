@@ -42,7 +42,35 @@ export type GuestbookItem = {
   createdAt: string;
 };
 
-export const EMOJIS = ["❤️", "😂", "😮", "👏"];
+/**
+ * Las cuatro reacciones.
+ *
+ * La clave sigue siendo el emoji porque es lo que hay guardado en la base de
+ * datos desde el primer día; cambiarla obligaría a migrar las reacciones ya
+ * puestas sin ganar nada. Lo que se dibuja en pantalla es otra cosa
+ * (`IconoReaccion`), y para eso está la tabla de abajo.
+ */
+export const EMOJIS = ["❤️", "😂", "😮", "👏"] as const;
+
+export type Reaccion = (typeof EMOJIS)[number];
+
+/** Nombre del icono del catálogo del Dotbook con el que se dibuja cada una. */
+export const EMOJI_A_REACCION: Record<Reaccion, "corazon" | "risa" | "asombro" | "estrella"> = {
+  "❤️": "corazon",
+  "😂": "risa",
+  "😮": "asombro",
+  // Aplaudir se dibuja con una estrella: dos manos son un borrón a este
+  // tamaño, y la estrella se lee como "¡bravo!" sin necesidad de explicarla.
+  "👏": "estrella",
+};
+
+/** Lo que oye quien navega con lector de pantalla. */
+export const NOMBRE_REACCION: Record<Reaccion, string> = {
+  "❤️": "Me encanta",
+  "😂": "Qué risa",
+  "😮": "Me sorprende",
+  "👏": "Bravo",
+};
 
 // Texto alternativo para lectores de pantalla. No sabemos qué sale en la foto,
 // pero sí quién la subió y cuándo, que es mejor que nada.

@@ -38,6 +38,7 @@ import { expiryWarning } from "@/lib/expiry";
 import { MAX_FILE_BYTES, formatMb } from "@/lib/limits";
 import { isVideo, looksLikeHeic, prepareForUpload } from "@/lib/prepare-upload";
 import { ChallengeIcon } from "@/components/ChallengeIcon";
+import { IconoReaccion } from "@/components/IconoReaccion";
 import { GuestIdentity } from "@/components/GuestIdentity";
 import { Notice, type NoticeState } from "@/components/Notice";
 import { GuestChallenges } from "@/components/GuestChallenges";
@@ -1146,7 +1147,11 @@ function Thumb({
       )}
       {(total > 0 || item.commentCount > 0) && (
         <span className="absolute bottom-1 left-1.5 flex items-center gap-1.5 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white">
-          {total > 0 && <span>❤️ {total}</span>}
+          {total > 0 && (
+            <span className="flex items-center gap-0.5">
+              <IconoReaccion emoji="❤️" size={11} /> {total}
+            </span>
+          )}
           {item.commentCount > 0 && (
             <span className="flex items-center gap-0.5">
               <MessageCircle size={11} /> {item.commentCount}
