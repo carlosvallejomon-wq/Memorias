@@ -87,11 +87,10 @@ otro:
    `public/dotbook-templates/thumbs/` (124×160 va bien).
 3. Añade una línea a `TEMPLATE_COVER_LIST` en `src/lib/dotbook-templates.ts`.
 
-No hace falta calcular dónde va el título: la app analiza el diseño y coloca
-la placa sola en el hueco que quede libre. Si el diseño va muy lleno la hace
-más pequeña, y si va pintado de esquina a esquina —una portada infantil, por
-ejemplo— la pone al pie, que es donde queda como el pie de una foto y nunca
-se come el título del diseño.
+No hace falta calcular dónde va el título ni retocar el diseño: el diseño se
+imprime entero, sin recortar, y el nombre del álbum va **debajo**, sobre el
+papel, como en la cubierta de un libro de fotos. Así ningún diseño se queda
+tapado, valga la proporción que valga.
 
 ## Si creas álbumes para otros (agencias y fotógrafos)
 

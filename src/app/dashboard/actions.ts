@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { del } from "@vercel/blob";
@@ -63,33 +64,33 @@ export async function createAlbum(formData: FormData): Promise<ResultadoAlbum> {
 }
 
 /**
- * Borra los archivos de Blob sin poner en riesgo la respuesta.
+ * Borra los archivos de Blob **después** de haber contestado.
  *
- * Un álbum de boda son miles de archivos, y `del` va por tandas contra la red.
- * Con un álbum grande eso se comía el tiempo de la función entera. Con
- * presupuesto de tiempo, lo que no dé tiempo a borrar se queda huérfano y se
- * anota, que es mucho menos malo que dejar al organizador sin respuesta.
+ * Esto es lo que hacía que borrar se quedara girando. Un álbum de boda son
+ * miles de archivos y `del` va por tandas contra la red: aunque la fila de la
+ * base de datos desaparece al instante —el álbum ya es inaccesible—, la acción
+ * seguía esperando a que Blob confirmara archivo por archivo antes de
+ * responder. Desde fuera parecía que no se había borrado nada, y había que
+ * refrescar para verlo.
+ *
+ * `after` deja la limpieza para cuando la respuesta ya ha salido: el navegador
+ * vuelve al panel sin el álbum de inmediato y los archivos se van borrando por
+ * detrás. Si esa parte falla, quedan huérfanos en Blob (ocupan sitio, no se
+ * ven), que es mucho menos malo que dejar al organizador esperando.
  */
 const TANDA_BLOBS = 100;
-const MARGEN_MS = 6000;
 
-async function borrarArchivos(urls: string[]) {
-  const empezado = Date.now();
-  let borrados = 0;
-  for (let i = 0; i < urls.length; i += TANDA_BLOBS) {
-    if (Date.now() - empezado > MARGEN_MS) {
-      console.error(
-        `Quedaron ${urls.length - borrados} archivos sin borrar por falta de tiempo.`,
-      );
-      break;
+function borrarArchivosLuego(urls: string[]) {
+  if (urls.length === 0) return;
+  after(async () => {
+    for (let i = 0; i < urls.length; i += TANDA_BLOBS) {
+      try {
+        await del(urls.slice(i, i + TANDA_BLOBS));
+      } catch (err) {
+        console.error("No se pudo borrar una tanda de archivos:", err);
+      }
     }
-    try {
-      await del(urls.slice(i, i + TANDA_BLOBS));
-      borrados += Math.min(TANDA_BLOBS, urls.length - i);
-    } catch (err) {
-      console.error("No se pudo borrar una tanda de archivos:", err);
-    }
-  }
+  });
 }
 
 export async function deleteAlbum(albumId: string): Promise<{ ok: boolean; error?: string }> {
@@ -101,7 +102,7 @@ export async function deleteAlbum(albumId: string): Promise<{ ok: boolean; error
     if (!userId) return { ok: false, error: "No has iniciado sesión." };
 
     const rows = await db()
-      .select({ url: media.url })
+      .select({ url: media.url, posterUrl: media.posterUrl })
       .from(media)
       .where(eq(media.albumId, albumId));
 
@@ -110,8 +111,10 @@ export async function deleteAlbum(albumId: string): Promise<{ ok: boolean; error
       .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)))
       .returning({ id: albums.id });
 
-    if (deleted.length > 0 && rows.length > 0) {
-      await borrarArchivos(rows.map((r) => r.url));
+    if (deleted.length > 0) {
+      borrarArchivosLuego(
+        rows.flatMap((r) => [r.url, r.posterUrl]).filter((u): u is string => !!u),
+      );
     }
   } catch (err) {
     console.error("No se pudo borrar el álbum:", err);
@@ -159,16 +162,11 @@ export async function deleteMedia(mediaId: string): Promise<{ ok: boolean; error
       .returning({ url: media.url, posterUrl: media.posterUrl });
 
     if (deleted.length > 0) {
-      const archivos = [deleted[0].url, deleted[0].posterUrl].filter(
-        (u): u is string => !!u,
+      // El archivo se borra después de contestar, igual que al borrar el álbum:
+      // esperar a que Blob confirme es justo lo que dejaba el botón girando.
+      borrarArchivosLuego(
+        [deleted[0].url, deleted[0].posterUrl].filter((u): u is string => !!u),
       );
-      try {
-        await del(archivos);
-      } catch (err) {
-        // El archivo puede quedar huérfano; la fila ya no está, que es lo que
-        // ve el organizador. No merece hacerle esperar ni fallar por esto.
-        console.error("No se pudo borrar el archivo:", err);
-      }
     }
     return { ok: true };
   } catch (err) {

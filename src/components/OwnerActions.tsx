@@ -18,13 +18,18 @@ export function DeleteAlbumButton({
   albumId: string;
   albumName: string;
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   // La navegación la hace el navegador cuando la acción ha terminado, en vez
   // de que la acción redirija: así el resultado (o el fallo) llega hasta aquí
   // y se puede enseñar.
+  //
+  // Y la vuelta al panel es una recarga de verdad, no `router.push`: el router
+  // de Next guarda en memoria la última versión de /dashboard y volvía a
+  // pintarla con el álbum recién borrado todavía en la lista. `router.refresh`
+  // la corrige un instante después, pero por medio se ve el álbum ahí y parece
+  // que no se ha borrado — que es justo lo que había que quitar.
   function borrar() {
     if (
       !confirm(
@@ -38,8 +43,7 @@ export function DeleteAlbumButton({
       try {
         const r = await deleteAlbum(albumId);
         if (r.ok) {
-          router.push("/dashboard");
-          router.refresh();
+          window.location.assign("/dashboard");
         } else {
           setError(r.error ?? "No se pudo borrar el álbum.");
         }
