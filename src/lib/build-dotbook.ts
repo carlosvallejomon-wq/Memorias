@@ -146,6 +146,7 @@ type Palette = {
   mandala?: boolean;
   botanical?: PDFImage;
   botanicalTop?: PDFImage;
+  botanicalBottom?: PDFImage;
   ornamentKind?: "botanical" | "celebration" | "travel";
 };
 
@@ -1091,7 +1092,11 @@ function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: num
   if (palette.decoration === "branch" && palette.botanical) {
     // PDF coloca imágenes desde la esquina inferior izquierda. Anclarlas a
     // los márgenes de la página evita que la acuarela quede cortada.
-    const image = !mirror && palette.botanicalTop ? palette.botanicalTop : palette.botanical;
+    const image = mirror && palette.botanicalBottom
+      ? palette.botanicalBottom
+      : !mirror && palette.botanicalTop
+        ? palette.botanicalTop
+        : palette.botanical;
     const box = palette.ornamentKind === "travel" ? 112 : palette.ornamentKind === "celebration" ? 104 : 98;
     const inset = 12;
     const scale = Math.min(box / image.width, box / image.height);
@@ -1881,11 +1886,21 @@ export async function buildDotbookPdf(
           ? "celebration-ornament.png"
           : "botanical-branch.png";
       const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file));
-      const topBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file.replace(".png", "-top-v2.png")));
+      const topFile = ornamentKind === "travel"
+        ? "travel-ornament-top.png"
+        : file.replace(".png", "-top-v2.png");
+      const topBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", topFile));
+      const bottomFile = ornamentKind === "celebration"
+        ? "celebration-ornament-bottom-v2.png"
+        : ornamentKind === "botanical"
+          ? "botanical-branch-bottom-v2.png"
+          : file;
+      const bottomBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", bottomFile));
       palette = {
         ...palette,
         botanical: await pdf.embedPng(bytes),
         botanicalTop: await pdf.embedPng(topBytes),
+        botanicalBottom: await pdf.embedPng(bottomBytes),
         ornamentKind,
       };
     } catch {
