@@ -43,12 +43,15 @@ En el proyecto de Vercel → **Settings → Environment Variables**, añade:
 | `DATABASE_URL` | En [Neon](https://neon.tech): tu proyecto → **Connection string** (elige la opción *Pooled connection*). |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | En [Clerk](https://dashboard.clerk.com): tu app → **API Keys** → *Publishable key*. |
 | `CLERK_SECRET_KEY` | Mismo sitio → *Secret key*. |
+| `APP_SIGNING_SECRET` | Una cadena aleatoria larga y exclusiva para firmar enlaces y cookies. |
+| `CRON_SECRET` | Una cadena aleatoria larga; Vercel la usa para autorizar la limpieza diaria. |
 
 ### 4. Desplegar y preparar la base de datos
 
 1. Pestaña **Deployments** → **Redeploy** (para que tome las variables).
-2. Cuando termine, visita `https://TU-APP.vercel.app/api/setup` en el
-   navegador **una sola vez**. Debe responder:
+2. Cuando termine, inicia sesión como organizador y visita
+   `https://TU-APP.vercel.app/api/setup` en el navegador **una sola vez**.
+   Debe responder:
    `{"ok":true,"mensaje":"Base de datos lista..."}`.
    (Se puede visitar más veces sin peligro: no borra nada.)
 
@@ -121,7 +124,7 @@ se entra con el enlace y no caduca nunca.
 - **Borrado automático**: eliges tú la fecha. Se avisa a los invitados dentro
   del álbum según se acerca, para que descarguen lo que quieran, y ese día se
   borra todo sin vuelta atrás. Lo ejecuta una tarea diaria de Vercel
-  (`vercel.json`); si quieres protegerla, añade la variable `CRON_SECRET`.
+  (`vercel.json`); requiere la variable `CRON_SECRET` y no se ejecuta si falta.
 
 ## Privacidad
 
@@ -140,7 +143,8 @@ siendo el mismo.
 ```bash
 npm install
 # .env.local con DATABASE_URL, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-# CLERK_SECRET_KEY y BLOB_READ_WRITE_TOKEN
+# CLERK_SECRET_KEY, BLOB_READ_WRITE_TOKEN, APP_SIGNING_SECRET
+# y CRON_SECRET
 npm run dev
 ```
 

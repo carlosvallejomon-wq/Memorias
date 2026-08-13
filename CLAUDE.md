@@ -154,7 +154,8 @@ Cada vez que se añada una tabla o columna hay que volver a visitar
 falla en cuanto toca las tablas nuevas — avisarlo siempre al usuario.
 
 Variables de entorno: `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`,
-`CLERK_SECRET_KEY`, `BLOB_READ_WRITE_TOKEN` (esta la inyecta Vercel al
+`CLERK_SECRET_KEY`, `APP_SIGNING_SECRET`, `CRON_SECRET`,
+`BLOB_READ_WRITE_TOKEN` (esta la inyecta Vercel al
 conectar el Blob store). El README tiene la guía de despliegue paso a paso
 pensada para el usuario (no programador).
 
