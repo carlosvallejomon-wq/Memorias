@@ -1091,14 +1091,18 @@ function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: num
   if (palette.decoration === "branch" && palette.botanical) {
     // PDF coloca imágenes desde la esquina inferior izquierda. Anclarlas a
     // los márgenes de la página evita que la acuarela quede cortada.
-    const size = palette.ornamentKind === "celebration" ? 86 : palette.ornamentKind === "travel" ? 104 : 92;
-    const inset = palette.ornamentKind === "travel" ? 8 : 14;
-    page.drawImage(!mirror && palette.botanicalTop ? palette.botanicalTop : palette.botanical, {
-      x: mirror ? PAGE_WIDTH - size - inset : inset,
-      y: mirror ? inset : PAGE_HEIGHT - size - inset,
-      width: size,
-      height: size,
-      opacity: 0.72,
+    const image = !mirror && palette.botanicalTop ? palette.botanicalTop : palette.botanical;
+    const box = palette.ornamentKind === "travel" ? 112 : palette.ornamentKind === "celebration" ? 104 : 98;
+    const inset = 12;
+    const scale = Math.min(box / image.width, box / image.height);
+    const width = image.width * scale;
+    const height = image.height * scale;
+    page.drawImage(image, {
+      x: mirror ? PAGE_WIDTH - width - inset : inset,
+      y: mirror ? inset : PAGE_HEIGHT - height - inset,
+      width,
+      height,
+      opacity: 0.76,
     });
   } else if (palette.decoration === "confetti") {
     drawCornerConfetti(page, x, y, 70, 60, palette.tapeColors, seed);
@@ -1877,7 +1881,7 @@ export async function buildDotbookPdf(
           ? "celebration-ornament.png"
           : "botanical-branch.png";
       const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file));
-      const topBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file.replace(".png", "-top.png")));
+      const topBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file.replace(".png", "-top-v2.png")));
       palette = {
         ...palette,
         botanical: await pdf.embedPng(bytes),
