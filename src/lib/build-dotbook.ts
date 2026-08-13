@@ -1403,6 +1403,7 @@ async function addMosaicPage(
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   drawBackground(page, palette);
   drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, fotos.length * 7 + 3);
+  drawCornerDecoration(page, PAGE_WIDTH - 34, 34, -20, true, palette, fotos.length * 7 + 4);
   drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
 
   const izq = MARGIN - 6;
@@ -1599,6 +1600,7 @@ async function addPhotoPage(
   // ---- Página con marco: la foto se estira hasta donde empieza el pie ------
   drawBackground(page, palette);
   drawCornerDecoration(page, 30, PAGE_HEIGHT - 30, -20, false, palette, index * 2 + 11);
+  drawCornerDecoration(page, PAGE_WIDTH - 30, 30, -20, true, palette, index * 2 + 12);
   drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 38, fonts.regular, 8, palette.inkFaint);
   page.drawRectangle({
     x: 22,
