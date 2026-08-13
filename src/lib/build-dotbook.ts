@@ -1087,14 +1087,16 @@ function drawPostalMark(page: PDFPage, x: number, y: number, mirror: boolean, co
 
 function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: number, mirror: boolean, palette: Palette, seed: number) {
   if (palette.decoration === "branch" && palette.botanical) {
-    const size = 116;
+    // PDF coloca imágenes desde la esquina inferior izquierda. Anclarlas a
+    // los márgenes de la página evita que la acuarela quede cortada.
+    const size = 92;
+    const inset = 14;
     page.drawImage(palette.botanical, {
-      x: mirror ? x + 8 : x - 36,
-      y: mirror ? y + size - 10 : y - 26,
+      x: mirror ? PAGE_WIDTH - size - inset : inset,
+      y: mirror ? inset : PAGE_HEIGHT - size - inset,
       width: size,
       height: size,
-      rotate: mirror ? degrees(180) : undefined,
-      opacity: 0.82,
+      opacity: 0.72,
     });
   } else if (palette.decoration === "confetti") {
     drawCornerConfetti(page, x, y, 70, 60, palette.tapeColors, seed);
@@ -1738,6 +1740,7 @@ function addMessagePages(
     page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
     drawBackground(page, palette);
     drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, first ? 41 : 43);
+    drawCornerDecoration(page, PAGE_WIDTH - 34, 34, -20, true, palette, first ? 42 : 44);
     y = PAGE_HEIGHT - MARGIN - 30;
     drawCentered(
       page,
