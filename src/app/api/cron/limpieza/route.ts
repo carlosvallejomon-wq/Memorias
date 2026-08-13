@@ -14,11 +14,14 @@ export const maxDuration = 300;
 // La ejecuta Vercel una vez al día (ver vercel.json). Es idempotente: si se
 // ejecuta dos veces, la segunda no encuentra nada que borrar.
 export async function GET(request: NextRequest) {
-  // Vercel manda una cabecera firmada si hay CRON_SECRET puesto. Si no lo
-  // hay, la ruta sigue siendo inofensiva: solo borra lo que ya estaba
-  // marcado para borrarse.
+  // La autorización es obligatoria porque esta ruta elimina datos y archivos.
+  // Vercel envía automáticamente esta cabecera cuando CRON_SECRET está puesto.
   const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!secret) {
+    console.error("No se ejecutó la limpieza: falta CRON_SECRET");
+    return NextResponse.json({ error: "Servicio no configurado" }, { status: 503 });
+  }
+  if (request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 

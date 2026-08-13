@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { crc32, createZipStream, dosDateTime } from "./zip-stream";
@@ -65,15 +65,25 @@ test("el ZIP generado lo abre el descompresor del sistema", async () => {
   const file = join(dir, "prueba.zip");
   writeFileSync(file, bytes);
 
-  // -t comprueba las sumas CRC de todas las entradas.
-  const salida = execFileSync("unzip", ["-t", file], { encoding: "utf8" });
-  assert.match(salida, /No errors detected/);
-  assert.match(salida, /001-hola\.txt/);
-  assert.doesNotMatch(salida, /002-roto/);
+  if (process.platform === "win32") {
+    const destino = join(dir, "extraido");
+    execFileSync("powershell.exe", [
+      "-NoProfile",
+      "-Command",
+      "& { param($zip, $destino) Expand-Archive -LiteralPath $zip -DestinationPath $destino -Force }",
+      file,
+      destino,
+    ]);
+    assert.equal(readFileSync(join(destino, "001-hola.txt"), "utf8"), contenido);
+  } else {
+    const salida = execFileSync("unzip", ["-t", file], { encoding: "utf8" });
+    assert.match(salida, /No errors detected/);
+    assert.match(salida, /001-hola\.txt/);
+    assert.doesNotMatch(salida, /002-roto/);
 
-  execFileSync("unzip", ["-o", "-d", dir, file]);
-  const { readFileSync } = await import("node:fs");
-  assert.equal(readFileSync(join(dir, "001-hola.txt"), "utf8"), contenido);
+    execFileSync("unzip", ["-o", "-d", dir, file]);
+    assert.equal(readFileSync(join(dir, "001-hola.txt"), "utf8"), contenido);
+  }
 
   // Los nombres con acentos no se comprueban leyendo lo que imprime `unzip`:
   // cómo los dibuja depende del idioma configurado en la máquina (en el

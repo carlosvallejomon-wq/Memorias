@@ -6,9 +6,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // no se puedan fabricar a mano.
 
 function secreto(): string {
-  // Si no hay clave propia, se usa lo que haya: no es ideal, pero evita que la
-  // función se caiga por una variable sin poner.
-  return process.env.CLERK_SECRET_KEY || process.env.DATABASE_URL || "memorias-vivas";
+  // En local hay un respaldo predecible para facilitar pruebas. En producción
+  // exigimos una clave exclusiva y fallamos de forma segura si no está.
+  const secret = process.env.APP_SIGNING_SECRET;
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV !== "production") return "memorias-vivas-local-only";
+  throw new Error("Falta la variable APP_SIGNING_SECRET");
 }
 
 export function firmar(payload: string): string {

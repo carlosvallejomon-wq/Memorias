@@ -3,7 +3,12 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 // Solo el panel del organizador pasa por Clerk. Los invitados (/a/...), la
 // portada y las APIs públicas nunca tocan el middleware de autenticación:
 // así un invitado jamás es redirigido a una pantalla de login.
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/api/albums(.*)"]);
+const isProtectedRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/api/albums(.*)",
+  "/api/setup",
+  "/api/diagnostico",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
@@ -12,5 +17,5 @@ export default clerkMiddleware(async (auth, req) => {
 });
 
 export const config = {
-  matcher: ["/dashboard(.*)", "/api/albums(.*)"],
+  matcher: ["/dashboard(.*)", "/api/albums(.*)", "/api/setup", "/api/diagnostico"],
 };
