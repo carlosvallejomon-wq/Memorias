@@ -1214,111 +1214,11 @@ function addCoverPage(
 // "Graduation"). La franja usa un tono oscuro del propio color de acento del
 // diseño para que el texto blanco siempre se lea bien encima, sea cual sea
 // el diseño.
-async function addTemplateCoverPage(
-  pdf: PDFDocument,
-  album: Album,
-  fonts: Fonts,
-  stats: { total: number; uploaders: number; days: number },
-  templateImage: PDFImage,
-  cover: TemplateCoverConfig,
-) {
+async function addTemplateCoverPage(pdf: PDFDocument, templateImage: PDFImage) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-
-  const ink = rgb(0.16, 0.13, 0.1);
-  const inkSoft = mix(ink, rgb(1, 1, 1), 0.35);
-  const papel = rgb(0.976, 0.961, 0.937);
-
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: papel });
-
-  const dateLabel = album.eventDate
-    ? formatLongDate(new Date(album.eventDate + "T00:00:00"))
-    : album.kind === "familia"
-      ? "Álbum de familia"
-      : null;
-
-  const statsLine = [
-    `${stats.total} ${stats.total === 1 ? "recuerdo" : "recuerdos"}`,
-    stats.uploaders > 0
-      ? `${stats.uploaders} ${stats.uploaders === 1 ? "invitado" : "invitados"}`
-      : null,
-    stats.days > 1 ? `${stats.days} días` : null,
-  ]
-    .filter((v): v is string => !!v)
-    .join("   ·   ");
-
-  const nameSize = 22;
-  const lineH = 27;
-  const nameLines = envolver(album.name, PAGE_WIDTH - MARGIN * 2, fonts.bold, nameSize);
-
-  // Franja de abajo, sobre el papel: el nombre del álbum, la fecha y el
-  // recuento. Se mide antes de colocar el diseño, porque es lo que decide
-  // cuánto sitio le queda.
-  const MARGEN = 30;
-  const ARRIBA = 34;
-  const banda = 40 + nameLines.length * lineH + (dateLabel ? 20 : 0) + 26;
-
-  // El diseño va entero y sin recortar dentro de lo que sobra.
-  //
-  // Antes se dibujaba a sangre y el título iba en una placa colocada encima,
-  // en el hueco que un análisis de la imagen consideraba más despejado. No
-  // funcionaba: ese análisis mide contraste, y en estas portadas no distingue
-  // el papel vacío de una acuarela pálida o de un subtítulo fino, que es justo
-  // donde acababa poniéndose. Medido sobre las 52 plantillas, una de las más
-  // "limpias" según el número (0,013) tapaba el subtítulo de su propio diseño.
-  //
-  // Montado —el diseño completo arriba, el título debajo sobre el papel— no
-  // hay nada que tapar se ponga donde se ponga, y se lee como la cubierta de
-  // un libro de fotos en vez de como una pegatina encima del dibujo.
-  const cajaAncho = PAGE_WIDTH - MARGEN * 2;
-  const cajaAlto = PAGE_HEIGHT - ARRIBA - banda;
-  const escala = Math.min(cajaAncho / templateImage.width, cajaAlto / templateImage.height);
-  const w = templateImage.width * escala;
-  const h = templateImage.height * escala;
-  const x = (PAGE_WIDTH - w) / 2;
-  const y = PAGE_HEIGHT - ARRIBA - h;
-
-  // Sombra suave y filete del color del diseño: le da el aire de lámina
-  // montada y despega el diseño del papel cuando los dos son claros.
-  page.drawRectangle({
-    x: x + 3,
-    y: y - 4,
-    width: w,
-    height: h,
-    color: rgb(0.2, 0.17, 0.12),
-    opacity: 0.14,
-  });
-  page.drawImage(templateImage, { x, y, width: w, height: h });
-  page.drawRectangle({
-    x,
-    y,
-    width: w,
-    height: h,
-    borderColor: cover.accent,
-    borderWidth: 1,
-    borderOpacity: 0.55,
-  });
-
-  let cursor = y - 30;
-  for (const linea of nameLines) {
-    const ancho = anchoTrozos(linea, fonts.bold, nameSize);
-    dibujarTrozos(page, linea, (PAGE_WIDTH - ancho) / 2, cursor, fonts.bold, nameSize, ink);
-    cursor -= lineH;
-  }
-  cursor += lineH - 24;
-
-  page.drawLine({
-    start: { x: PAGE_WIDTH / 2 - 26, y: cursor + 12 },
-    end: { x: PAGE_WIDTH / 2 + 26, y: cursor + 12 },
-    thickness: 1,
-    color: cover.accent,
-    opacity: 0.55,
-  });
-
-  if (dateLabel) {
-    drawCentered(page, dateLabel, cursor - 4, fonts.italic, 12, inkSoft);
-    cursor -= 22;
-  }
-  drawCentered(page, statsLine, cursor - 4, fonts.regular, 10, inkSoft);
+  // La plantilla es la cubierta: ocupa la hoja completa, sin repetir debajo
+  // el título y la fecha que ya tienen su propia portadilla interior.
+  drawImageCover(page, templateImage, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 }
 
 /**
@@ -1826,20 +1726,58 @@ function addMessagePages(
   }
 }
 
-function addTitlePage(pdf: PDFDocument, album: Album, fonts: Fonts, palette: Palette) {
+function addTitlePage(
+  pdf: PDFDocument,
+  album: Album,
+  fonts: Fonts,
+  palette: Palette,
+  stats: { total: number; uploaders: number; days: number },
+) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   drawBackground(page, palette);
   drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, 61);
   drawCornerDecoration(page, PAGE_WIDTH - 34, 34, -20, true, palette, 62);
-  const center = PAGE_HEIGHT / 2 + 42;
-  drawCentered(page, "M E M O R I A S   V I V A S", center + 122, fonts.regular, 9, palette.inkFaint);
-  drawWrapped(page, album.name, PAGE_WIDTH / 2, center + 54, PAGE_WIDTH - 150, 34, fonts.bold, 27, palette.ink, "center");
-  drawDivider(page, center - 18, palette.accent);
+
+  const panelX = 104;
+  const panelY = 236;
+  const panelW = PAGE_WIDTH - panelX * 2;
+  const panelH = 370;
+  page.drawRectangle({
+    x: panelX + 4,
+    y: panelY - 5,
+    width: panelW,
+    height: panelH,
+    color: rgb(0.18, 0.14, 0.1),
+    opacity: 0.06,
+  });
+  page.drawRectangle({
+    x: panelX,
+    y: panelY,
+    width: panelW,
+    height: panelH,
+    color: mix(rgb(1, 1, 1), palette.bg, 0.18),
+    borderColor: palette.accent,
+    borderWidth: 0.75,
+    borderOpacity: 0.5,
+  });
+
+  drawCentered(page, "M E M O R I A S   V I V A S", panelY + 320, fonts.regular, 9, palette.inkFaint);
+  drawWrapped(page, album.name, PAGE_WIDTH / 2, panelY + 258, panelW - 54, 34, fonts.bold, 27, palette.ink, "center");
+  drawDivider(page, panelY + 188, palette.accent);
   const subtitle = album.eventDate
     ? formatLongDate(new Date(album.eventDate + "T00:00:00"))
     : album.kind === "familia" ? "Álbum de familia" : "Una historia para recordar";
-  drawCentered(page, subtitle, center - 56, fonts.italic, 13, palette.inkSoft);
-  drawCentered(page, "Cada recuerdo merece una página.", center - 104, fonts.italic, 10.5, palette.inkFaint);
+  drawCentered(page, subtitle, panelY + 154, fonts.italic, 13, palette.inkSoft);
+  drawCentered(page, "Una colección de instantes, personas y emociones", panelY + 110, fonts.italic, 10.5, palette.inkFaint);
+  drawCentered(page, "para volver a vivir siempre.", panelY + 94, fonts.italic, 10.5, palette.inkFaint);
+
+  const labels = [
+    `${stats.total} ${stats.total === 1 ? "recuerdo" : "recuerdos"}`,
+    `${stats.uploaders} ${stats.uploaders === 1 ? "persona" : "personas"}`,
+    `${Math.max(stats.days, 1)} ${Math.max(stats.days, 1) === 1 ? "día" : "días"}`,
+  ];
+  const centers = [panelX + panelW * 0.2, PAGE_WIDTH / 2, panelX + panelW * 0.8];
+  labels.forEach((label, index) => drawCentered(page, label, panelY + 42, fonts.regular, 9.5, palette.inkSoft, centers[index]));
 }
 function addClosingPage(
   pdf: PDFDocument,
@@ -2003,14 +1941,7 @@ export async function buildDotbookPdf(
   }
 
   if (templateCoverImage && isTemplateStyle(style)) {
-    await addTemplateCoverPage(
-      pdf,
-      album,
-      fonts,
-      stats,
-      templateCoverImage,
-      TEMPLATE_COVERS[style],
-    );
+    await addTemplateCoverPage(pdf, templateCoverImage);
   } else {
     const previewImages: PDFImage[] = [];
     for (const url of portadasNecesarias) {
@@ -2019,7 +1950,7 @@ export async function buildDotbookPdf(
     }
     addCoverPage(pdf, album, fonts, stats, previewImages, palette);
   }
-  addTitlePage(pdf, album, fonts, palette);
+  addTitlePage(pdf, album, fonts, palette, stats);
 
   // Se incrustan primero las imágenes para saber la forma de cada una: el
   // reparto en páginas depende de si son verticales o apaisadas, y eso no se
