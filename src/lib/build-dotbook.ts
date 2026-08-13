@@ -145,6 +145,7 @@ type Palette = {
   flowerColors?: RGB[];
   mandala?: boolean;
   botanical?: PDFImage;
+  ornamentKind?: "botanical" | "celebration" | "travel";
 };
 
 const PALETTES: Record<VectorDotbookStyle, Palette> = {
@@ -1089,8 +1090,8 @@ function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: num
   if (palette.decoration === "branch" && palette.botanical) {
     // PDF coloca imágenes desde la esquina inferior izquierda. Anclarlas a
     // los márgenes de la página evita que la acuarela quede cortada.
-    const size = 92;
-    const inset = 14;
+    const size = palette.ornamentKind === "celebration" ? 86 : palette.ornamentKind === "travel" ? 104 : 92;
+    const inset = palette.ornamentKind === "travel" ? 8 : 14;
     page.drawImage(palette.botanical, {
       x: mirror ? PAGE_WIDTH - size - inset : inset,
       y: mirror ? inset : PAGE_HEIGHT - size - inset,
@@ -1822,12 +1823,28 @@ function addMessagePages(
   }
 }
 
+function addTitlePage(pdf: PDFDocument, album: Album, fonts: Fonts, palette: Palette) {
+  const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  drawBackground(page, palette);
+  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, 61);
+  drawCornerDecoration(page, PAGE_WIDTH - 34, 34, -20, true, palette, 62);
+  const center = PAGE_HEIGHT / 2 + 42;
+  drawCentered(page, "M E M O R I A S   V I V A S", center + 122, fonts.regular, 9, palette.inkFaint);
+  drawWrapped(page, album.name, PAGE_WIDTH / 2, center + 54, PAGE_WIDTH - 150, 34, fonts.bold, 27, palette.ink, "center");
+  drawDivider(page, center - 18, palette.accent);
+  const subtitle = album.eventDate
+    ? formatLongDate(new Date(album.eventDate + "T00:00:00"))
+    : album.kind === "familia" ? "Álbum de familia" : "Una historia para recordar";
+  drawCentered(page, subtitle, center - 56, fonts.italic, 13, palette.inkSoft);
+  drawCentered(page, "Cada recuerdo merece una página.", center - 104, fonts.italic, 10.5, palette.inkFaint);
+}
 function addClosingPage(
   pdf: PDFDocument,
   fonts: Fonts,
   qrImage: PDFImage,
   palette: Palette,
   seleccion: { impresos: number; totales: number } | null,
+  albumName: string,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bgClosing });
@@ -1836,6 +1853,7 @@ function addClosingPage(
   const centerY = PAGE_HEIGHT / 2 + 60;
 
   drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 78, fonts.regular, 9, palette.inkFaint);
+  drawCentered(page, albumName, PAGE_HEIGHT - 108, fonts.italic, 11, palette.inkSoft);
   drawCentered(page, "Gracias por compartir", centerY + 48, fonts.bold, 27, palette.ink);
   drawCentered(page, "estos recuerdos", centerY + 14, fonts.bold, 27, palette.ink);
   drawDivider(page, centerY - 14, palette.accent);
@@ -1906,10 +1924,21 @@ export async function buildDotbookPdf(
     try {
       const { readFile } = await import("node:fs/promises");
       const { join } = await import("node:path");
-      const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", "botanical-branch.png"));
-      palette = { ...palette, botanical: await pdf.embedPng(bytes) };
+      const grupo = isTemplateStyle(style) ? TEMPLATE_COVERS[style].grupo : null;
+      const ornamentKind = grupo === "viajes" || style === "viajes"
+        ? "travel"
+        : grupo === "cumple" || grupo === "quince" || style === "fiesta"
+          ? "celebration"
+          : "botanical";
+      const file = ornamentKind === "travel"
+        ? "travel-ornament.png"
+        : ornamentKind === "celebration"
+          ? "celebration-ornament.png"
+          : "botanical-branch.png";
+      const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file));
+      palette = { ...palette, botanical: await pdf.embedPng(bytes), ornamentKind };
     } catch {
-      // La rama vectorial sigue siendo un respaldo seguro en entornos sin el recurso.
+      // La decoración vectorial sigue siendo un respaldo seguro sin el recurso.
     }
   }
   pdf.setTitle(`Dotbook · ${album.name}`);
@@ -1981,6 +2010,7 @@ export async function buildDotbookPdf(
     }
     addCoverPage(pdf, album, fonts, stats, previewImages, palette);
   }
+  addTitlePage(pdf, album, fonts, palette);
 
   // Se incrustan primero las imágenes para saber la forma de cada una: el
   // reparto en páginas depende de si son verticales o apaisadas, y eso no se
@@ -2061,6 +2091,7 @@ export async function buildDotbookPdf(
     closingQr,
     palette,
     recortado ? { impresos: sorted.length, totales: todos.length } : null,
+    album.name,
   );
 
   return pdf.save();
