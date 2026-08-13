@@ -145,6 +145,7 @@ type Palette = {
   flowerColors?: RGB[];
   mandala?: boolean;
   botanical?: PDFImage;
+  botanicalTop?: PDFImage;
   ornamentKind?: "botanical" | "celebration" | "travel";
 };
 
@@ -1092,7 +1093,7 @@ function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: num
     // los márgenes de la página evita que la acuarela quede cortada.
     const size = palette.ornamentKind === "celebration" ? 86 : palette.ornamentKind === "travel" ? 104 : 92;
     const inset = palette.ornamentKind === "travel" ? 8 : 14;
-    page.drawImage(palette.botanical, {
+    page.drawImage(!mirror && palette.botanicalTop ? palette.botanicalTop : palette.botanical, {
       x: mirror ? PAGE_WIDTH - size - inset : inset,
       y: mirror ? inset : PAGE_HEIGHT - size - inset,
       width: size,
@@ -1936,7 +1937,13 @@ export async function buildDotbookPdf(
           ? "celebration-ornament.png"
           : "botanical-branch.png";
       const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file));
-      palette = { ...palette, botanical: await pdf.embedPng(bytes), ornamentKind };
+      const topBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file.replace(".png", "-top.png")));
+      palette = {
+        ...palette,
+        botanical: await pdf.embedPng(bytes),
+        botanicalTop: await pdf.embedPng(topBytes),
+        ornamentKind,
+      };
     } catch {
       // La decoración vectorial sigue siendo un respaldo seguro sin el recurso.
     }
