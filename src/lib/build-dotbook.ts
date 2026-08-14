@@ -1090,9 +1090,6 @@ function drawPostalMark(page: PDFPage, x: number, y: number, mirror: boolean, co
 
 function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: number, mirror: boolean, palette: Palette, seed: number) {
   if (palette.decoration === "branch" && palette.botanical) {
-    // En viajes, el collage luce mejor como un unico remate inferior.
-    // mirror=false corresponde a la esquina superior izquierda.
-    if (palette.ornamentKind === "travel" && !mirror) return;
     // PDF coloca imágenes desde la esquina inferior izquierda. Anclarlas a
     // los márgenes de la página evita que la acuarela quede cortada.
     const image = palette.ornamentKind === "travel"
