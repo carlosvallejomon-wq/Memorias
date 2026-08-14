@@ -1095,11 +1095,13 @@ function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: num
     if (palette.ornamentKind === "travel" && !mirror) return;
     // PDF coloca imágenes desde la esquina inferior izquierda. Anclarlas a
     // los márgenes de la página evita que la acuarela quede cortada.
-    const image = mirror && palette.botanicalBottom
-      ? palette.botanicalBottom
-      : !mirror && palette.botanicalTop
-        ? palette.botanicalTop
-        : palette.botanical;
+    const image = palette.ornamentKind === "travel"
+      ? (palette.botanicalBottom ?? palette.botanical)
+      : mirror && palette.botanicalBottom
+        ? palette.botanicalBottom
+        : !mirror && palette.botanicalTop
+          ? palette.botanicalTop
+          : palette.botanical;
     const box = palette.ornamentKind === "travel" ? 112 : palette.ornamentKind === "celebration" ? 104 : 98;
     const inset = 12;
     const scale = Math.min(box / image.width, box / image.height);
