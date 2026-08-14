@@ -18,6 +18,7 @@ export function DeleteAlbumButton({
   albumId: string;
   albumName: string;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +44,8 @@ export function DeleteAlbumButton({
       try {
         const r = await deleteAlbum(albumId);
         if (r.ok) {
-          window.location.assign("/dashboard");
+          router.replace("/dashboard");
+          router.refresh();
         } else {
           setError(r.error ?? "No se pudo borrar el álbum.");
         }

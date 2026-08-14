@@ -147,7 +147,7 @@ type Palette = {
   botanical?: PDFImage;
   botanicalTop?: PDFImage;
   botanicalBottom?: PDFImage;
-  ornamentKind?: "botanical" | "celebration" | "travel" | "baptism" | "communion" | "baby" | "wedding";
+  ornamentKind?: "botanical" | "celebration" | "travel" | "baptism" | "communion" | "baby" | "wedding" | "quince" | "graduation" | "christmas" | "newyear" | "general";
 };
 
 const PALETTES: Record<VectorDotbookStyle, Palette> = {
@@ -609,7 +609,16 @@ function drawBackground(page: PDFPage, palette: Palette) {
   } else {
     page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
   }
-}
+
+  // Filete editorial muy sutil para terminar visualmente la hoja.
+  page.drawRectangle({
+    x: 8, y: 8, width: PAGE_WIDTH - 16, height: PAGE_HEIGHT - 16,
+    borderColor: palette.accent, borderWidth: 0.55, borderOpacity: 0.18,
+  });
+  page.drawRectangle({
+    x: 11, y: 11, width: PAGE_WIDTH - 22, height: PAGE_HEIGHT - 22,
+    borderColor: palette.accent, borderWidth: 0.25, borderOpacity: 0.1,
+  });}
 
 // Una florecita sencilla (pétalos + centro) para el borde tipo "pradera"
 // del estilo clásico, inspirado en la plantilla floral de referencia.
@@ -1881,9 +1890,21 @@ export async function buildDotbookPdf(
       const grupo = isTemplateStyle(style) ? TEMPLATE_COVERS[style].grupo : null;
       const ornamentKind = grupo === "viajes" || style === "viajes"
         ? "travel"
-        : grupo === "cumple" || grupo === "quince" || style === "fiesta"
-          ? "celebration"
-          : grupo === "bautizo"
+        : grupo === "quince"
+          ? "quince"
+          : style === "realNavidad"
+            ? "christmas"
+            : style === "realAnoNuevo"
+              ? "newyear"
+              : style === "realGeneral"
+                ? "general"
+                : style === "realGraduacion"
+            ? "graduation"
+            : grupo === "cumple" || style === "fiesta"
+            ? "celebration"
+            : grupo === "boda"
+              ? "wedding"
+              : grupo === "bautizo"
             ? "baptism"
             : grupo === "comunion"
               ? "communion"
@@ -1898,6 +1919,11 @@ export async function buildDotbookPdf(
         communion: ["communion-ornament-top.png", "communion-ornament-bottom.png"],
         baby: ["baby-ornament-top.png", "baby-ornament-bottom.png"],
         wedding: ["wedding-ornament-top.png", "wedding-ornament-bottom.png"],
+        quince: ["quince-ornament-top.png", "quince-ornament-bottom.png"],
+        graduation: ["graduation-ornament-top.png", "graduation-ornament-bottom.png"],
+        christmas: ["christmas-ornament-top.png", "christmas-ornament-bottom.png"],
+        newyear: ["newyear-ornament-top.png", "newyear-ornament-bottom.png"],
+        general: ["general-ornament-top.png", "general-ornament-bottom.png"],
       };
       const [topFile, bottomFile] = ornamentFiles[ornamentKind];
       const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", topFile));
@@ -2059,6 +2085,12 @@ export async function buildDotbookPdf(
     recortado ? { impresos: sorted.length, totales: todos.length } : null,
     album.name,
   );
+
+  // Numeracion discreta desde la primera pagina de contenido. La portada y
+  // la portadilla editorial permanecen limpias, como en un album impreso.
+  pdf.getPages().slice(2).forEach((page, index) => {
+    drawCentered(page, String(index + 1), 18, fonts.regular, 7.5, palette.inkFaint);
+  });
 
   return pdf.save();
 }

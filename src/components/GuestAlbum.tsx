@@ -224,7 +224,7 @@ export function GuestAlbum({
     }
   }, [guestId]);
 
-  const all = items ?? [];
+  const all = useMemo(() => items ?? [], [items]);
   const challengeById = useMemo(
     () => new Map((challenges ?? []).map((c) => [c.id, c])),
     [challenges],
