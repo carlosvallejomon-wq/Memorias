@@ -1913,7 +1913,7 @@ export async function buildDotbookPdf(
                 : "botanical";
       const ornamentFiles: Record<NonNullable<Palette["ornamentKind"]>, [string, string]> = {
         botanical: ["botanical-branch-top-v2.png", "botanical-branch-bottom-v2.png"],
-        celebration: ["celebration-ornament-top-v2.png", "celebration-ornament-bottom-v2.png"],
+        celebration: ["celebration-ornament-top-v3.png", "celebration-ornament-bottom-v3.png"],
         travel: ["travel-ornament-top-v3.png", "travel-ornament.png"],
         baptism: ["baptism-ornament-top.png", "baptism-ornament-bottom.png"],
         communion: ["communion-ornament-top.png", "communion-ornament-bottom.png"],
