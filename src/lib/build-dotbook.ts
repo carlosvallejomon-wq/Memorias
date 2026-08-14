@@ -1092,9 +1092,11 @@ function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: num
   if (palette.decoration === "branch" && palette.botanical) {
     // PDF coloca imágenes desde la esquina inferior izquierda. Anclarlas a
     // los márgenes de la página evita que la acuarela quede cortada.
-    const image = palette.ornamentKind === "travel"
-      ? (palette.botanicalBottom ?? palette.botanical)
-      : mirror && palette.botanicalBottom
+    const image = palette.ornamentKind === "travel" && !mirror && palette.botanicalTop
+      ? palette.botanicalTop
+      : palette.ornamentKind === "travel"
+        ? (palette.botanicalBottom ?? palette.botanical)
+        : mirror && palette.botanicalBottom
         ? palette.botanicalBottom
         : !mirror && palette.botanicalTop
           ? palette.botanicalTop
@@ -1889,7 +1891,7 @@ export async function buildDotbookPdf(
           : "botanical-branch.png";
       const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file));
       const topFile = ornamentKind === "travel"
-        ? "travel-ornament-top.png"
+        ? "travel-ornament-top-v3.png"
         : file.replace(".png", "-top-v2.png");
       const topBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", topFile));
       const bottomFile = ornamentKind === "celebration"
