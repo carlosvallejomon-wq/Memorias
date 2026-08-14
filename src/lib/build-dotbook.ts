@@ -147,7 +147,7 @@ type Palette = {
   botanical?: PDFImage;
   botanicalTop?: PDFImage;
   botanicalBottom?: PDFImage;
-  ornamentKind?: "botanical" | "celebration" | "travel";
+  ornamentKind?: "botanical" | "celebration" | "travel" | "baptism" | "communion" | "baby";
 };
 
 const PALETTES: Record<VectorDotbookStyle, Palette> = {
@@ -1883,22 +1883,24 @@ export async function buildDotbookPdf(
         ? "travel"
         : grupo === "cumple" || grupo === "quince" || style === "fiesta"
           ? "celebration"
-          : "botanical";
-      const file = ornamentKind === "travel"
-        ? "travel-ornament.png"
-        : ornamentKind === "celebration"
-          ? "celebration-ornament.png"
-          : "botanical-branch.png";
-      const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", file));
-      const topFile = ornamentKind === "travel"
-        ? "travel-ornament-top-v3.png"
-        : file.replace(".png", "-top-v2.png");
-      const topBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", topFile));
-      const bottomFile = ornamentKind === "celebration"
-        ? "celebration-ornament-bottom-v2.png"
-        : ornamentKind === "botanical"
-          ? "botanical-branch-bottom-v2.png"
-          : file;
+          : grupo === "bautizo"
+            ? "baptism"
+            : grupo === "comunion"
+              ? "communion"
+              : grupo === "baby"
+                ? "baby"
+                : "botanical";
+      const ornamentFiles: Record<NonNullable<Palette["ornamentKind"]>, [string, string]> = {
+        botanical: ["botanical-branch-top-v2.png", "botanical-branch-bottom-v2.png"],
+        celebration: ["celebration-ornament-top-v2.png", "celebration-ornament-bottom-v2.png"],
+        travel: ["travel-ornament-top-v3.png", "travel-ornament.png"],
+        baptism: ["baptism-ornament-top.png", "baptism-ornament-bottom.png"],
+        communion: ["communion-ornament-top.png", "communion-ornament-bottom.png"],
+        baby: ["baby-ornament-top.png", "baby-ornament-bottom.png"],
+      };
+      const [topFile, bottomFile] = ornamentFiles[ornamentKind];
+      const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", topFile));
+      const topBytes = bytes;
       const bottomBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", bottomFile));
       palette = {
         ...palette,
