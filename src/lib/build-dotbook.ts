@@ -147,7 +147,7 @@ type Palette = {
   botanical?: PDFImage;
   botanicalTop?: PDFImage;
   botanicalBottom?: PDFImage;
-  ornamentKind?: "botanical" | "celebration" | "travel" | "baptism" | "communion" | "baby";
+  ornamentKind?: "botanical" | "celebration" | "travel" | "baptism" | "communion" | "baby" | "wedding";
 };
 
 const PALETTES: Record<VectorDotbookStyle, Palette> = {
@@ -1897,6 +1897,7 @@ export async function buildDotbookPdf(
         baptism: ["baptism-ornament-top.png", "baptism-ornament-bottom.png"],
         communion: ["communion-ornament-top.png", "communion-ornament-bottom.png"],
         baby: ["baby-ornament-top.png", "baby-ornament-bottom.png"],
+        wedding: ["wedding-ornament-top.png", "wedding-ornament-bottom.png"],
       };
       const [topFile, bottomFile] = ornamentFiles[ornamentKind];
       const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", topFile));
