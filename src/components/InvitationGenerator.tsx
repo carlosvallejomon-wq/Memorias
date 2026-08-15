@@ -2198,6 +2198,18 @@ export function InvitationGenerator({
     offY: number;
   } | null>(null);
 
+  function chooseTemplate(next: Template) {
+    setTemplateId(next.id);
+    setTextLayout({ ...next.defaultText });
+    setDetailsLayout(defaultDetailsLayout(next.defaultText));
+    setQrLayout({ ...next.defaultQr });
+    setPhotoLayout(null);
+    setPhotoImg(null);
+    setSelected(null);
+    if (next.id !== templateId) setBgImg(null);
+    setInvitationLinkQr(null);
+  }
+
   useEffect(() => {
     if (!open) return;
     ensureInvitationFonts().then(() => setFontsLoaded(true));
@@ -2217,25 +2229,15 @@ export function InvitationGenerator({
   }, [open, shareUrl]);
 
   useEffect(() => {
-    setTextLayout({ ...template.defaultText });
-    setDetailsLayout(defaultDetailsLayout(template.defaultText));
-    setQrLayout({ ...template.defaultQr });
-    setPhotoLayout(null);
-    setPhotoImg(null);
-    setSelected(null);
-    setBgImg(null);
-    setInvitationLinkQr(null);
-    if (template.bgImage) {
-      let cancelled = false;
-      loadImage(template.bgImage).then((img) => {
-        if (!cancelled) setBgImg(img);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateId]);
+    if (!template.bgImage) return;
+    let cancelled = false;
+    loadImage(template.bgImage).then((img) => {
+      if (!cancelled) setBgImg(img);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [template.bgImage]);
 
   // El panel de texto actúa sobre el bloque seleccionado en el lienzo; si no
   // hay ninguno, sobre el título.
@@ -2442,7 +2444,7 @@ export function InvitationGenerator({
                 {visibleTemplates.map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => setTemplateId(t.id)}
+                    onClick={() => chooseTemplate(t)}
                     title={t.label}
                     className={`aspect-[5/7] overflow-hidden rounded-lg shadow-soft transition ${
                       t.swatch ? `bg-gradient-to-br ${t.swatch}` : ""

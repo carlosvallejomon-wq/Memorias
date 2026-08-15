@@ -58,7 +58,8 @@ function useLocalValue(key: string, generate?: () => string) {
       v = generate();
       localStorage.setItem(key, v);
     }
-    setValue(v);
+    const timeout = window.setTimeout(() => setValue(v), 0);
+    return () => window.clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   const save = useCallback(
@@ -143,9 +144,11 @@ export function GuestAlbum({
     const clave = `mv_panel_${code}`;
     if (fromPanel) {
       localStorage.setItem(clave, "1");
-      setEsOrganizador(true);
+      const timeout = window.setTimeout(() => setEsOrganizador(true), 0);
+      return () => window.clearTimeout(timeout);
     } else if (localStorage.getItem(clave) === "1") {
-      setEsOrganizador(true);
+      const timeout = window.setTimeout(() => setEsOrganizador(true), 0);
+      return () => window.clearTimeout(timeout);
     }
   }, [code, fromPanel]);
 
@@ -175,11 +178,13 @@ export function GuestAlbum({
   }, [code]);
 
   useEffect(() => {
-    refresh();
+    const timeout = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(timeout);
   }, [refresh]);
 
   useEffect(() => {
-    refreshChallenges();
+    const timeout = window.setTimeout(() => void refreshChallenges(), 0);
+    return () => window.clearTimeout(timeout);
   }, [refreshChallenges]);
 
   // Cerrar el saludo del nombre: se marca como ya preguntado para no volver a
@@ -220,7 +225,8 @@ export function GuestAlbum({
 
   useEffect(() => {
     if (guestId && !localStorage.getItem("mv_guest_name_asked")) {
-      setAskName(true);
+      const timeout = window.setTimeout(() => setAskName(true), 0);
+      return () => window.clearTimeout(timeout);
     }
   }, [guestId]);
 
@@ -265,7 +271,8 @@ export function GuestAlbum({
   // Al cambiar de filtro o de pestaña se vuelve a empezar por la primera
   // tanda: si no, se quedaba pidiendo fotos de una lista que ya no existe.
   useEffect(() => {
-    setShown(PAGE_SIZE);
+    const timeout = window.setTimeout(() => setShown(PAGE_SIZE), 0);
+    return () => window.clearTimeout(timeout);
   }, [filter, person, challengeFilter, view]);
 
   // Carga la siguiente tanda cuando el final de la galería asoma por
@@ -291,7 +298,9 @@ export function GuestAlbum({
   // Si la foto abierta desaparece del filtro (o se borra), se cierra el visor
   // en vez de quedarse en un estado imposible.
   useEffect(() => {
-    if (selectedId && selectedIndex < 0) setSelectedId(null);
+    if (!selectedId || selectedIndex >= 0) return;
+    const timeout = window.setTimeout(() => setSelectedId(null), 0);
+    return () => window.clearTimeout(timeout);
   }, [selectedId, selectedIndex]);
 
   function askForFiles(challengeId: string | null) {
@@ -1004,6 +1013,7 @@ export function GuestAlbum({
 
       {selected && (
         <GuestLightbox
+          key={selected.id}
           item={selected}
           index={selectedIndex}
           total={visible.length}

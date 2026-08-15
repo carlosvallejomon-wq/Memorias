@@ -26,7 +26,9 @@ function useSlideshowSpeed() {
   const [speedMs, setSpeedMs] = useState(DEFAULT_SPEED_MS);
   useEffect(() => {
     const saved = Number(localStorage.getItem("mv_slideshow_speed"));
-    if (saved && SPEEDS.some((s) => s.ms === saved)) setSpeedMs(saved);
+    if (!saved || !SPEEDS.some((s) => s.ms === saved)) return;
+    const timeout = window.setTimeout(() => setSpeedMs(saved), 0);
+    return () => window.clearTimeout(timeout);
   }, []);
   const change = (ms: number) => {
     setSpeedMs(ms);
@@ -74,11 +76,8 @@ export function Slideshow({
     };
   }, [code]);
 
-  useEffect(() => {
-    if (index >= items.length) setIndex(0);
-  }, [items.length, index]);
-
-  const current = items[index] ?? null;
+  const normalizedIndex = items.length > 0 ? index % items.length : 0;
+  const current = items[normalizedIndex] ?? null;
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

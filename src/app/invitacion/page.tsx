@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import {
@@ -17,25 +17,23 @@ function InvitationView() {
   const params = useSearchParams();
   const raw = params.get("d");
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!raw) {
-      setError("Este enlace de invitación no es válido.");
-      return;
-    }
+  const invitation = useMemo(() => {
+    if (!raw) return { error: "Este enlace de invitación no es válido." } as const;
     const state = decodeInvitationLink(raw);
-    if (!state) {
-      setError("Este enlace de invitación no es válido.");
-      return;
-    }
-    const template = TEMPLATES.find((t) => t.id === state.t);
+    if (!state) return { error: "Este enlace de invitación no es válido." } as const;
+    const template = TEMPLATES.find((candidate) => candidate.id === state.t);
     if (!template) {
-      setError("Esta invitación usa un diseño que ya no está disponible.");
-      return;
+      return { error: "Esta invitación usa un diseño que ya no está disponible." } as const;
     }
+    return { state, template, error: null } as const;
+  }, [raw]);
+
+  useEffect(() => {
+    if (invitation.error) return;
+    const { state, template } = invitation;
 
     let cancelled = false;
     (async () => {
@@ -81,12 +79,12 @@ function InvitationView() {
     return () => {
       cancelled = true;
     };
-  }, [raw]);
+  }, [invitation]);
 
-  if (error) {
+  if (invitation.error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-arena p-6 text-center text-tinta/70">
-        {error}
+        {invitation.error}
       </div>
     );
   }
