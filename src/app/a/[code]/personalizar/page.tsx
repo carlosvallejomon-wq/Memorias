@@ -10,7 +10,7 @@ import { isExpired } from "@/lib/expiry";
 import { isValidClientToken } from "@/lib/client-link";
 import { AlbumLock } from "@/components/AlbumLock";
 import { DotbookGenerator } from "@/components/DotbookGenerator";
-import { InvitationGenerator } from "@/components/InvitationGenerator";
+import { LazyInvitationGenerator } from "@/components/LazyInvitationGenerator";
 
 export const dynamic = "force-dynamic";
 
@@ -145,7 +145,7 @@ export default async function PersonalizarPage({
           WhatsApp.
         </p>
         <div className="mt-4">
-          <InvitationGenerator
+          <LazyInvitationGenerator
             albumName={album.name}
             eventDateLabel={eventDateLabel}
             shareUrl={shareUrl}

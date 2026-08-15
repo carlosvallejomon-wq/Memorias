@@ -2151,12 +2151,18 @@ export function InvitationGenerator({
   albumName,
   eventDateLabel,
   shareUrl,
+  initiallyOpen = false,
+  hideTrigger = false,
+  onClose,
 }: {
   albumName: string;
   eventDateLabel: string | null;
   shareUrl: string;
+  initiallyOpen?: boolean;
+  hideTrigger?: boolean;
+  onClose?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const [templateId, setTemplateId] = useState(TEMPLATES[0].id);
   const [group, setGroup] = useState("todas");
   const [date, setDate] = useState(eventDateLabel ?? "");
@@ -2190,6 +2196,7 @@ export function InvitationGenerator({
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [invitationLinkQr, setInvitationLinkQr] = useState<string | null>(null);
   const [generatingLink, setGeneratingLink] = useState(false);
+  const [visibleTemplateLimit, setVisibleTemplateLimit] = useState(18);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<{
@@ -2247,6 +2254,8 @@ export function InvitationGenerator({
 
   const visibleTemplates =
     group === "todas" ? TEMPLATES : TEMPLATES.filter((t) => templateGroup(t.id) === group);
+  const shownTemplates = visibleTemplates.slice(0, visibleTemplateLimit);
+
 
   const ready = fontsLoaded && !!qrImg && (!template.bgImage || !!bgImg);
 
@@ -2389,19 +2398,26 @@ export function InvitationGenerator({
     }
   }
 
+  function closeEditor() {
+    setOpen(false);
+    onClose?.();
+  }
+
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="btn btn-soft shimmer px-4 py-2 text-sm"
-      >
-        <PartyPopper size={16} /> Invitación
-      </button>
+      {!hideTrigger && (
+        <button
+          onClick={() => setOpen(true)}
+          className="btn btn-soft shimmer px-4 py-2 text-sm"
+        >
+          <PartyPopper size={16} /> Invitación
+        </button>
+      )}
 
       {open && (
         <div
           className="animate-fade-in fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4 py-8"
-          onClick={() => setOpen(false)}
+          onClick={closeEditor}
         >
           <div
             className="glass flex max-h-[92vh] w-full max-w-5xl flex-col gap-4 rounded-2xl p-4 sm:p-5"
@@ -2414,7 +2430,7 @@ export function InvitationGenerator({
                 <PartyPopper size={18} className="text-teja" /> Invitación
               </h2>
               <button
-                onClick={() => setOpen(false)}
+                onClick={closeEditor}
                 className="rounded-full bg-white/70 p-1.5 transition hover:bg-white"
               >
                 <X size={16} />
@@ -2430,7 +2446,10 @@ export function InvitationGenerator({
                 {TEMPLATE_GROUPS.map((g) => (
                   <button
                     key={g.id}
-                    onClick={() => setGroup(g.id)}
+                    onClick={() => {
+                      setGroup(g.id);
+                      setVisibleTemplateLimit(18);
+                    }}
                     className={`chip ${group === g.id ? "chip-active" : ""}`}
                   >
                     {g.label}
@@ -2441,7 +2460,7 @@ export function InvitationGenerator({
                 {visibleTemplates.length} diseños · desliza para ver más
               </p>
               <div className="mt-1.5 grid max-h-72 grid-cols-4 gap-2 overflow-y-auto rounded-xl border border-tinta/10 bg-white/40 p-2 sm:grid-cols-5 lg:grid-cols-6">
-                {visibleTemplates.map((t) => (
+                {shownTemplates.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => chooseTemplate(t)}
@@ -2452,11 +2471,25 @@ export function InvitationGenerator({
                   >
                     {t.bgImage && (
                        
-                      <img src={t.bgImage} alt={t.label} className="h-full w-full object-cover" />
+                      <img
+                        src={t.bgImage}
+                        alt={t.label}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                      />
                     )}
                   </button>
                 ))}
               </div>
+              {shownTemplates.length < visibleTemplates.length && (
+                <button
+                  onClick={() => setVisibleTemplateLimit((limit) => limit + 18)}
+                  className="mt-2 w-full rounded-lg border border-tinta/15 bg-white/60 py-2 text-xs font-semibold text-teja transition hover:bg-white"
+                >
+                  Ver 18 diseños más
+                </button>
+              )}
               <p className="mt-1.5 text-xs text-tinta/50">
                 {TEMPLATES.find((t) => t.id === templateId)?.label}
               </p>

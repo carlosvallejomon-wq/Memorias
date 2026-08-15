@@ -20,7 +20,7 @@ import { ShareCard } from "@/components/ShareCard";
 import { ClientLinkCard } from "@/components/ClientLinkCard";
 import { clientLinkPath } from "@/lib/client-link";
 import { ModerationToggle } from "@/components/ModerationToggle";
-import { InvitationGenerator } from "@/components/InvitationGenerator";
+import { LazyInvitationGenerator } from "@/components/LazyInvitationGenerator";
 import { DotbookGenerator } from "@/components/DotbookGenerator";
 import { AlbumStats, type AlbumStatsData } from "@/components/AlbumStats";
 import { DashboardTopBar } from "@/components/DashboardTopBar";
@@ -258,7 +258,7 @@ export default async function AlbumAdminPage({
                 <MonitorPlay size={16} /> Modo pantalla
               </a>
               <span aria-hidden className="mx-1 hidden h-6 w-px bg-tinta/10 sm:block" />
-              <InvitationGenerator
+              <LazyInvitationGenerator
                 albumName={album.name}
                 eventDateLabel={eventDateLabel}
                 shareUrl={shareUrl}

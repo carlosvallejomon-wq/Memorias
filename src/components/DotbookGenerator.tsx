@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, X, Download } from "lucide-react";
+import { BookOpen, X, Download, LoaderCircle } from "lucide-react";
 import {
   TEMPLATE_COVER_GROUPS,
   TEMPLATE_COVER_LIST,
@@ -52,9 +52,38 @@ export function DotbookGenerator({
   const [open, setOpen] = useState(false);
   const [styleId, setStyleId] = useState<StyleId>(REAL_STYLES[0].id);
   const [grupo, setGrupo] = useState<TemplateCoverGroup>("todas");
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const visibles =
     grupo === "todas" ? REAL_STYLES : REAL_STYLES.filter((s) => s.grupo === grupo);
+
+  async function handleDownload() {
+    if (downloading) return;
+    setDownloading(true);
+    setDownloadError(null);
+
+    try {
+      const response = await fetch(`${base}${separador}style=${styleId}`);
+      if (!response.ok) throw new Error("No se pudo generar el Dotbook");
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const disposition = response.headers.get("content-disposition") ?? "";
+      const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] ?? "dotbook.pdf";
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000);
+    } catch {
+      setDownloadError("No pudimos generar el PDF. Inténtalo otra vez en unos segundos.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <>
@@ -153,12 +182,31 @@ export function DotbookGenerator({
 
             <p className="mt-3 text-xs text-tinta/50">{ALL_LABELS[styleId]}</p>
 
-            <a
-              href={`${base}${separador}style=${styleId}`}
-              className="shimmer mt-3 flex items-center justify-center gap-2 rounded-lg bg-teja py-2.5 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro"
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="shimmer mt-3 flex items-center justify-center gap-2 rounded-lg bg-teja py-2.5 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro disabled:cursor-wait disabled:opacity-70"
             >
-              <Download size={16} /> Descargar Dotbook
-            </a>
+              {downloading ? (
+                <>
+                  <LoaderCircle size={16} className="animate-spin" /> Generando PDF…
+                </>
+              ) : (
+                <>
+                  <Download size={16} /> Descargar Dotbook
+                </>
+              )}
+            </button>
+            {downloading && (
+              <p className="mt-2 text-center text-xs font-medium text-teja" role="status">
+                Estamos preparando todas las páginas. Puedes mantener esta ventana abierta.
+              </p>
+            )}
+            {downloadError && (
+              <p className="mt-2 text-center text-xs font-medium text-vino" role="alert">
+                {downloadError}
+              </p>
+            )}
             <p className="mt-2 text-center text-xs text-tinta/50">
               Un PDF con una página por cada foto y vídeo del álbum, y las
               dedicatorias del muro al final.
