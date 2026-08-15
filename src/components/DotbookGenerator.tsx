@@ -161,7 +161,7 @@ export function DotbookGenerator({
             </a>
             <p className="mt-2 text-center text-xs text-tinta/50">
               Un PDF con una página por cada foto y vídeo del álbum, y las
-              dedicatorias del muro de mensajes al final.
+              dedicatorias del muro al final.
             </p>
           </div>
         </div>

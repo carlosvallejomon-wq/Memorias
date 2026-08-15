@@ -72,7 +72,7 @@ export function AlbumStats({ stats }: { stats: AlbumStatsData }) {
         <Tile icon={CalendarDays} value={stats.dayCount} label="días con recuerdos" />
         <Tile icon={Heart} value={stats.reactionCount} label="reacciones" />
         <Tile icon={MessageCircle} value={stats.commentCount} label="comentarios" />
-        <Tile icon={PenLine} value={stats.messageCount} label="mensajes del muro" />
+        <Tile icon={PenLine} value={stats.messageCount} label="dedicatorias" />
       </div>
 
       {(stats.topContributors.length > 0 || stats.topMedia) && (

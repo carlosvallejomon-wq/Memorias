@@ -14,14 +14,14 @@ export function GuestbookPanel({ entries }: { entries: GuestbookRow[] }) {
   return (
     <section className="mt-8">
       <h2 className="flex items-center gap-2 font-semibold">
-        <PenLine size={18} className="text-vino" /> Muro de mensajes
+        <PenLine size={18} className="text-vino" /> Muro de dedicatorias
         <span className="font-normal text-tinta/40">({entries.length})</span>
       </h2>
 
       {entries.length === 0 ? (
         <p className="mt-3 text-sm text-tinta/50">
           Aún no hay dedicatorias. Tus invitados pueden escribirlas desde la
-          pestaña «Mensajes» del álbum, y saldrán impresas en el Dotbook.
+          pestaña «Dedicatorias» del álbum, y saldrán impresas en el Dotbook.
         </p>
       ) : (
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">

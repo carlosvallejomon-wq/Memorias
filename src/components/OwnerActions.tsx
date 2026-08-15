@@ -123,11 +123,11 @@ export function DeleteGuestbookEntryButton({ entryId }: { entryId: string }) {
     <button
       disabled={pending}
       onClick={() => {
-        if (confirm("¿Borrar este mensaje del muro?")) {
+        if (confirm("¿Borrar esta dedicatoria?")) {
           startTransition(() => deleteGuestbookEntry(entryId));
         }
       }}
-      title="Borrar mensaje"
+      title="Borrar dedicatoria"
       className="shrink-0 rounded-full p-1.5 text-tinta/30 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
     >
       {pending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}

@@ -1253,22 +1253,30 @@ async function addTemplateCoverPage(pdf: PDFDocument, templateImage: PDFImage) {
  * parecía una plantilla a medio rellenar.
  */
 function altoDelPie(comments: string[], fonts: Fonts, anchoTexto: number): number {
-  let alto = 26 + 22; // separador + línea de autor y fecha
+  let alto = 30 + 24; // separador + línea de autor y fecha
   for (const comment of comments.slice(0, 2)) {
-    const lineas = envolver(`"${comment.slice(0, 160)}"`, anchoTexto, fonts.italic, 11);
-    alto += lineas.length * 15 + 18;
+    const lineas = envolver(`"${comment.slice(0, 160)}"`, anchoTexto, fonts.italic, 12.5);
+    alto += lineas.length * 17.5 + 20;
   }
   return alto;
 }
+
+const REACTION_COLORS: Record<string, RGB> = {
+  corazon: rgb(0.82, 0.2, 0.32),
+  risa: rgb(0.91, 0.58, 0.08),
+  asombro: rgb(0.15, 0.55, 0.78),
+  estrella: rgb(0.53, 0.32, 0.75),
+};
 
 function dibujarReacciones(
   page: PDFPage,
   fonts: Fonts,
   reactions: Record<string, number>,
-  right: number,
+  anchor: number,
   y: number,
   color: RGB,
   size = 9.5,
+  align: "right" | "center" = "right",
 ) {
   const items: { icono: string; count: number }[] = [];
   const sorted = Object.entries(reactions)
@@ -1290,12 +1298,13 @@ function dibujarReacciones(
     ({ count }) => size * ANCHO_ICONO + 2 + fonts.bold.widthOfTextAtSize(String(count), size),
   );
   const totalWidth = widths.reduce((sum, width) => sum + width, 0) + gap * (items.length - 1);
-  let x = right - totalWidth;
+  let x = align === "center" ? anchor - totalWidth / 2 : anchor - totalWidth;
 
   items.forEach(({ icono, count }, index) => {
-    dibujarIcono(page, icono, x, y, size, color);
+    const itemColor = REACTION_COLORS[icono] ?? color;
+    dibujarIcono(page, icono, x, y, size, itemColor);
     x += size * ANCHO_ICONO + 2;
-    page.drawText(String(count), { x, y, size, font: fonts.bold, color });
+    page.drawText(String(count), { x, y, size, font: fonts.bold, color: itemColor });
     x += fonts.bold.widthOfTextAtSize(String(count), size);
     if (index < items.length - 1) x += gap;
   });
@@ -1319,11 +1328,11 @@ function dibujarPie(
   ]
     .filter(Boolean)
     .join("   ·   ");
-  page.drawText(textoParaPdf(caption), { x, y, size: 10.5, font: fonts.regular, color: palette.inkSoft });
+  page.drawText(textoParaPdf(caption), { x, y, size: 11.5, font: fonts.regular, color: palette.inkSoft });
 
-  dibujarReacciones(page, fonts, reactions, x + ancho, y, palette.accent);
+  dibujarReacciones(page, fonts, reactions, x + ancho, y, palette.accent, 11.5);
 
-  let cursor = y - 20;
+  let cursor = y - 23;
   for (const comment of comments.slice(0, 2)) {
     cursor = drawWrapped(
       page,
@@ -1331,9 +1340,9 @@ function dibujarPie(
       x,
       cursor,
       ancho,
-      15,
+      17.5,
       fonts.italic,
-      11,
+      12.5,
       palette.inkFaint,
     );
     cursor -= 18;
@@ -1383,8 +1392,8 @@ async function addMosaicPage(
   // Un comentario que solo eran emoji sin icono se queda en nada al prepararlo
   // para el PDF; entonces no hay leyenda que poner y basta con una línea.
   const pieDe = (f: MosaicPhoto) => {
-    const commentHeight = f.comentario && trocearTexto(f.comentario).length > 0 ? 27 : 15;
-    const reactionHeight = Object.values(f.reactions).some((count) => count > 0) ? 13 : 0;
+    const commentHeight = f.comentario && trocearTexto(f.comentario).length > 0 ? 42 : 22;
+    const reactionHeight = Object.values(f.reactions).some((count) => count > 0) ? 22 : 0;
     return commentHeight + reactionHeight;
   };
 
@@ -1450,17 +1459,17 @@ async function addMosaicPage(
       // El comentario primero, en cursiva y en tinta normal: es lo que se lee.
       // Se recorta a una línea del ancho de la foto para no invadir la celda
       // de al lado ni comerse el aire de la de abajo.
-      const lineas = partirTrozos(trozos, w, fonts.italic, 9);
+      const lineas = partirTrozos(trozos, w, fonts.italic, 11.5);
       const linea: Trozo[] =
         lineas.length > 1 ? [...lineas[0], { tipo: "texto", texto: "...»" }] : lineas[0];
-      const anchoLinea = anchoTrozos(linea, fonts.italic, 9);
-      dibujarTrozos(page, linea, x + (w - anchoLinea) / 2, y - 11, fonts.italic, 9, palette.ink);
-      drawCentered(page, quien, y - 22, fonts.regular, 8, palette.inkFaint, x + w / 2);
+      const anchoLinea = anchoTrozos(linea, fonts.italic, 11.5);
+      dibujarTrozos(page, linea, x + (w - anchoLinea) / 2, y - 14, fonts.italic, 11.5, palette.ink);
+      drawCentered(page, quien, y - 30, fonts.regular, 10, palette.inkFaint, x + w / 2);
     } else {
-      drawCentered(page, quien, y - 12, fonts.regular, 8.5, palette.inkFaint, x + w / 2);
+      drawCentered(page, quien, y - 15, fonts.regular, 10, palette.inkFaint, x + w / 2);
     }
     if (Object.values(f.reactions).some((count) => count > 0)) {
-      dibujarReacciones(page, fonts, f.reactions, x + w, y - pieFoto + 3, palette.accent, 8.5);
+      dibujarReacciones(page, fonts, f.reactions, x + w / 2, y - pieFoto + 5, palette.accent, 11.5, "center");
     }
   };
 
@@ -1705,8 +1714,8 @@ function addMessagePages(
 ) {
   const cardW = PAGE_WIDTH - MARGIN * 2;
   const textW = cardW - 44;
-  const lineHeight = 16;
-  const bodySize = 11.5;
+  const lineHeight = 19;
+  const bodySize = 13.5;
   const bottomLimit = MARGIN + 30;
 
   let page: PDFPage | null = null;
@@ -1735,7 +1744,7 @@ function addMessagePages(
 
   for (const message of messages) {
     const lines = envolver(message.body.slice(0, 900), textW, fonts.italic, bodySize);
-    const cardH = Math.max(92, lines.length * lineHeight + 62);
+    const cardH = Math.max(110, lines.length * lineHeight + 72);
 
     if (y - cardH < bottomLimit) startPage(false);
     const p = page!;
@@ -1785,11 +1794,11 @@ function addMessagePages(
     const signature = textoParaPdf(
       `— ${message.authorName?.trim() || "Anónimo"} · ${formatLongDate(message.createdAt)}`,
     );
-    const sigWidth = fonts.regular.widthOfTextAtSize(signature, 9.5);
+    const sigWidth = fonts.regular.widthOfTextAtSize(signature, 10.5);
     p.drawText(signature, {
       x: MARGIN + cardW - 18 - sigWidth,
-      y: y - cardH + 16,
-      size: 9.5,
+      y: y - cardH + 18,
+      size: 10.5,
       font: fonts.regular,
       color: palette.inkFaint,
     });

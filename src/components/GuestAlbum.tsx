@@ -507,7 +507,7 @@ export function GuestAlbum({
       label: "Retos",
       badge: challenges && challenges.length > 0 ? challenges.length : null,
     },
-    { id: "mensajes", icon: PenLine, label: "Mensajes", badge: messageCount || null },
+    { id: "mensajes", icon: PenLine, label: "Dedicatorias", badge: messageCount || null },
   ];
 
   const activeChallenge = challengeFilter ? challengeById.get(challengeFilter) : null;

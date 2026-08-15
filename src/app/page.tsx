@@ -136,7 +136,7 @@ const FAQ = [
   },
   {
     q: "¿Puedo quedarme con todas las fotos?",
-    a: "Sí: descarga el álbum completo en un ZIP, o genera el Dotbook en PDF con una página por recuerdo y las dedicatorias del muro de mensajes.",
+    a: "Sí: descarga el álbum completo en un ZIP, o genera el Dotbook en PDF con una página por recuerdo y las dedicatorias del muro.",
   },
   {
     q: "¿Las invitaciones se pueden imprimir?",
@@ -459,7 +459,7 @@ export default function Home() {
             <Reveal>
             <Showcase
               flip
-              eyebrow="Muro de mensajes"
+              eyebrow="Muro de dedicatorias"
               title="El libro de firmas, sin libro que perder"
               text="Los invitados dejan dedicatorias escritas: una anécdota, una felicitación, un recuerdo. Se guardan en el álbum y se imprimen al final del Dotbook."
               bullets={[
@@ -670,7 +670,7 @@ export default function Home() {
                 <Link href="/dashboard" className="hover:text-tinta">Entrar en mi panel</Link>
               </li>
               <li className="flex items-center gap-1.5">
-                <PenLine size={13} /> Muro de mensajes
+                <PenLine size={13} /> Muro de dedicatorias
               </li>
               <li className="flex items-center gap-1.5">
                 <Target size={13} /> Retos fotográficos

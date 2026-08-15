@@ -70,7 +70,7 @@ export function GuestMessageWall({
   }
 
   async function remove(entry: GuestbookItem) {
-    if (!confirm("¿Borrar tu mensaje?")) return;
+    if (!confirm("¿Borrar tu dedicatoria?")) return;
     setEntries((prev) => {
       const next = (prev ?? []).filter((e) => e.id !== entry.id);
       onCountChange?.(next.length);
@@ -100,7 +100,7 @@ export function GuestMessageWall({
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
           maxLength={2000}
-          placeholder="Escribe aquí tu mensaje…"
+          placeholder="Escribe aquí tu dedicatoria…"
           className="field mt-3 resize-y"
         />
         <div className="mt-2 flex items-center justify-between gap-3">
@@ -129,7 +129,7 @@ export function GuestMessageWall({
         </div>
       ) : entries.length === 0 ? (
         <p className="mt-8 text-center text-tinta/50">
-          Todavía no hay mensajes. El tuyo puede ser el primero.
+          Todavía no hay dedicatorias. La tuya puede ser la primera.
         </p>
       ) : (
         <ul className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -158,7 +158,7 @@ export function GuestMessageWall({
                 {!!guestId && entry.guestId === guestId && (
                   <button
                     onClick={() => remove(entry)}
-                    title="Borrar mi mensaje"
+                    title="Borrar mi dedicatoria"
                     className="shrink-0 rounded-full p-1.5 text-tinta/30 transition hover:bg-red-50 hover:text-red-600"
                   >
                     <Trash2 size={14} />

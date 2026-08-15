@@ -150,7 +150,7 @@ function ExpiryCard({ albumId, expiresAt }: { albumId: string; expiresAt: string
       </p>
       <p className="mt-1.5 text-sm text-tinta/55">
         {expiresAt
-          ? "Ese día se borrarán todas las fotos, vídeos y mensajes de este álbum, sin vuelta atrás. Se avisa a los invitados con antelación."
+          ? "Ese día se borrarán todas las fotos, vídeos y dedicatorias de este álbum, sin vuelta atrás. Se avisa a los invitados con antelación."
           : "Ahora mismo el álbum se guarda para siempre. Si quieres que se borre solo pasada una fecha, elígela aquí."}
       </p>
 

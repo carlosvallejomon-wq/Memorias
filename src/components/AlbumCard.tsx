@@ -129,7 +129,7 @@ export function AlbumCard({ album }: { album: AlbumCardData }) {
         {album.messageCount > 0 && (
           <span className="flex items-center gap-1.5">
             <PenLine size={14} className="text-teja" /> {album.messageCount}{" "}
-            {album.messageCount === 1 ? "mensaje" : "mensajes"}
+            {album.messageCount === 1 ? "dedicatoria" : "dedicatorias"}
           </span>
         )}
         {album.moderationEnabled && (

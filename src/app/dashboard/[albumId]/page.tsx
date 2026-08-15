@@ -329,7 +329,7 @@ export default async function AlbumAdminPage({
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <p className="max-w-md text-sm text-tinta/60">
               Borrar el álbum elimina también todas sus fotos, vídeos,
-              comentarios y mensajes. No se puede deshacer, así que descarga
+              comentarios y dedicatorias. No se puede deshacer, así que descarga
               antes el ZIP o el Dotbook si quieres conservarlos.
             </p>
             <DeleteAlbumButton albumId={album.id} albumName={album.name} />
