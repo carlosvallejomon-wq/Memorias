@@ -61,7 +61,6 @@ export function GuestLightbox({
   const mine = !!guestId && item.uploaderId === guestId;
 
   useEffect(() => {
-    setCommentList(null);
     fetch(`/api/media/${item.id}/comments`)
       .then((r) => r.json())
       .then((data: { items: Comment[] }) => setCommentList(data.items))

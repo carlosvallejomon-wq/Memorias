@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { Camera } from "lucide-react";
 import { challengeIconOf } from "@/lib/challenge-icons";
 
@@ -13,7 +14,7 @@ export function ChallengeIcon({
   className?: string;
 }) {
   const Icon = challengeIconOf(icon);
-  if (Icon) return <Icon size={size} className={className} />;
+  if (Icon) return createElement(Icon, { size, className });
   if (icon && icon.trim()) {
     return (
       <span

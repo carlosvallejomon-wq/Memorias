@@ -4,7 +4,7 @@ import typescript from "eslint-config-next/typescript";
 // Reglas de Next.js (accesibilidad básica, hooks de React, imágenes). Antes no
 // había ninguna comprobación automática: cualquier despiste se descubría
 // mirando la pantalla.
-export default [
+const config = [
   { ignores: [".next/**", "node_modules/**", "next-env.d.ts"] },
   ...coreWebVitals,
   ...typescript,
@@ -29,3 +29,5 @@ export default [
     },
   },
 ];
+
+export default config;

@@ -10,7 +10,14 @@ const nextConfig = {
   // que se usan, y una ruta construida en tiempo de ejecución no la detecta:
   // hay que declararla aquí o las portadas no existirían dentro de la función.
   outputFileTracingIncludes: {
-    "/api/albums/[albumId]/dotbook": ["./public/dotbook-templates/**"],
+    "/api/albums/[albumId]/dotbook": [
+      "./public/dotbook-templates/**",
+      "./public/dotbook-assets/**",
+    ],
+    "/api/guest/[code]/dotbook": [
+      "./public/dotbook-templates/**",
+      "./public/dotbook-assets/**",
+    ],
   },
 };
 

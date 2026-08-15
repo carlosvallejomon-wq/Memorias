@@ -144,6 +144,10 @@ type Palette = {
   decoration: "branch" | "confetti" | "postal";
   flowerColors?: RGB[];
   mandala?: boolean;
+  botanical?: PDFImage;
+  botanicalTop?: PDFImage;
+  botanicalBottom?: PDFImage;
+  ornamentKind?: "botanical" | "celebration" | "travel" | "baptism" | "communion" | "baby" | "wedding" | "quince" | "graduation" | "christmas" | "newyear" | "general";
 };
 
 const PALETTES: Record<VectorDotbookStyle, Palette> = {
@@ -564,15 +568,16 @@ function unclip(page: PDFPage) {
 // borde usa un color de la paleta más intenso que el fondo de la página,
 // para que cada página de foto quede a juego con la portada.
 function drawFrame(page: PDFPage, x: number, y: number, w: number, h: number, borderColor: RGB) {
-  page.drawRectangle({ x: x + 5, y: y - 5, width: w, height: h, color: rgb(0.2, 0.17, 0.12), opacity: 0.18 });
+  page.drawRectangle({ x: x + 3, y: y - 4, width: w, height: h, color: rgb(0.12, 0.1, 0.08), opacity: 0.1 });
   page.drawRectangle({ x, y, width: w, height: h, color: rgb(1, 1, 1) });
   page.drawRectangle({
-    x,
-    y,
-    width: w,
-    height: h,
+    x: x + 0.5,
+    y: y + 0.5,
+    width: w - 1,
+    height: h - 1,
     borderColor,
-    borderWidth: 1.5,
+    borderWidth: 0.7,
+    borderOpacity: 0.65,
   });
 }
 
@@ -604,7 +609,16 @@ function drawBackground(page: PDFPage, palette: Palette) {
   } else {
     page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bg });
   }
-}
+
+  // Filete editorial muy sutil para terminar visualmente la hoja.
+  page.drawRectangle({
+    x: 8, y: 8, width: PAGE_WIDTH - 16, height: PAGE_HEIGHT - 16,
+    borderColor: palette.accent, borderWidth: 0.55, borderOpacity: 0.18,
+  });
+  page.drawRectangle({
+    x: 11, y: 11, width: PAGE_WIDTH - 22, height: PAGE_HEIGHT - 22,
+    borderColor: palette.accent, borderWidth: 0.25, borderOpacity: 0.1,
+  });}
 
 // Una florecita sencilla (pétalos + centro) para el borde tipo "pradera"
 // del estilo clásico, inspirado en la plantilla floral de referencia.
@@ -1084,7 +1098,31 @@ function drawPostalMark(page: PDFPage, x: number, y: number, mirror: boolean, co
 }
 
 function drawCornerDecoration(page: PDFPage, x: number, y: number, angleDeg: number, mirror: boolean, palette: Palette, seed: number) {
-  if (palette.decoration === "confetti") {
+  if (palette.decoration === "branch" && palette.botanical) {
+    // PDF coloca imágenes desde la esquina inferior izquierda. Anclarlas a
+    // los márgenes de la página evita que la acuarela quede cortada.
+    const image = palette.ornamentKind === "travel" && !mirror && palette.botanicalTop
+      ? palette.botanicalTop
+      : palette.ornamentKind === "travel"
+        ? (palette.botanicalBottom ?? palette.botanical)
+        : mirror && palette.botanicalBottom
+        ? palette.botanicalBottom
+        : !mirror && palette.botanicalTop
+          ? palette.botanicalTop
+          : palette.botanical;
+    const box = palette.ornamentKind === "travel" ? 112 : palette.ornamentKind === "celebration" ? 104 : 98;
+    const inset = 12;
+    const scale = Math.min(box / image.width, box / image.height);
+    const width = image.width * scale;
+    const height = image.height * scale;
+    page.drawImage(image, {
+      x: mirror ? PAGE_WIDTH - width - inset : inset,
+      y: mirror ? inset : PAGE_HEIGHT - height - inset,
+      width,
+      height,
+      opacity: 0.76,
+    });
+  } else if (palette.decoration === "confetti") {
     drawCornerConfetti(page, x, y, 70, 60, palette.tapeColors, seed);
   } else if (palette.decoration === "postal") {
     drawPostalMark(page, x, y, mirror, palette.branch);
@@ -1198,111 +1236,11 @@ function addCoverPage(
 // "Graduation"). La franja usa un tono oscuro del propio color de acento del
 // diseño para que el texto blanco siempre se lea bien encima, sea cual sea
 // el diseño.
-async function addTemplateCoverPage(
-  pdf: PDFDocument,
-  album: Album,
-  fonts: Fonts,
-  stats: { total: number; uploaders: number; days: number },
-  templateImage: PDFImage,
-  cover: TemplateCoverConfig,
-) {
+async function addTemplateCoverPage(pdf: PDFDocument, templateImage: PDFImage) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-
-  const ink = rgb(0.16, 0.13, 0.1);
-  const inkSoft = mix(ink, rgb(1, 1, 1), 0.35);
-  const papel = rgb(0.976, 0.961, 0.937);
-
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: papel });
-
-  const dateLabel = album.eventDate
-    ? formatLongDate(new Date(album.eventDate + "T00:00:00"))
-    : album.kind === "familia"
-      ? "Álbum de familia"
-      : null;
-
-  const statsLine = [
-    `${stats.total} ${stats.total === 1 ? "recuerdo" : "recuerdos"}`,
-    stats.uploaders > 0
-      ? `${stats.uploaders} ${stats.uploaders === 1 ? "invitado" : "invitados"}`
-      : null,
-    stats.days > 1 ? `${stats.days} días` : null,
-  ]
-    .filter((v): v is string => !!v)
-    .join("   ·   ");
-
-  const nameSize = 22;
-  const lineH = 27;
-  const nameLines = envolver(album.name, PAGE_WIDTH - MARGIN * 2, fonts.bold, nameSize);
-
-  // Franja de abajo, sobre el papel: el nombre del álbum, la fecha y el
-  // recuento. Se mide antes de colocar el diseño, porque es lo que decide
-  // cuánto sitio le queda.
-  const MARGEN = 30;
-  const ARRIBA = 34;
-  const banda = 40 + nameLines.length * lineH + (dateLabel ? 20 : 0) + 26;
-
-  // El diseño va entero y sin recortar dentro de lo que sobra.
-  //
-  // Antes se dibujaba a sangre y el título iba en una placa colocada encima,
-  // en el hueco que un análisis de la imagen consideraba más despejado. No
-  // funcionaba: ese análisis mide contraste, y en estas portadas no distingue
-  // el papel vacío de una acuarela pálida o de un subtítulo fino, que es justo
-  // donde acababa poniéndose. Medido sobre las 52 plantillas, una de las más
-  // "limpias" según el número (0,013) tapaba el subtítulo de su propio diseño.
-  //
-  // Montado —el diseño completo arriba, el título debajo sobre el papel— no
-  // hay nada que tapar se ponga donde se ponga, y se lee como la cubierta de
-  // un libro de fotos en vez de como una pegatina encima del dibujo.
-  const cajaAncho = PAGE_WIDTH - MARGEN * 2;
-  const cajaAlto = PAGE_HEIGHT - ARRIBA - banda;
-  const escala = Math.min(cajaAncho / templateImage.width, cajaAlto / templateImage.height);
-  const w = templateImage.width * escala;
-  const h = templateImage.height * escala;
-  const x = (PAGE_WIDTH - w) / 2;
-  const y = PAGE_HEIGHT - ARRIBA - h;
-
-  // Sombra suave y filete del color del diseño: le da el aire de lámina
-  // montada y despega el diseño del papel cuando los dos son claros.
-  page.drawRectangle({
-    x: x + 3,
-    y: y - 4,
-    width: w,
-    height: h,
-    color: rgb(0.2, 0.17, 0.12),
-    opacity: 0.14,
-  });
-  page.drawImage(templateImage, { x, y, width: w, height: h });
-  page.drawRectangle({
-    x,
-    y,
-    width: w,
-    height: h,
-    borderColor: cover.accent,
-    borderWidth: 1,
-    borderOpacity: 0.55,
-  });
-
-  let cursor = y - 30;
-  for (const linea of nameLines) {
-    const ancho = anchoTrozos(linea, fonts.bold, nameSize);
-    dibujarTrozos(page, linea, (PAGE_WIDTH - ancho) / 2, cursor, fonts.bold, nameSize, ink);
-    cursor -= lineH;
-  }
-  cursor += lineH - 24;
-
-  page.drawLine({
-    start: { x: PAGE_WIDTH / 2 - 26, y: cursor + 12 },
-    end: { x: PAGE_WIDTH / 2 + 26, y: cursor + 12 },
-    thickness: 1,
-    color: cover.accent,
-    opacity: 0.55,
-  });
-
-  if (dateLabel) {
-    drawCentered(page, dateLabel, cursor - 4, fonts.italic, 12, inkSoft);
-    cursor -= 22;
-  }
-  drawCentered(page, statsLine, cursor - 4, fonts.regular, 10, inkSoft);
+  // La plantilla es la cubierta: ocupa la hoja completa, sin repetir debajo
+  // el título y la fecha que ya tienen su propia portadilla interior.
+  drawImageCover(page, templateImage, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 }
 
 /**
@@ -1335,20 +1273,20 @@ function dibujarPie(
   ancho: number,
 ) {
   const caption = [
-    item.uploaderName ? `Subido por ${item.uploaderName}` : "Anónimo",
+    item.uploaderName ? item.uploaderName : "Anónimo",
     formatLongDate(item.takenAt ?? item.createdAt),
   ]
     .filter(Boolean)
-    .join("  ·  ");
-  page.drawText(textoParaPdf(caption), { x, y, size: 12, font: fonts.bold, color: palette.ink });
+    .join("   ·   ");
+  page.drawText(textoParaPdf(caption), { x, y, size: 10.5, font: fonts.regular, color: palette.inkSoft });
 
   if (reactionCount > 0) {
     const label = `${reactionCount} ${reactionCount === 1 ? "reacción" : "reacciones"}`;
-    const w = fonts.regular.widthOfTextAtSize(label, 11);
-    page.drawText(label, { x: x + ancho - w, y, size: 11, font: fonts.regular, color: palette.accent });
+    const w = fonts.regular.widthOfTextAtSize(label, 9.5);
+    page.drawText(label, { x: x + ancho - w, y, size: 9.5, font: fonts.regular, color: palette.accent });
   }
 
-  let cursor = y - 22;
+  let cursor = y - 20;
   for (const comment of comments.slice(0, 2)) {
     cursor = drawWrapped(
       page,
@@ -1387,6 +1325,7 @@ async function addMosaicPage(
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   drawBackground(page, palette);
   drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, fotos.length * 7 + 3);
+  drawCornerDecoration(page, PAGE_WIDTH - 34, 34, -20, true, palette, fotos.length * 7 + 4);
   drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
 
   const izq = MARGIN - 6;
@@ -1458,7 +1397,7 @@ async function addMosaicPage(
       height: f.image.height * escala,
     });
 
-    const quien = f.item.uploaderName ? `Subido por ${f.item.uploaderName}` : "Anónimo";
+    const quien = f.item.uploaderName ?? "Anónimo";
     const trozos = f.comentario ? trocearTexto(`«${f.comentario}»`) : [];
     if (trozos.length > 0) {
       // El comentario primero, en cursiva y en tinta normal: es lo que se lee.
@@ -1582,11 +1521,19 @@ async function addPhotoPage(
 
   // ---- Página con marco: la foto se estira hasta donde empieza el pie ------
   drawBackground(page, palette);
-  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, index * 2 + 11);
-  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 44, fonts.regular, 9, palette.inkFaint);
-
-  const arribaDelArea = PAGE_HEIGHT - 96;
-  const abajoDelArea = 64; // hueco para el número de página
+  drawCornerDecoration(page, 30, PAGE_HEIGHT - 30, -20, false, palette, index * 2 + 11);
+  drawCornerDecoration(page, PAGE_WIDTH - 30, 30, -20, true, palette, index * 2 + 12);
+  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 38, fonts.regular, 8, palette.inkFaint);
+  page.drawRectangle({
+    x: 22,
+    y: 48,
+    width: PAGE_WIDTH - 44,
+    height: PAGE_HEIGHT - 112,
+    color: palette.accent,
+    opacity: 0.025,
+  });
+  const arribaDelArea = PAGE_HEIGHT - 76;
+  const abajoDelArea = 54; // hueco para el número de página
   const hayAvisoDeVideo = item.type === "video" && !!image;
   const pie = altoDelPie(comments, fonts, frameW) + (hayAvisoDeVideo ? 12 : 0);
   const altoDisponible = arribaDelArea - abajoDelArea - pie - 22;
@@ -1595,7 +1542,7 @@ async function addPhotoPage(
   // fija y alta, una foto apaisada dejaba dos bandas blancas enormes arriba y
   // abajo dentro del propio marco, que es lo que hacía que la página pareciera
   // a medio montar.
-  const pad = 18;
+  const pad = 12;
   const proporcion = image ? image.width / image.height : 1.2;
   let frameH = Math.min(altoDisponible, (frameW - pad * 2) / proporcion + pad * 2);
   let frameWReal = Math.min(frameW, (frameH - pad * 2) * proporcion + pad * 2);
@@ -1683,12 +1630,18 @@ async function addPhotoPage(
 
   // En los vídeos hay una línea extra bajo el marco («escanea el QR»), así que
   // el pie baja un poco para no montarse encima.
-  let y = frameY - (hayAvisoDeVideo ? 34 : 22);
-  drawDivider(page, y, palette.accent);
-  y -= 26;
+  let y = frameY - (hayAvisoDeVideo ? 31 : 18);
+  page.drawLine({
+    start: { x: frameXReal, y },
+    end: { x: frameXReal + Math.min(frameWReal, 74), y },
+    thickness: 1.2,
+    color: palette.accent,
+    opacity: 0.75,
+  });
+  y -= 22;
 
   dibujarPie(page, fonts, item, comments, reactionCount, palette, frameX, y, frameW);
-  drawCentered(page, `${index} / ${total}`, 32, fonts.regular, 9, palette.inkFaint);
+  drawCentered(page, `${index}  /  ${total}`, 26, fonts.regular, 8, palette.inkFaint);
 }
 
 // Páginas de dedicatorias: los mensajes del muro impresos como notas, con la
@@ -1712,13 +1665,15 @@ function addMessagePages(
   function startPage(first: boolean) {
     page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
     drawBackground(page, palette);
+    drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, first ? 41 : 43);
+    drawCornerDecoration(page, PAGE_WIDTH - 34, 34, -20, true, palette, first ? 42 : 44);
     y = PAGE_HEIGHT - MARGIN - 30;
     drawCentered(
       page,
       first ? "Dedicatorias" : "Dedicatorias (continuación)",
       y,
       fonts.bold,
-      first ? 26 : 16,
+      first ? 28 : 16,
       palette.ink,
     );
     y -= first ? 20 : 16;
@@ -1730,50 +1685,51 @@ function addMessagePages(
 
   for (const message of messages) {
     const lines = envolver(message.body.slice(0, 900), textW, fonts.italic, bodySize);
-    const cardH = lines.length * lineHeight + 54;
+    const cardH = Math.max(92, lines.length * lineHeight + 62);
 
     if (y - cardH < bottomLimit) startPage(false);
     const p = page!;
 
     // Nota: papel claro con una pestaña de color al costado.
     p.drawRectangle({
-      x: MARGIN + 4,
-      y: y - cardH - 4,
+      x: MARGIN + 3,
+      y: y - cardH - 5,
       width: cardW,
       height: cardH,
       color: rgb(0.2, 0.17, 0.12),
-      opacity: 0.1,
+      opacity: 0.08,
     });
     p.drawRectangle({
       x: MARGIN,
       y: y - cardH,
       width: cardW,
       height: cardH,
-      color: rgb(1, 1, 0.995),
+      color: mix(rgb(1, 1, 1), palette.bg, 0.12),
       borderColor: palette.accent,
-      borderWidth: 0.8,
+      borderWidth: 0.55,
+      borderOpacity: 0.55,
     });
     p.drawRectangle({
       x: MARGIN,
       y: y - cardH,
-      width: 5,
+      width: 3,
       height: cardH,
       color: palette.accent,
-      opacity: 0.75,
+      opacity: 0.9,
     });
 
     // Comilla de apertura, a modo de adorno.
     p.drawText("“", {
-      x: MARGIN + 14,
-      y: y - 30,
-      size: 34,
+      x: MARGIN + 16,
+      y: y - 33,
+      size: 40,
       font: fonts.bold,
       color: palette.accent,
-      opacity: 0.35,
+      opacity: 0.22,
     });
 
     lines.forEach((line, i) => {
-      dibujarTrozos(p, line, MARGIN + 30, y - 26 - i * lineHeight, fonts.italic, bodySize, palette.ink);
+      dibujarTrozos(p, line, MARGIN + 34, y - 30 - i * lineHeight, fonts.italic, bodySize, palette.ink);
     });
 
     const signature = textoParaPdf(
@@ -1788,23 +1744,84 @@ function addMessagePages(
       color: palette.inkFaint,
     });
 
-    y -= cardH + 18;
+    y -= cardH + 22;
   }
 }
 
+function addTitlePage(
+  pdf: PDFDocument,
+  album: Album,
+  fonts: Fonts,
+  palette: Palette,
+  stats: { total: number; uploaders: number; days: number },
+) {
+  const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  drawBackground(page, palette);
+  drawCornerDecoration(page, 34, PAGE_HEIGHT - 34, -20, false, palette, 61);
+  drawCornerDecoration(page, PAGE_WIDTH - 34, 34, -20, true, palette, 62);
+
+  const panelX = 104;
+  const panelY = 236;
+  const panelW = PAGE_WIDTH - panelX * 2;
+  const panelH = 370;
+  page.drawRectangle({
+    x: panelX + 4,
+    y: panelY - 5,
+    width: panelW,
+    height: panelH,
+    color: rgb(0.18, 0.14, 0.1),
+    opacity: 0.06,
+  });
+  page.drawRectangle({
+    x: panelX,
+    y: panelY,
+    width: panelW,
+    height: panelH,
+    color: mix(rgb(1, 1, 1), palette.bg, 0.18),
+    borderColor: palette.accent,
+    borderWidth: 0.75,
+    borderOpacity: 0.5,
+  });
+
+  drawCentered(page, "M E M O R I A S   V I V A S", panelY + 320, fonts.regular, 9, palette.inkFaint);
+  drawWrapped(page, album.name, PAGE_WIDTH / 2, panelY + 258, panelW - 54, 34, fonts.bold, 27, palette.ink, "center");
+  drawDivider(page, panelY + 188, palette.accent);
+  const subtitle = album.eventDate
+    ? formatLongDate(new Date(album.eventDate + "T00:00:00"))
+    : album.kind === "familia" ? "Álbum de familia" : "Una historia para recordar";
+  drawCentered(page, subtitle, panelY + 154, fonts.italic, 13, palette.inkSoft);
+  drawCentered(page, "Una colección de instantes, personas y emociones", panelY + 110, fonts.italic, 10.5, palette.inkFaint);
+  drawCentered(page, "para volver a vivir siempre.", panelY + 94, fonts.italic, 10.5, palette.inkFaint);
+
+  const labels = [
+    `${stats.total} ${stats.total === 1 ? "recuerdo" : "recuerdos"}`,
+    `${stats.uploaders} ${stats.uploaders === 1 ? "persona" : "personas"}`,
+    `${Math.max(stats.days, 1)} ${Math.max(stats.days, 1) === 1 ? "día" : "días"}`,
+  ];
+  const centers = [panelX + panelW * 0.2, PAGE_WIDTH / 2, panelX + panelW * 0.8];
+  labels.forEach((label, index) => drawCentered(page, label, panelY + 42, fonts.regular, 9.5, palette.inkSoft, centers[index]));
+}
 function addClosingPage(
   pdf: PDFDocument,
   fonts: Fonts,
   qrImage: PDFImage,
   palette: Palette,
   seleccion: { impresos: number; totales: number } | null,
+  albumName: string,
 ) {
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: palette.bgClosing });
+  drawCornerDecoration(page, 42, PAGE_HEIGHT - 42, -18, false, palette, 71);
+  drawCornerDecoration(page, PAGE_WIDTH - 42, 42, -18, true, palette, 73);
   const centerY = PAGE_HEIGHT / 2 + 60;
 
-  drawCentered(page, "Gracias por compartir", centerY + 30, fonts.bold, 24, palette.ink);
-  drawCentered(page, "estos recuerdos", centerY, fonts.bold, 24, palette.ink);
+  drawCentered(page, "M E M O R I A S   V I V A S", PAGE_HEIGHT - 78, fonts.regular, 9, palette.inkFaint);
+  drawCentered(page, albumName, PAGE_HEIGHT - 108, fonts.italic, 11, palette.inkSoft);
+  drawCentered(page, "Gracias por compartir", centerY + 48, fonts.bold, 27, palette.ink);
+  drawCentered(page, "estos recuerdos", centerY + 14, fonts.bold, 27, palette.ink);
+  drawDivider(page, centerY - 14, palette.accent);
+  drawCentered(page, "Cada fotografía guarda un instante;", centerY - 48, fonts.italic, 11, palette.inkSoft);
+  drawCentered(page, "juntas cuentan vuestra historia.", centerY - 65, fonts.italic, 11, palette.inkSoft);
 
   // Si el álbum no cabía entero, se dice claramente en vez de dejar al
   // organizador contando páginas para ver qué falta.
@@ -1827,15 +1844,27 @@ function addClosingPage(
     );
   }
 
-  const qrSize = 150;
+  const qrSize = 132;
+  const qrX = (PAGE_WIDTH - qrSize) / 2;
+  const qrY = centerY - 232;
+  page.drawRectangle({
+    x: qrX - 14,
+    y: qrY - 14,
+    width: qrSize + 28,
+    height: qrSize + 28,
+    color: rgb(1, 1, 1),
+    opacity: 0.92,
+    borderColor: palette.accent,
+    borderWidth: 0.65,
+    borderOpacity: 0.45,
+  });
   page.drawImage(qrImage, {
-    x: (PAGE_WIDTH - qrSize) / 2,
-    y: centerY - 220,
+    x: qrX,
+    y: qrY,
     width: qrSize,
     height: qrSize,
   });
-  drawCentered(page, "Vuelve a ver el álbum en cualquier momento", centerY - 240, fonts.regular, 11, palette.inkSoft);
-  drawCentered(page, "M E M O R I A S   V I V A S", MARGIN + 30, fonts.regular, 10, palette.inkFaint);
+  drawCentered(page, "Escanea para volver al álbum", qrY - 32, fonts.regular, 10, palette.inkSoft);
 }
 
 // Genera el "Dotbook digital": una portada tipo scrapbook con fotos reales
@@ -1850,10 +1879,67 @@ export async function buildDotbookPdf(
   extras: DotbookExtras,
   style: DotbookStyle = "clasico",
 ): Promise<Uint8Array> {
-  const palette = isTemplateStyle(style)
+  let palette = isTemplateStyle(style)
     ? paletteFromAccent(TEMPLATE_COVERS[style].accent)
     : (PALETTES[style] ?? PALETTES.clasico);
   const pdf = await PDFDocument.create();
+  if (palette.decoration === "branch") {
+    try {
+      const { readFile } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+      const grupo = isTemplateStyle(style) ? TEMPLATE_COVERS[style].grupo : null;
+      const ornamentKind = grupo === "viajes" || style === "viajes"
+        ? "travel"
+        : grupo === "quince"
+          ? "quince"
+          : style === "realNavidad"
+            ? "christmas"
+            : style === "realAnoNuevo"
+              ? "newyear"
+              : style === "realGeneral"
+                ? "general"
+                : style === "realGraduacion"
+            ? "graduation"
+            : grupo === "cumple" || style === "fiesta"
+            ? "celebration"
+            : grupo === "boda"
+              ? "wedding"
+              : grupo === "bautizo"
+            ? "baptism"
+            : grupo === "comunion"
+              ? "communion"
+              : grupo === "baby"
+                ? "baby"
+                : "botanical";
+      const ornamentFiles: Record<NonNullable<Palette["ornamentKind"]>, [string, string]> = {
+        botanical: ["botanical-branch-top-v2.png", "botanical-branch-bottom-v2.png"],
+        celebration: ["celebration-ornament-top-v3.png", "celebration-ornament-bottom-v3.png"],
+        travel: ["travel-ornament-top-v3.png", "travel-ornament.png"],
+        baptism: ["baptism-ornament-top.png", "baptism-ornament-bottom.png"],
+        communion: ["communion-ornament-top.png", "communion-ornament-bottom.png"],
+        baby: ["baby-ornament-top.png", "baby-ornament-bottom.png"],
+        wedding: ["wedding-ornament-top.png", "wedding-ornament-bottom.png"],
+        quince: ["quince-ornament-top.png", "quince-ornament-bottom.png"],
+        graduation: ["graduation-ornament-top.png", "graduation-ornament-bottom.png"],
+        christmas: ["christmas-ornament-top.png", "christmas-ornament-bottom.png"],
+        newyear: ["newyear-ornament-top.png", "newyear-ornament-bottom.png"],
+        general: ["general-ornament-top.png", "general-ornament-bottom.png"],
+      };
+      const [topFile, bottomFile] = ornamentFiles[ornamentKind];
+      const bytes = await readFile(join(process.cwd(), "public", "dotbook-assets", topFile));
+      const topBytes = bytes;
+      const bottomBytes = await readFile(join(process.cwd(), "public", "dotbook-assets", bottomFile));
+      palette = {
+        ...palette,
+        botanical: await pdf.embedPng(bytes),
+        botanicalTop: await pdf.embedPng(topBytes),
+        botanicalBottom: await pdf.embedPng(bottomBytes),
+        ornamentKind,
+      };
+    } catch {
+      // La decoración vectorial sigue siendo un respaldo seguro sin el recurso.
+    }
+  }
   pdf.setTitle(`Dotbook · ${album.name}`);
   const fonts: Fonts = {
     bold: await pdf.embedFont(StandardFonts.TimesRomanBold),
@@ -1907,14 +1993,7 @@ export async function buildDotbookPdf(
   }
 
   if (templateCoverImage && isTemplateStyle(style)) {
-    await addTemplateCoverPage(
-      pdf,
-      album,
-      fonts,
-      stats,
-      templateCoverImage,
-      TEMPLATE_COVERS[style],
-    );
+    await addTemplateCoverPage(pdf, templateCoverImage);
   } else {
     const previewImages: PDFImage[] = [];
     for (const url of portadasNecesarias) {
@@ -1923,6 +2002,7 @@ export async function buildDotbookPdf(
     }
     addCoverPage(pdf, album, fonts, stats, previewImages, palette);
   }
+  addTitlePage(pdf, album, fonts, palette, stats);
 
   // Se incrustan primero las imágenes para saber la forma de cada una: el
   // reparto en páginas depende de si son verticales o apaisadas, y eso no se
@@ -2003,7 +2083,14 @@ export async function buildDotbookPdf(
     closingQr,
     palette,
     recortado ? { impresos: sorted.length, totales: todos.length } : null,
+    album.name,
   );
+
+  // Numeracion discreta desde la primera pagina de contenido. La portada y
+  // la portadilla editorial permanecen limpias, como en un album impreso.
+  pdf.getPages().slice(2).forEach((page, index) => {
+    drawCentered(page, String(index + 1), 18, fonts.regular, 7.5, palette.inkFaint);
+  });
 
   return pdf.save();
 }

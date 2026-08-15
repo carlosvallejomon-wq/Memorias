@@ -92,7 +92,7 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
       const cardStep = card ? card.offsetWidth + 16 : 240;
       setActive(Math.round(el.scrollLeft / cardStep) % items.length);
 
-      if (paused.current || Date.now() < pausedUntil.current) {
+      if (paused.current || ahora < pausedUntil.current) {
         posRef.current = el.scrollLeft; // el visitante manda
         return;
       }
@@ -107,21 +107,21 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
     return () => cancelAnimationFrame(raf);
   }, [items.length]);
 
-  function nudge(dir: 1 | -1) {
+  function nudge(dir: 1 | -1, now: number) {
     const el = trackRef.current;
     if (!el) return;
     const card = el.firstElementChild as HTMLElement | null;
     const cardStep = card ? card.offsetWidth + 16 : 240;
-    pausedUntil.current = Date.now() + 900;
+    pausedUntil.current = now + 900;
     el.scrollBy({ left: dir * cardStep * 2, behavior: "smooth" });
   }
 
-  function goTo(index: number) {
+  function goTo(index: number, now: number) {
     const el = trackRef.current;
     if (!el) return;
     const card = el.firstElementChild as HTMLElement | null;
     const cardStep = card ? card.offsetWidth + 16 : 240;
-    pausedUntil.current = Date.now() + 900;
+    pausedUntil.current = now + 900;
     el.scrollTo({ left: index * cardStep, behavior: "smooth" });
   }
 
@@ -133,7 +133,7 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
       onFocusCapture={() => (paused.current = true)}
       onBlurCapture={() => (paused.current = false)}
       onTouchStart={() => (paused.current = true)}
-      onTouchEnd={() => (pausedUntil.current = Date.now() + 2500)}
+      onTouchEnd={(event) => (pausedUntil.current = event.timeStamp + 2500)}
     >
       <div ref={trackRef} className="scroll-x flex gap-4 px-1 pb-3">
         {loop.map((e, i) => (
@@ -159,14 +159,14 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
       </div>
 
       <button
-        onClick={() => nudge(-1)}
+        onClick={(event) => nudge(-1, event.timeStamp)}
         aria-label="Ver celebraciones anteriores"
         className="absolute -left-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white p-2.5 text-tinta shadow-lift transition hover:bg-arena sm:block"
       >
         <ChevronLeft size={20} />
       </button>
       <button
-        onClick={() => nudge(1)}
+        onClick={(event) => nudge(1, event.timeStamp)}
         aria-label="Ver más celebraciones"
         className="absolute -right-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white p-2.5 text-tinta shadow-lift transition hover:bg-arena sm:block"
       >
@@ -177,7 +177,7 @@ export function CelebrationCarousel({ items }: { items: Celebration[] }) {
         {items.map((e, i) => (
           <button
             key={e.label}
-            onClick={() => goTo(i)}
+            onClick={(event) => goTo(i, event.timeStamp)}
             aria-label={`Ir a ${e.label}`}
             className={`h-1.5 rounded-full transition-all ${
               i === active ? "w-6 bg-teja" : "w-1.5 bg-tinta/20 hover:bg-tinta/40"
