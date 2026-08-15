@@ -10,12 +10,27 @@ const isProtectedRoute = createRouteMatcher([
   "/api/diagnostico",
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    await auth.protect();
-  }
-});
+export default clerkMiddleware(
+  async (auth, req) => {
+    if (isProtectedRoute(req)) {
+      await auth.protect();
+    }
+  },
+  {
+    // La instancia de produccion usa el dominio corto de Vercel. Clerk pasa
+    // sus solicitudes del navegador por esta ruta del mismo dominio.
+    frontendApiProxy: {
+      enabled: true,
+    },
+  },
+);
 
 export const config = {
-  matcher: ["/dashboard(.*)", "/api/albums(.*)", "/api/setup", "/api/diagnostico"],
+  matcher: [
+    "/dashboard(.*)",
+    "/api/albums(.*)",
+    "/api/setup",
+    "/api/diagnostico",
+    "/__clerk/(.*)",
+  ],
 };

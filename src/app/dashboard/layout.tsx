@@ -6,5 +6,9 @@ import { esES } from "@clerk/localizations";
 export default function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <ClerkProvider localization={esES}>{children}</ClerkProvider>;
+  return (
+    <ClerkProvider localization={esES} proxyUrl="/__clerk">
+      {children}
+    </ClerkProvider>
+  );
 }
