@@ -5,10 +5,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Heart,
   Hourglass,
+  Laugh,
   Loader2,
   MessageCircle,
+  PartyPopper,
   Send,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -22,6 +26,33 @@ import {
   mediaAlt,
   timeAgo,
 } from "@/lib/guest-types";
+
+const REACTION_STYLE = {
+  "\u2764\uFE0F": {
+    Icon: Heart,
+    label: "Me encanta",
+    color: "text-rose-600",
+    active: "border-rose-300 bg-rose-50",
+  },
+  "\u{1F602}": {
+    Icon: Laugh,
+    label: "Me divierte",
+    color: "text-amber-600",
+    active: "border-amber-300 bg-amber-50",
+  },
+  "\u{1F62E}": {
+    Icon: Sparkles,
+    label: "Me sorprende",
+    color: "text-sky-600",
+    active: "border-sky-300 bg-sky-50",
+  },
+  "\u{1F44F}": {
+    Icon: PartyPopper,
+    label: "Lo celebro",
+    color: "text-violet-600",
+    active: "border-violet-300 bg-violet-50",
+  },
+} as const;
 
 // Distancia mínima de arrastre para contar como "pasar de foto" (en px).
 const SWIPE_THRESHOLD = 60;
@@ -258,19 +289,32 @@ export function GuestLightbox({
           {EMOJIS.map((emoji) => {
             const count = item.reactions[emoji] ?? 0;
             const mineReacted = item.myReactions.includes(emoji);
+            const reaction = REACTION_STYLE[emoji as keyof typeof REACTION_STYLE];
+            const ReactionIcon = reaction.Icon;
             return (
               <button
                 key={emoji}
+                type="button"
                 onClick={() => onReact(emoji)}
                 disabled={!guestId}
-                className={`rounded-full border px-3.5 py-1.5 text-lg transition active:scale-95 ${
+                title={reaction.label}
+                aria-label={`${reaction.label}${count > 0 ? `, ${count}` : ""}`}
+                aria-pressed={mineReacted}
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 py-2 transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
                   mineReacted
-                    ? "border-teja bg-teja/10 shadow-soft"
+                    ? reaction.active
                     : "border-tinta/15 bg-white/70 hover:bg-white"
                 }`}
               >
-                {emoji}
-                {count > 0 && <span className="ml-1 text-sm text-tinta/60">{count}</span>}
+                <ReactionIcon
+                  aria-hidden="true"
+                  className={`size-[19px] stroke-[1.8] ${reaction.color} ${
+                    mineReacted && emoji === "\u2764\uFE0F" ? "fill-current" : ""
+                  }`}
+                />
+                {count > 0 && (
+                  <span className="text-xs font-semibold tabular-nums text-tinta/70">{count}</span>
+                )}
               </button>
             );
           })}

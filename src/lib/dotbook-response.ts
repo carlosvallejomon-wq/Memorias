@@ -46,14 +46,16 @@ export async function dotbookResponse(album: Album, style: DotbookStyle) {
     }
   }
 
-  const reactionCountByMedia = new Map<string, number>();
+  const reactionsByMedia = new Map<string, Record<string, number>>();
   const allReactions = await db()
-    .select({ mediaId: reactions.mediaId })
+    .select({ mediaId: reactions.mediaId, emoji: reactions.emoji })
     .from(reactions)
     .innerJoin(media, eq(reactions.mediaId, media.id))
     .where(eq(media.albumId, album.id));
   for (const r of allReactions) {
-    reactionCountByMedia.set(r.mediaId, (reactionCountByMedia.get(r.mediaId) ?? 0) + 1);
+    const counts = reactionsByMedia.get(r.mediaId) ?? {};
+    counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
+    reactionsByMedia.set(r.mediaId, counts);
   }
 
   const messages = await db()
@@ -75,7 +77,7 @@ export async function dotbookResponse(album: Album, style: DotbookStyle) {
   const pdfBytes = await buildDotbookPdf(
     album,
     items,
-    { commentsByMedia, reactionCountByMedia, messages, shareUrl, baseUrl },
+    { commentsByMedia, reactionsByMedia, messages, shareUrl, baseUrl },
     style,
   );
 

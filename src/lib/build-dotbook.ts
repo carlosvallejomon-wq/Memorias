@@ -282,7 +282,8 @@ export type DotbookMessage = {
 
 export type DotbookExtras = {
   commentsByMedia: Map<string, string[]>;
-  reactionCountByMedia: Map<string, number>;
+  reactionsByMedia?: Map<string, Record<string, number>>;
+  reactionCountByMedia?: Map<string, number>;
   // Dedicatorias del muro de mensajes: se imprimen en sus propias páginas,
   // justo antes del cierre del libro.
   messages: DotbookMessage[];
@@ -1260,13 +1261,53 @@ function altoDelPie(comments: string[], fonts: Fonts, anchoTexto: number): numbe
   return alto;
 }
 
+function dibujarReacciones(
+  page: PDFPage,
+  fonts: Fonts,
+  reactions: Record<string, number>,
+  right: number,
+  y: number,
+  color: RGB,
+  size = 9.5,
+) {
+  const items: { icono: string; count: number }[] = [];
+  const sorted = Object.entries(reactions)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  for (const [emoji, count] of sorted) {
+    const normalized = emoji.replace(/[\uFE0E\uFE0F\u200D]/g, "");
+    const first = [...normalized][0];
+    const icono = first ? EMOJI_A_ICONO[first] : undefined;
+    if (icono) items.push({ icono, count });
+  }
+
+  if (items.length === 0) return;
+
+  const gap = 8;
+  const widths = items.map(
+    ({ count }) => size * ANCHO_ICONO + 2 + fonts.bold.widthOfTextAtSize(String(count), size),
+  );
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0) + gap * (items.length - 1);
+  let x = right - totalWidth;
+
+  items.forEach(({ icono, count }, index) => {
+    dibujarIcono(page, icono, x, y, size, color);
+    x += size * ANCHO_ICONO + 2;
+    page.drawText(String(count), { x, y, size, font: fonts.bold, color });
+    x += fonts.bold.widthOfTextAtSize(String(count), size);
+    if (index < items.length - 1) x += gap;
+  });
+}
+
 /** Escribe el pie y devuelve dónde se ha quedado. */
 function dibujarPie(
   page: PDFPage,
   fonts: Fonts,
   item: MediaItem,
   comments: string[],
-  reactionCount: number,
+  reactions: Record<string, number>,
   palette: Palette,
   x: number,
   y: number,
@@ -1280,11 +1321,7 @@ function dibujarPie(
     .join("   ·   ");
   page.drawText(textoParaPdf(caption), { x, y, size: 10.5, font: fonts.regular, color: palette.inkSoft });
 
-  if (reactionCount > 0) {
-    const label = `${reactionCount} ${reactionCount === 1 ? "reacción" : "reacciones"}`;
-    const w = fonts.regular.widthOfTextAtSize(label, 9.5);
-    page.drawText(label, { x: x + ancho - w, y, size: 9.5, font: fonts.regular, color: palette.accent });
-  }
+  dibujarReacciones(page, fonts, reactions, x + ancho, y, palette.accent);
 
   let cursor = y - 20;
   for (const comment of comments.slice(0, 2)) {
@@ -1314,11 +1351,18 @@ function dibujarPie(
  * página entera: obligar a página entera con cualquier comentario devolvía el
  * libro a una foto por hoja en cuanto la gente comentaba de verdad.
  */
+type MosaicPhoto = {
+  item: MediaItem;
+  image: PDFImage;
+  comentario?: string;
+  reactions: Record<string, number>;
+};
+
 async function addMosaicPage(
   pdf: PDFDocument,
   fonts: Fonts,
   tipo: "dos" | "tres",
-  fotos: { item: MediaItem; image: PDFImage; comentario?: string }[],
+  fotos: MosaicPhoto[],
   palette: Palette,
   etiqueta: string,
 ) {
@@ -1338,10 +1382,13 @@ async function addMosaicPage(
   // por", dos si además lleva comentario.
   // Un comentario que solo eran emoji sin icono se queda en nada al prepararlo
   // para el PDF; entonces no hay leyenda que poner y basta con una línea.
-  const pieDe = (f: { comentario?: string }) =>
-    f.comentario && trocearTexto(f.comentario).length > 0 ? 27 : 15;
+  const pieDe = (f: MosaicPhoto) => {
+    const commentHeight = f.comentario && trocearTexto(f.comentario).length > 0 ? 27 : 15;
+    const reactionHeight = Object.values(f.reactions).some((count) => count > 0) ? 13 : 0;
+    return commentHeight + reactionHeight;
+  };
 
-  type Celda = { item: MediaItem; image: PDFImage; comentario?: string };
+  type Celda = MosaicPhoto;
   const pad = 10;
 
   /**
@@ -1412,6 +1459,9 @@ async function addMosaicPage(
     } else {
       drawCentered(page, quien, y - 12, fonts.regular, 8.5, palette.inkFaint, x + w / 2);
     }
+    if (Object.values(f.reactions).some((count) => count > 0)) {
+      dibujarReacciones(page, fonts, f.reactions, x + w, y - pieFoto + 3, palette.accent, 8.5);
+    }
   };
 
   const alto = arriba - abajo;
@@ -1475,7 +1525,7 @@ async function addPhotoPage(
   fonts: Fonts,
   item: MediaItem,
   comments: string[],
-  reactionCount: number,
+  reactions: Record<string, number>,
   palette: Palette,
   index: number,
   total: number,
@@ -1514,7 +1564,7 @@ async function addPhotoPage(
     });
     page.drawRectangle({ x: 0, y: franja, width: PAGE_WIDTH, height: 1.2, color: palette.accent, opacity: 0.55 });
 
-    dibujarPie(page, fonts, item, comments, reactionCount, palette, MARGIN, franja - 30, PAGE_WIDTH - MARGIN * 2);
+    dibujarPie(page, fonts, item, comments, reactions, palette, MARGIN, franja - 30, PAGE_WIDTH - MARGIN * 2);
     drawCentered(page, `${index} / ${total}`, 16, fonts.regular, 9, palette.inkFaint);
     return;
   }
@@ -1640,7 +1690,7 @@ async function addPhotoPage(
   });
   y -= 22;
 
-  dibujarPie(page, fonts, item, comments, reactionCount, palette, frameX, y, frameW);
+  dibujarPie(page, fonts, item, comments, reactions, palette, frameX, y, frameW);
   drawCentered(page, `${index}  /  ${total}`, 26, fonts.regular, 8, palette.inkFaint);
 }
 
@@ -2044,7 +2094,7 @@ export async function buildDotbookPdf(
         fonts,
         item,
         extras.commentsByMedia.get(item.id) ?? [],
-        extras.reactionCountByMedia.get(item.id) ?? 0,
+        extras.reactionsByMedia?.get(item.id) ?? {},
         palette,
         numeros[0],
         sorted.length,
@@ -2065,6 +2115,7 @@ export async function buildDotbookPdf(
           item,
           image: incrustadas.get(item.id)!,
           comentario: cabeDePie(comentarios) ? comentarios[0].trim() : undefined,
+          reactions: extras.reactionsByMedia?.get(item.id) ?? {},
         };
       }),
       palette,
