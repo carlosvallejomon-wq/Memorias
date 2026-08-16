@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { Check, Copy, Download, Sparkles } from "lucide-react";
+import { Check, Copy, Download, QrCode, Send, Sparkles, Upload } from "lucide-react";
 
 export function ShareCard({ shareUrl }: { shareUrl: string }) {
   const [qr, setQr] = useState<string | null>(null);
@@ -64,6 +64,20 @@ export function ShareCard({ shareUrl }: { shareUrl: string }) {
             <Download size={14} /> Descargar el QR como imagen
           </a>
         )}
+        <ol className="mt-4 grid gap-2 border-t border-tinta/10 pt-4 text-left sm:grid-cols-3">
+          {[
+            { icon: Copy, text: "Copia el enlace" },
+            { icon: Send, text: "Envíalo por WhatsApp" },
+            { icon: Upload, text: "Ellos suben sus recuerdos" },
+          ].map(({ icon: Icon, text }, index) => (
+            <li key={text} className="flex items-center gap-2 text-xs font-medium text-tinta/65">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-arena text-teja">
+                {index === 0 ? <QrCode size={13} /> : <Icon size={13} />}
+              </span>
+              <span>{text}</span>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );
