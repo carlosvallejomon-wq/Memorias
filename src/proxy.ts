@@ -32,6 +32,7 @@ export const config = {
     "/api/albums(.*)",
     "/api/setup",
     "/api/diagnostico",
+    "/sign-up(.*)",
     "/sign-in(.*)",
     "/__clerk/(.*)",
   ],

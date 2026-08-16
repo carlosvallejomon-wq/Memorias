@@ -1,9 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { esES } from "@clerk/localizations";
 
-// Clerk solo envuelve el panel del organizador; las páginas de invitados no
-// cargan nada de Clerk.
-export default function DashboardLayout({
+export default function SignUpLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -11,9 +9,9 @@ export default function DashboardLayout({
       localization={esES}
       proxyUrl="/__clerk"
       signInUrl="/sign-in"
+      signUpUrl="/sign-up"
       signInFallbackRedirectUrl="/dashboard"
       signUpFallbackRedirectUrl="/dashboard"
-      signUpUrl="/sign-up"
     >
       {children}
     </ClerkProvider>

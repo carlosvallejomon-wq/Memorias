@@ -11,6 +11,7 @@ export default function SignInLayout({
       signInUrl="/sign-in"
       signInFallbackRedirectUrl="/dashboard"
       signUpFallbackRedirectUrl="/dashboard"
+      signUpUrl="/sign-up"
     >
       {children}
     </ClerkProvider>
