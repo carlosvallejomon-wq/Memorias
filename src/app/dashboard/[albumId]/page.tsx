@@ -242,10 +242,10 @@ export default async function AlbumAdminPage({
 
             {/* Acciones agrupadas por para qué sirven, en vez de una fila
                 larga de botones todos iguales. */}
-            <div className="mt-5 flex flex-wrap items-center gap-2">
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
               <a
                 href={`/a/${album.shareCode}?panel=1`}
-                className="btn btn-primary shimmer px-4 py-2 text-sm"
+                className="btn btn-primary shimmer px-3 py-2 text-sm sm:px-4"
               >
                 <ImagePlus size={16} /> Ver álbum y añadir fotos
               </a>
@@ -253,7 +253,7 @@ export default async function AlbumAdminPage({
                 href={`/a/${album.shareCode}/pantalla`}
                 target="_blank"
                 rel="noreferrer"
-                className="btn btn-soft shimmer px-4 py-2 text-sm"
+                className="btn btn-soft shimmer px-3 py-2 text-sm sm:px-4"
               >
                 <MonitorPlay size={16} /> Modo pantalla
               </a>
@@ -266,7 +266,7 @@ export default async function AlbumAdminPage({
               <DotbookGenerator albumId={album.id} />
               <a
                 href={`/api/albums/${album.id}/download`}
-                className="btn btn-soft shimmer px-4 py-2 text-sm"
+                className="btn btn-soft shimmer px-3 py-2 text-sm sm:px-4"
               >
                 <Download size={16} /> Descargar ZIP
               </a>
