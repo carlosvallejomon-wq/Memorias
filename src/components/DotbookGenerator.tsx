@@ -63,9 +63,26 @@ export function DotbookGenerator({
     setDownloading(true);
     setDownloadError(null);
 
+    const controller = new AbortController();
+    // Una generación grande puede tardar, pero no debe dejar un botón girando
+    // para siempre si la conexión se corta antes de que el servidor responda.
+    const timeout = window.setTimeout(() => controller.abort(), 285_000);
+
     try {
-      const response = await fetch(`${base}${separador}style=${styleId}`);
-      if (!response.ok) throw new Error("No se pudo generar el Dotbook");
+      const response = await fetch(`${base}${separador}style=${styleId}`, {
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type") ?? "";
+        const detail = contentType.includes("application/json")
+          ? ((await response.json().catch(() => null)) as { error?: unknown } | null)?.error
+          : null;
+        throw new Error(
+          typeof detail === "string"
+            ? detail
+            : "No pudimos generar el PDF. Inténtalo otra vez en unos segundos.",
+        );
+      }
 
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -78,9 +95,16 @@ export function DotbookGenerator({
       anchor.click();
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000);
-    } catch {
-      setDownloadError("No pudimos generar el PDF. Inténtalo otra vez en unos segundos.");
+    } catch (error) {
+      setDownloadError(
+        error instanceof DOMException && error.name === "AbortError"
+          ? "La generación tardó demasiado. Revisa tu conexión e inténtalo otra vez."
+          : error instanceof Error
+            ? error.message
+            : "No pudimos generar el PDF. Inténtalo otra vez en unos segundos.",
+      );
     } finally {
+      window.clearTimeout(timeout);
       setDownloading(false);
     }
   }
