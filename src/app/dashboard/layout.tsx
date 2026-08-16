@@ -7,7 +7,13 @@ export default function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <ClerkProvider localization={esES} proxyUrl="/__clerk">
+    <ClerkProvider
+      localization={esES}
+      proxyUrl="/__clerk"
+      signInUrl="/sign-in"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
+    >
       {children}
     </ClerkProvider>
   );

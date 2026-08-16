@@ -17,6 +17,7 @@ export default clerkMiddleware(
     }
   },
   {
+    signInUrl: "/sign-in",
     // La instancia de produccion usa el dominio corto de Vercel. Clerk pasa
     // sus solicitudes del navegador por esta ruta del mismo dominio.
     frontendApiProxy: {
@@ -31,6 +32,7 @@ export const config = {
     "/api/albums(.*)",
     "/api/setup",
     "/api/diagnostico",
+    "/sign-in(.*)",
     "/__clerk/(.*)",
   ],
 };
