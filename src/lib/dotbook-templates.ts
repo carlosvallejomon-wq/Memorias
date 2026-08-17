@@ -129,7 +129,6 @@ export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
   { id: "realQuince", grupo: "quince", file: "quince.jpg", label: "Quinceañera · tarta", accent: [0.82, 0.5, 0.6] },
   { id: "realQuinceFlores", grupo: "quince", file: "quince-flores.jpg", label: "Quinceañera · flores", accent: [0.42, 0.14, 0.34] },
   { id: "realQuinceVestido", grupo: "quince", file: "quince-vestido.jpg", label: "Quinceañera · vestido", accent: [0.85, 0.52, 0.33] },
-  { id: "realQuinceLazo", grupo: "quince", file: "quince-lazo.jpg", label: "Quinceañera · lazo", accent: [0.72, 0.42, 0.55] },
   { id: "realQuinceMariposas", grupo: "quince", file: "quince-mariposas.jpg", label: "Quinceañera · mariposas", accent: [0.55, 0.38, 0.68] },
   { id: "realQuincePrincesa", grupo: "quince", file: "quince-princesa.jpg", label: "Quinceañera · princesa", accent: [0.84, 0.54, 0.62] },
 
