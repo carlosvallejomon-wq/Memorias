@@ -93,14 +93,14 @@ export function AlbumCard({ album }: { album: AlbumCardData }) {
       <div className="zoom-hover relative h-40 overflow-hidden sm:h-44">
         <Cover covers={album.covers} />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+        <div className="absolute inset-x-0 bottom-0 p-4 text-center text-white sm:text-left">
           <h3
             className="truncate text-lg font-semibold drop-shadow"
             style={{ fontFamily: "var(--font-display)" }}
           >
             {album.name}
           </h3>
-          <p className="flex items-center gap-1.5 text-xs text-white/80">
+          <p className="flex items-center justify-center gap-1.5 text-xs text-white/80 sm:justify-start">
             <CalendarHeart size={12} /> {dateLabel}
           </p>
         </div>
@@ -111,7 +111,7 @@ export function AlbumCard({ album }: { album: AlbumCardData }) {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3 text-sm text-tinta/60">
+      <div className="flex flex-wrap items-center justify-center gap-x-3.5 gap-y-2 px-4 py-3 text-sm text-tinta/60 sm:justify-start">
         <span className="flex items-center gap-1.5">
           <Images size={14} className="text-teja" /> {album.mediaCount}{" "}
           {album.mediaCount === 1 ? "recuerdo" : "recuerdos"}
@@ -133,7 +133,7 @@ export function AlbumCard({ album }: { album: AlbumCardData }) {
           </span>
         )}
         {album.moderationEnabled && (
-          <span className="ml-auto flex items-center gap-1 rounded-full bg-arena px-2 py-0.5 text-xs font-semibold text-tinta/60">
+          <span className="flex items-center gap-1 rounded-full bg-arena px-2 py-0.5 text-xs font-semibold text-tinta/60 sm:ml-auto">
             <ShieldCheck size={12} /> Moderado
           </span>
         )}
