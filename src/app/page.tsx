@@ -443,8 +443,6 @@ export default async function Home({
           </div>
         </section>
 
-        <PricingSection lang={english ? "en" : "es"} />
-
         {/* Tira de tipos de celebración: pone cara a "cualquier evento". */}
         <section className="border-y border-tinta/8 bg-arena/40 py-12">
           <div className="mx-auto max-w-6xl px-6">
@@ -639,6 +637,8 @@ export default async function Home({
             ))}
           </div>
         </section>
+
+        <PricingSection lang={english ? "en" : "es"} />
 
         <section className="mx-auto max-w-6xl px-6 pb-20">
           <div className="relative overflow-hidden rounded-3xl bg-tinta px-6 py-16 text-center text-crema shadow-lift">
