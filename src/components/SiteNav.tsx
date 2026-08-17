@@ -12,11 +12,21 @@ const LINKS = [
   { href: "#preguntas", label: "Preguntas" },
 ];
 
+const ENGLISH_LINKS = [
+  { href: "#como-funciona", label: "How it works" },
+  { href: "#herramientas", label: "What’s included" },
+  { href: "#invitaciones", label: "Invitations" },
+  { href: "#dotbook", label: "Dotbook" },
+  { href: "#precios", label: "Pricing" },
+];
+
 // Barra superior de la portada. Se vuelve opaca al bajar para que el texto
 // siga legible sobre las fotos, y en el móvil se despliega en vertical.
-export function SiteNav() {
+export function SiteNav({ lang = "es" }: { lang?: "es" | "en" }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const english = lang === "en";
+  const links = english ? ENGLISH_LINKS : LINKS;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -46,7 +56,7 @@ export function SiteNav() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <a
               key={l.href}
               href={l.href}
@@ -59,7 +69,14 @@ export function SiteNav() {
 
         <div className="flex items-center gap-2">
           <Link href="/dashboard" className="btn btn-primary shimmer hidden px-5 py-2.5 sm:flex">
-            Crear mi álbum
+            {english ? "Create my album" : "Crear mi álbum"}
+          </Link>
+          <Link
+            href={english ? "/" : "/?lang=en"}
+            className="rounded-full px-2 py-1 text-xs font-semibold text-tinta/60 transition hover:bg-arena"
+            aria-label={english ? "Cambiar a español" : "Switch to English"}
+          >
+            {english ? "ES" : "EN"}
           </Link>
           <button
             onClick={() => setOpen((v) => !v)}
@@ -74,7 +91,7 @@ export function SiteNav() {
       {open && (
         <div className="animate-fade-in border-t border-tinta/8 px-5 pb-4 md:hidden">
           <nav className="flex flex-col">
-            {LINKS.map((l) => (
+            {links.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
@@ -86,7 +103,7 @@ export function SiteNav() {
             ))}
           </nav>
           <Link href="/dashboard" className="btn btn-primary mt-4 w-full">
-            Crear mi álbum
+            {english ? "Create my album" : "Crear mi álbum"}
           </Link>
         </div>
       )}
