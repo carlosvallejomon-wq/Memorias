@@ -149,7 +149,48 @@ const FAQ = [
   },
 ];
 
-function PhoneMockup() {
+const EN_TRUST = [
+  { icon: WifiOff, title: "Nothing to install", text: "It opens right in any phone browser" },
+  { icon: Users, title: "No guest accounts", text: "Only the host needs to sign in" },
+  { icon: InfinityIcon, title: "Unlimited guests", text: "Share your QR code with everyone" },
+];
+
+const EN_EVENTS = [
+  "Weddings", "Birthdays", "Quinceañeras", "Communions", "Baptisms", "Graduations",
+  "Kids' parties", "Baby showers", "Family", "Trips", "Christmas", "New Year's Eve",
+];
+
+const EN_FEATURES = [
+  { icon: QrCode, title: "A QR code is all you need", text: "Guests scan or open a link and upload right away — no app or account required." },
+  { icon: Heart, title: "Reactions and comments", text: "Everyone can react to and comment on every photo, just like on social media." },
+  { icon: CalendarDays, title: "Organized automatically", text: "Content is arranged by date, with filters by person and a day-by-day view." },
+  { icon: ShieldCheck, title: "Optional moderation", text: "Review every photo before it appears — you decide what is shared." },
+  { icon: Download, title: "Download everything", text: "Download the complete album as a ZIP, or let guests save their favorite photos." },
+];
+
+const EN_INVITATION_WAYS = [
+  { icon: Printer, title: "Print it", text: "Download it in high quality, ready to print at home or at a print shop." },
+  { icon: Link2, title: "Send it on WhatsApp", text: "Every invitation has its own link and opens on a phone with no app required." },
+  { icon: QrCode, title: "Or use a QR code", text: "One QR opens the invitation and another goes straight to the photo album." },
+];
+
+const EN_STEPS = [
+  { n: "1", title: "Create your album", text: "Give your wedding, birthday or trip a name and date. It takes less than a minute." },
+  { n: "2", title: "Share the QR code", text: "Print it for the tables or send it on WhatsApp. Anyone can join instantly." },
+  { n: "3", title: "Memories appear automatically", text: "Every photo and video lands in the gallery as soon as guests upload it." },
+];
+
+const EN_FAQ = [
+  { q: "Do guests need to install anything or create an account?", a: "No. They scan the QR code or open the link and can view the album, upload photos, react and comment. Their name is optional." },
+  { q: "Does it work on iPhone and Android?", a: "Yes. It is a normal website, so it works on phones, tablets and computers with a modern browser." },
+  { q: "Can I approve photos before guests see them?", a: "Yes. Turn on moderation and every upload waits for your approval." },
+  { q: "What if someone uploads something I do not want?", a: "You can remove any photo, video or message from your host dashboard." },
+  { q: "Can I keep every photo?", a: "Yes. Download the full album as a ZIP or generate a Dotbook PDF with messages from the wall." },
+  { q: "Can invitations be printed?", a: "Yes. Download them as a high-quality image, print them, send them by WhatsApp or share their QR code." },
+  { q: "Do videos work too?", a: "Yes. Videos are included in the gallery; the Dotbook adds a QR code that opens the original video." },
+];
+
+function PhoneMockup({ english = false }: { english?: boolean }) {
   return (
     <div className="relative mx-auto w-full max-w-[300px]">
       {/* Marco realista de teléfono con barra de navegador, para que se
@@ -163,12 +204,12 @@ function PhoneMockup() {
           </div>
           <div className="px-3 pb-3">
             <div className="flex items-center gap-1.5 pb-2.5 text-xs font-semibold text-tinta/70">
-              <Camera size={13} /> Boda de Ana y Luis
+              <Camera size={13} /> {english ? "Ana and Luis' wedding" : "Boda de Ana y Luis"}
             </div>
             <PhoneGrid />
             <div className="mt-3 flex justify-center">
               <div className="shimmer flex items-center gap-1.5 rounded-full bg-teja px-4 py-2 text-xs font-semibold text-white shadow-soft">
-                <Camera size={13} /> Subir fotos
+                <Camera size={13} /> {english ? "Upload photos" : "Subir fotos"}
               </div>
             </div>
           </div>
@@ -181,7 +222,7 @@ function PhoneMockup() {
           <span className="relative inline-flex h-2 w-2 rounded-full bg-teja" />
         </span>
         <MonitorPlay size={16} />
-        <span className="text-xs font-semibold">En vivo en pantalla</span>
+        <span className="text-xs font-semibold">{english ? "Live on screen" : "En vivo en pantalla"}</span>
       </div>
 
       {/* Polaroids decorativas sueltas, con fotos de muestra. */}
@@ -201,8 +242,12 @@ function PhoneMockup() {
   );
 }
 
-function MuroMockup() {
-  const notas = [
+function MuroMockup({ english = false }: { english?: boolean }) {
+  const notas = english ? [
+    { name: "Grandma Carmen", text: "May life give you many more days like this one. With all my love.", rot: "-1.8deg" },
+    { name: "Javi", text: "Thank you for letting us be part of your day. Here is to the next fifty years!", rot: "1.4deg" },
+    { name: "Marta", text: "The cake was incredible and the dancing was even better.", rot: "-0.8deg" },
+  ] : [
     { name: "Abuela Carmen", text: "Que la vida os regale muchos días como este. Con todo mi cariño.", rot: "-1.8deg" },
     { name: "Javi", text: "Gracias por dejarnos ser parte de vuestro día. ¡A por los próximos cincuenta años!", rot: "1.4deg" },
     { name: "Marta", text: "La tarta estaba espectacular y el baile mejor todavía.", rot: "-0.8deg" },
@@ -218,7 +263,7 @@ function MuroMockup() {
           <p className="text-sm leading-relaxed">{n.text}</p>
           <p className="mt-2.5 border-t border-tinta/8 pt-2.5 text-xs">
             <span className="font-semibold">{n.name}</span>{" "}
-            <span className="text-tinta/40">· firmado en el muro</span>
+            <span className="text-tinta/40">· {english ? "signed the wall" : "firmado en el muro"}</span>
           </p>
         </div>
       ))}
@@ -238,7 +283,7 @@ const DOTBOOK_ABANICO = [
 // forzando 3/4 el `object-cover` recortaba el pie del diseño.
 const HOJA = "aspect-[1057/1500] w-full object-cover";
 
-function DotbookMockup() {
+function DotbookMockup({ english = false }: { english?: boolean }) {
   return (
     <div className="relative mx-auto w-full max-w-[15rem] pb-6">
       {DOTBOOK_ABANICO.map((p) => (
@@ -260,7 +305,7 @@ function DotbookMockup() {
       </div>
 
       <div className="glass absolute -bottom-1 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-semibold shadow-lift">
-        <BookOpen size={15} className="text-teja" /> {TEMPLATE_COVER_LIST.length} diseños de portada
+        <BookOpen size={15} className="text-teja" /> {TEMPLATE_COVER_LIST.length} {english ? "cover designs" : "diseños de portada"}
       </div>
     </div>
   );
@@ -317,6 +362,15 @@ export default async function Home({
 }) {
   const { lang } = await searchParams;
   const english = lang === "en";
+  const trust = english ? EN_TRUST : TRUST;
+  const events = EVENTS.map((event, index) => ({
+    ...event,
+    label: english ? EN_EVENTS[index] : event.label,
+  }));
+  const features = english ? EN_FEATURES : FEATURES;
+  const invitationWays = english ? EN_INVITATION_WAYS : INVITATION_WAYS;
+  const steps = english ? EN_STEPS : STEPS;
+  const faq = english ? EN_FAQ : FAQ;
   // `overflow-x-clip` y no `overflow-hidden`: los dos recortan las polaroids
   // decorativas que se salen por los lados, pero `hidden` convierte esto en un
   // contenedor de scroll y eso anula el `sticky` de la barra de arriba, que se
@@ -364,7 +418,7 @@ export default async function Home({
             </div>
 
             <ul className="mt-10 grid gap-4 text-left sm:grid-cols-3">
-              {TRUST.map((t) => (
+              {trust.map((t) => (
                 <li key={t.title} className="flex items-start gap-2.5">
                   <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-teja shadow-soft">
                     <t.icon size={15} />
@@ -378,13 +432,14 @@ export default async function Home({
             </ul>
 
             <p className="mt-8 text-sm text-tinta/50">
-              ¿Te han invitado a un álbum? Abre el enlace o escanea el QR que te
-              haya pasado el organizador: no necesitas cuenta.
+              {english
+                ? "Were you invited to an album? Open the link or scan the QR code your host shared — no account needed."
+                : "¿Te han invitado a un álbum? Abre el enlace o escanea el QR que te haya pasado el organizador: no necesitas cuenta."}
             </p>
           </div>
 
           <div className="relative flex-1 pt-10">
-            <PhoneMockup />
+            <PhoneMockup english={english} />
           </div>
         </section>
 
@@ -394,10 +449,10 @@ export default async function Home({
         <section className="border-y border-tinta/8 bg-arena/40 py-12">
           <div className="mx-auto max-w-6xl px-6">
             <p className="text-center text-sm font-semibold uppercase tracking-[0.14em] text-tinta/50">
-              Un álbum para cada celebración
+              {english ? "An album for every celebration" : "Un álbum para cada celebración"}
             </p>
             <div className="mt-6">
-              <CelebrationCarousel items={EVENTS} />
+              <CelebrationCarousel items={events} />
             </div>
           </div>
         </section>
@@ -408,11 +463,12 @@ export default async function Home({
               className="text-balance text-3xl font-semibold sm:text-4xl"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Todo lo que necesitas, nada de lo que sobra
+              {english ? "Everything you need, nothing you do not" : "Todo lo que necesitas, nada de lo que sobra"}
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-tinta/60">
-              Pensado para que cualquier invitado, sin importar la edad o la
-              destreza con el móvil, participe en menos de 10 segundos.
+              {english
+                ? "Designed so every guest can participate in less than 10 seconds, whatever their age or comfort with technology."
+                : "Pensado para que cualquier invitado, sin importar la edad o la destreza con el móvil, participe en menos de 10 segundos."}
             </p>
           </div>
 
@@ -422,18 +478,18 @@ export default async function Home({
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja shadow-soft">
                 <MonitorPlay size={24} />
               </div>
-              <h3 className="mt-4 text-lg font-semibold">Modo pantalla en vivo</h3>
+              <h3 className="mt-4 text-lg font-semibold">{english ? "Live screen mode" : "Modo pantalla en vivo"}</h3>
               <p className="mt-1.5 text-sm text-tinta/60">
-                Conecta una TV o un proyector en el evento y ve aparecer las fotos
-                de los invitados en tiempo real, con el QR siempre visible para
-                que se anime quien todavía no ha subido nada.
+                {english
+                  ? "Connect a TV or projector and watch guest photos appear in real time, with the QR code always visible."
+                  : "Conecta una TV o un proyector en el evento y ve aparecer las fotos de los invitados en tiempo real, con el QR siempre visible para que se anime quien todavía no ha subido nada."}
               </p>
               <div className="mt-5">
-                <LiveScreenMockup />
+                <LiveScreenMockup english={english} />
               </div>
             </div>
 
-            {FEATURES.map((f, i) => (
+            {features.map((f, i) => (
               <Reveal
                 key={f.title}
                 delay={i * 70}
@@ -453,29 +509,21 @@ export default async function Home({
           <div className="mx-auto max-w-6xl space-y-24 px-6">
             <Reveal>
             <Showcase
-              eyebrow="Retos fotográficos"
-              title="Nadie se queda mirando el móvil sin saber qué hacer"
-              text="Propón pequeñas misiones y tus invitados las van completando. Es la forma más fácil de conseguir fotos de todos los momentos, no solo veinte del mismo baile."
-              bullets={[
-                "Empieza con una lista de retos ya preparada y cámbiala a tu gusto",
-                "Cada invitado ve su progreso y sube la foto directamente al reto",
-                "Tú ves desde el panel qué retos ya tienen fotos y cuáles no",
-              ]}
-              mockup={<RetosMockup />}
+              eyebrow={english ? "Photo challenges" : "Retos fotográficos"}
+              title={english ? "No guest has to wonder what photo to take" : "Nadie se queda mirando el móvil sin saber qué hacer"}
+              text={english ? "Set small missions for your guests to complete. It is the easiest way to collect every moment, not twenty shots of the same dance." : "Propón pequeñas misiones y tus invitados las van completando. Es la forma más fácil de conseguir fotos de todos los momentos, no solo veinte del mismo baile."}
+              bullets={english ? ["Start with a ready-made list and tailor it to your event", "Guests see their progress and upload directly to each challenge", "See which challenges already have photos from your dashboard"] : ["Empieza con una lista de retos ya preparada y cámbiala a tu gusto", "Cada invitado ve su progreso y sube la foto directamente al reto", "Tú ves desde el panel qué retos ya tienen fotos y cuáles no"]}
+              mockup={<RetosMockup english={english} />}
             />
             </Reveal>
             <Reveal>
             <Showcase
               flip
-              eyebrow="Muro de dedicatorias"
-              title="El libro de firmas, sin libro que perder"
-              text="Los invitados dejan dedicatorias escritas: una anécdota, una felicitación, un recuerdo. Se guardan en el álbum y se imprimen al final del Dotbook."
-              bullets={[
-                "Cada persona firma con su nombre, o en anónimo si lo prefiere",
-                "Puedes borrar cualquier mensaje que no te encaje",
-                "Salen impresos como dedicatorias en el PDF del álbum",
-              ]}
-              mockup={<MuroMockup />}
+              eyebrow={english ? "Message wall" : "Muro de dedicatorias"}
+              title={english ? "A guest book that cannot get lost" : "El libro de firmas, sin libro que perder"}
+              text={english ? "Guests leave a story, a congratulations or a memory. It stays in the album and is printed at the end of the Dotbook." : "Los invitados dejan dedicatorias escritas: una anécdota, una felicitación, un recuerdo. Se guardan en el álbum y se imprimen al final del Dotbook."}
+              bullets={english ? ["Everyone can sign with their name or stay anonymous", "Remove any message that does not fit", "Messages are included in the album PDF"] : ["Cada persona firma con su nombre, o en anónimo si lo prefiere", "Puedes borrar cualquier mensaje que no te encaje", "Salen impresos como dedicatorias en el PDF del álbum"]}
+              mockup={<MuroMockup english={english} />}
             />
             </Reveal>
           </div>
@@ -486,23 +534,20 @@ export default async function Home({
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teja">
-                  Invitaciones
+                  {english ? "Invitations" : "Invitaciones"}
                 </p>
                 <h3
                   className="text-balance mt-2 text-2xl font-semibold sm:text-3xl"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
-                  La invitación también sale de aquí
+                  {english ? "Your invitation comes from here too" : "La invitación también sale de aquí"}
                 </h3>
                 <p className="mt-3 text-tinta/70">
-                  Elige un diseño, escribe los datos de tu evento y arrastra el
-                  texto, la foto y el QR donde quieras. Casi 140 plantillas:
-                  bodas, quinceañeras, bautizos, comuniones, graduaciones, baby
-                  shower y cumpleaños.
+                  {english ? "Choose a design, add your event details and place the text, photo and QR code where you want. Nearly 140 templates for weddings, quinceañeras, baptisms, communions, graduations, baby showers and birthdays." : "Elige un diseño, escribe los datos de tu evento y arrastra el texto, la foto y el QR donde quieras. Casi 140 plantillas: bodas, quinceañeras, bautizos, comuniones, graduaciones, baby shower y cumpleaños."}
                 </p>
 
                 <ul className="mt-6 space-y-4">
-                  {INVITATION_WAYS.map((w) => (
+                  {invitationWays.map((w) => (
                     <li key={w.title} className="flex items-start gap-3">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja shadow-soft">
                         <w.icon size={18} />
@@ -516,7 +561,7 @@ export default async function Home({
                 </ul>
 
                 <Link href="/dashboard" className="btn btn-primary shimmer mt-7">
-                  Crear mi invitación <ArrowRight size={17} />
+                  {english ? "Create my invitation" : "Crear mi invitación"} <ArrowRight size={17} />
                 </Link>
               </div>
 
@@ -531,15 +576,11 @@ export default async function Home({
           <Reveal>
           <Showcase
             flip
-            eyebrow="Dotbook digital"
-            title="Tu álbum convertido en un libro de recuerdos"
-            text="Con un clic se genera un PDF con portada a elegir, una página por cada recuerdo con sus comentarios, y las dedicatorias del muro al final. Listo para guardar o llevar a imprimir."
-            bullets={[
-              `${TEMPLATE_COVER_LIST.length} diseños de portada, más 6 estilos dibujados`,
-              "Los vídeos llevan un QR que abre el original",
-              "Se descarga al momento, sin esperar ni encargar nada",
-            ]}
-            mockup={<DotbookMockup />}
+            eyebrow={english ? "Digital Dotbook" : "Dotbook digital"}
+            title={english ? "Your album turned into a keepsake book" : "Tu álbum convertido en un libro de recuerdos"}
+            text={english ? "Generate a PDF in one click with a cover you choose, a page for every memory and its comments, plus guest messages at the end. Ready to save or print." : "Con un clic se genera un PDF con portada a elegir, una página por cada recuerdo con sus comentarios, y las dedicatorias del muro al final. Listo para guardar o llevar a imprimir."}
+            bullets={english ? [`${TEMPLATE_COVER_LIST.length} cover designs plus 6 illustrated styles`, "Videos include a QR code that opens the original", "Download it instantly — no waiting or ordering"] : [`${TEMPLATE_COVER_LIST.length} diseños de portada, más 6 estilos dibujados`, "Los vídeos llevan un QR que abre el original", "Se descarga al momento, sin esperar ni encargar nada"]}
+            mockup={<DotbookMockup english={english} />}
           />
           </Reveal>
         </section>
@@ -550,7 +591,7 @@ export default async function Home({
               className="text-center text-3xl font-semibold sm:text-4xl"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Cómo funciona
+              {english ? "How it works" : "Cómo funciona"}
             </h2>
             <div className="relative mt-12 grid gap-8 sm:grid-cols-3">
               {/* Línea que une los tres pasos en escritorio. */}
@@ -558,7 +599,7 @@ export default async function Home({
                 aria-hidden
                 className="absolute left-[16%] right-[16%] top-7 hidden border-t-2 border-dashed border-teja/25 sm:block"
               />
-              {STEPS.map((s, i) => (
+              {steps.map((s, i) => (
                 <Reveal key={s.n} delay={i * 120} className="relative text-center">
                   <div
                     className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-teja text-2xl font-semibold text-white shadow-lift"
@@ -579,10 +620,10 @@ export default async function Home({
             className="text-center text-3xl font-semibold sm:text-4xl"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Preguntas frecuentes
+            {english ? "Frequently asked questions" : "Preguntas frecuentes"}
           </h2>
           <div className="mt-10 space-y-3">
-            {FAQ.map((f) => (
+            {faq.map((f) => (
               <details
                 key={f.q}
                 className="group rounded-2xl border border-tinta/10 bg-white px-5 py-4 shadow-soft"
@@ -613,21 +654,20 @@ export default async function Home({
               className="text-balance relative text-3xl font-semibold sm:text-4xl"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Tu próximo evento merece algo mejor que un chat lleno de fotos
+              {english ? "Your next event deserves better than a chat full of photos" : "Tu próximo evento merece algo mejor que un chat lleno de fotos"}
             </h2>
             <p className="relative mx-auto mt-4 max-w-xl text-crema/70">
-              Crea el álbum hoy, comparte el QR el día de la fiesta y quédate con
-              todos los recuerdos —también los que tú no viste.
+              {english ? "Create your album today, share the QR code at the party and keep every memory — even the ones you did not see." : "Crea el álbum hoy, comparte el QR el día de la fiesta y quédate con todos los recuerdos —también los que tú no viste."}
             </p>
             <div className="relative mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link href="/dashboard" className="btn btn-primary shimmer px-8 py-3.5 text-lg">
-                Crear mi álbum <ArrowRight size={18} />
+                {english ? "Create my album" : "Crear mi álbum"} <ArrowRight size={18} />
               </Link>
               <a
                 href="#herramientas"
                 className="btn btn-on-dark px-8 py-3.5 text-lg"
               >
-                Ver todo lo que incluye
+                {english ? "See everything included" : "Ver todo lo que incluye"}
               </a>
             </div>
           </div>
@@ -644,65 +684,64 @@ export default async function Home({
               <span style={{ fontFamily: "var(--font-display)" }}>Memorias Vivas</span>
             </p>
             <p className="mt-3 max-w-xs text-sm text-tinta/50">
-              Álbumes compartidos para bodas, cumpleaños, viajes y todo lo que
-              merezca recordarse.
+              {english ? "Shared albums for weddings, birthdays, trips and every moment worth remembering." : "Álbumes compartidos para bodas, cumpleaños, viajes y todo lo que merezca recordarse."}
             </p>
           </div>
           <div className="text-sm">
-            <p className="font-semibold text-tinta/70">La app</p>
+            <p className="font-semibold text-tinta/70">{english ? "The app" : "La app"}</p>
             <ul className="mt-3 space-y-2 text-tinta/50">
               <li>
-                <a href="#herramientas" className="hover:text-tinta">Qué incluye</a>
+                <a href="#herramientas" className="hover:text-tinta">{english ? "What’s included" : "Qué incluye"}</a>
               </li>
               <li>
-                <a href="#como-funciona" className="hover:text-tinta">Cómo funciona</a>
+                <a href="#como-funciona" className="hover:text-tinta">{english ? "How it works" : "Cómo funciona"}</a>
               </li>
               <li>
-                <a href="#invitaciones" className="hover:text-tinta">Invitaciones</a>
+                <a href="#invitaciones" className="hover:text-tinta">{english ? "Invitations" : "Invitaciones"}</a>
               </li>
               <li>
-                <a href="#dotbook" className="hover:text-tinta">Dotbook digital</a>
+                <a href="#dotbook" className="hover:text-tinta">{english ? "Digital Dotbook" : "Dotbook digital"}</a>
               </li>
               <li>
-                <a href="#preguntas" className="hover:text-tinta">Preguntas frecuentes</a>
+                <a href="#preguntas" className="hover:text-tinta">{english ? "FAQ" : "Preguntas frecuentes"}</a>
               </li>
             </ul>
           </div>
           <div className="text-sm">
-            <p className="font-semibold text-tinta/70">Empezar</p>
+            <p className="font-semibold text-tinta/70">{english ? "Get started" : "Empezar"}</p>
             <ul className="mt-3 space-y-2 text-tinta/50">
               <li>
-                <Link href="/dashboard" className="hover:text-tinta">Crear un álbum</Link>
+                <Link href="/dashboard" className="hover:text-tinta">{english ? "Create an album" : "Crear un álbum"}</Link>
               </li>
               <li>
-                <Link href="/dashboard" className="hover:text-tinta">Entrar en mi panel</Link>
+                <Link href="/dashboard" className="hover:text-tinta">{english ? "Open my dashboard" : "Entrar en mi panel"}</Link>
               </li>
               <li className="flex items-center gap-1.5">
-                <PenLine size={13} /> Muro de dedicatorias
+                <PenLine size={13} /> {english ? "Message wall" : "Muro de dedicatorias"}
               </li>
               <li className="flex items-center gap-1.5">
-                <Target size={13} /> Retos fotográficos
+                <Target size={13} /> {english ? "Photo challenges" : "Retos fotográficos"}
               </li>
             </ul>
           </div>
           <div className="text-sm">
-            <p className="font-semibold text-tinta/70">Legal</p>
+            <p className="font-semibold text-tinta/70">{english ? "Legal" : "Legal"}</p>
             <ul className="mt-3 space-y-2 text-tinta/50">
               <li>
                 <Link href="/legal/privacidad" className="hover:text-tinta">
-                  Privacidad
+                  {english ? "Privacy" : "Privacidad"}
                 </Link>
               </li>
               <li>
                 <Link href="/legal/condiciones" className="hover:text-tinta">
-                  Condiciones de uso
+                  {english ? "Terms of use" : "Condiciones de uso"}
                 </Link>
               </li>
             </ul>
           </div>
         </div>
         <p className="mx-auto mt-10 max-w-6xl border-t border-tinta/8 pt-6 text-center text-xs text-tinta/40">
-          Memorias Vivas · Hecho para guardar recuerdos, no para coleccionar datos.
+          {english ? "Memorias Vivas · Made to keep memories, not collect data." : "Memorias Vivas · Hecho para guardar recuerdos, no para coleccionar datos."}
         </p>
       </footer>
     </div>
