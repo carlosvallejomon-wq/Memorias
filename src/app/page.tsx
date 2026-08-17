@@ -22,6 +22,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import { PricingSection } from "@/components/PricingSection";
 import {
   CelebrationCarousel,
   InvitationDeck,
@@ -309,14 +310,20 @@ function Showcase({
   );
 }
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ lang?: string }>;
+}) {
+  const { lang } = await searchParams;
+  const english = lang === "en";
   // `overflow-x-clip` y no `overflow-hidden`: los dos recortan las polaroids
   // decorativas que se salen por los lados, pero `hidden` convierte esto en un
   // contenedor de scroll y eso anula el `sticky` de la barra de arriba, que se
   // iba con la página en vez de quedarse fija.
   return (
     <div className="relative z-[1] overflow-x-clip">
-      <SiteNav />
+      <SiteNav lang={english ? "en" : "es"} />
 
       <main>
         <section className="relative mx-auto flex max-w-6xl flex-col items-center gap-16 px-6 pb-20 pt-10 lg:flex-row lg:pt-16">
@@ -335,25 +342,24 @@ export default function Home() {
 
           <div className="relative flex-1 text-center lg:text-left">
             <p className="inline-flex items-center gap-1.5 rounded-full bg-arena px-3 py-1 text-sm font-semibold text-teja-oscuro">
-              <Sparkles size={14} /> Para bodas, cumpleaños y viajes
+              <Sparkles size={14} /> {english ? "For weddings, parties and trips" : "Para bodas, cumpleaños y viajes"}
             </p>
             <h1
               className="text-balance mt-5 text-4xl leading-[1.08] font-semibold sm:text-5xl lg:text-6xl"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Todas las fotos de tu evento, en un solo sitio
+              {english ? "Every photo from your event, in one beautiful place" : "Todas las fotos de tu evento, en un solo sitio"}
             </h1>
             <p className="mx-auto mt-5 max-w-lg text-lg text-tinta/70 lg:mx-0">
-              Crea un álbum, comparte el código QR y deja que tus invitados suban
-              sus fotos y vídeos desde el móvil —{" "}
-              <strong>sin instalar nada y sin registrarse</strong>.
+              {english ? "Create an album, share the QR code and let your guests upload photos and videos from their phones — " : "Crea un álbum, comparte el código QR y deja que tus invitados suban sus fotos y vídeos desde el móvil — "}
+              <strong>{english ? "no app or sign-up required" : "sin instalar nada y sin registrarse"}</strong>.
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
               <Link href="/dashboard" className="btn btn-primary shimmer px-8 py-3.5 text-lg">
-                Crear mi álbum <ArrowRight size={18} />
+                {english ? "Create my album" : "Crear mi álbum"} <ArrowRight size={18} />
               </Link>
               <a href="#como-funciona" className="btn btn-soft px-8 py-3.5 text-lg">
-                <Play size={16} /> Cómo funciona
+                <Play size={16} /> {english ? "How it works" : "Cómo funciona"}
               </a>
             </div>
 
@@ -381,6 +387,8 @@ export default function Home() {
             <PhoneMockup />
           </div>
         </section>
+
+        <PricingSection lang={english ? "en" : "es"} />
 
         {/* Tira de tipos de celebración: pone cara a "cualquier evento". */}
         <section className="border-y border-tinta/8 bg-arena/40 py-12">
