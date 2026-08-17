@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { db } from "@/db";
 import { albums } from "@/db/schema";
 import { guardAlbum } from "@/lib/guest-guard";
 import { Slideshow } from "@/components/Slideshow";
+import { publicSiteUrl } from "@/lib/public-site-url";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +42,7 @@ export default async function ScreenModePage({
     );
   }
 
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
-  const shareUrl = `${proto}://${host}/a/${album.shareCode}`;
+  const shareUrl = `${publicSiteUrl()}/a/${album.shareCode}`;
 
   return <Slideshow code={album.shareCode} albumName={album.name} shareUrl={shareUrl} />;
 }
