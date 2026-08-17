@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import {
@@ -19,6 +18,7 @@ import { albums, challenges, comments, guestbookEntries, media, reactions } from
 import { ShareCard } from "@/components/ShareCard";
 import { ClientLinkCard } from "@/components/ClientLinkCard";
 import { clientLinkPath } from "@/lib/client-link";
+import { publicSiteUrl } from "@/lib/public-site-url";
 import { ModerationToggle } from "@/components/ModerationToggle";
 import { LazyInvitationGenerator } from "@/components/LazyInvitationGenerator";
 import { DotbookGenerator } from "@/components/DotbookGenerator";
@@ -155,11 +155,9 @@ export default async function AlbumAdminPage({
         : null,
   };
 
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
-  const shareUrl = `${proto}://${host}/a/${album.shareCode}`;
-  const clientUrl = `${proto}://${host}${clientLinkPath(album.shareCode, album.id)}`;
+  const siteUrl = publicSiteUrl();
+  const shareUrl = `${siteUrl}/a/${album.shareCode}`;
+  const clientUrl = `${siteUrl}${clientLinkPath(album.shareCode, album.id)}`;
   const eventDateLabel = album.eventDate
     ? new Date(album.eventDate + "T00:00:00").toLocaleDateString("es-ES", {
         day: "numeric",
