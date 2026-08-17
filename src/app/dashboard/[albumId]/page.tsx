@@ -214,14 +214,14 @@ export default async function AlbumAdminPage({
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-crema via-crema/70 to-transparent" />
           </div>
 
-          <div className="relative -mt-10 px-6 pb-6 sm:px-8">
+          <div className="relative -mt-10 min-w-0 px-6 pb-6 text-center sm:px-8 sm:text-left">
             <h1
               className="text-balance text-3xl font-semibold"
               style={{ fontFamily: "var(--font-display)" }}
             >
               {album.name}
             </h1>
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-tinta/60">
+            <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-tinta/60 sm:justify-start">
               <span className="flex items-center gap-1.5">
                 <CalendarHeart size={14} />
                 {eventDateLabel ??
@@ -240,7 +240,7 @@ export default async function AlbumAdminPage({
 
             {/* Acciones agrupadas por para qué sirven, en vez de una fila
                 larga de botones todos iguales. */}
-            <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <div className="mt-5 grid grid-cols-1 gap-2 [&>a]:w-full [&>button]:w-full sm:flex sm:flex-wrap sm:items-center sm:[&>a]:w-auto sm:[&>button]:w-auto">
               <a
                 href={`/a/${album.shareCode}?panel=1`}
                 className="btn btn-primary shimmer px-3 py-2 text-sm sm:px-4"
