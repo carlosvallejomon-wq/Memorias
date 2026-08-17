@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
 import { CalendarX } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -49,18 +50,15 @@ export async function generateMetadata({
 
 export default async function GuestAlbumPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ code: string }>;
-  searchParams: Promise<{ panel?: string }>;
 }) {
   const { code } = await params;
-  // El organizador llega aquí desde su panel con ?panel=1; solo en ese caso
-  // se le ofrece la vuelta atrás (un invitado normal no tiene panel).
-  const { panel } = await searchParams;
+  const { userId } = await auth();
   const [album] = await db()
     .select({
       id: albums.id,
+      ownerId: albums.ownerId,
       name: albums.name,
       eventDate: albums.eventDate,
       shareCode: albums.shareCode,
@@ -120,7 +118,7 @@ export default async function GuestAlbumPage({
       name={album.name}
       eventDate={album.eventDate}
       expiresAt={album.expiresAt ? album.expiresAt.toISOString() : null}
-      fromPanel={panel === "1"}
+      canReturnToDashboard={album.ownerId === userId}
     />
   );
 }
