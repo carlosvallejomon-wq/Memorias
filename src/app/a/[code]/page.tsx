@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { auth } from "@clerk/nextjs/server";
 import { CalendarX } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -54,11 +53,9 @@ export default async function GuestAlbumPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const { userId } = await auth();
   const [album] = await db()
     .select({
       id: albums.id,
-      ownerId: albums.ownerId,
       name: albums.name,
       eventDate: albums.eventDate,
       shareCode: albums.shareCode,
@@ -114,11 +111,9 @@ export default async function GuestAlbumPage({
   return (
     <GuestAlbum
       code={album.shareCode}
-      albumId={album.id}
       name={album.name}
       eventDate={album.eventDate}
       expiresAt={album.expiresAt ? album.expiresAt.toISOString() : null}
-      canReturnToDashboard={album.ownerId === userId}
     />
   );
 }
