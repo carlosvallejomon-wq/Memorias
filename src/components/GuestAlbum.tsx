@@ -95,7 +95,7 @@ export function GuestAlbum({
   name,
   eventDate,
   expiresAt = null,
-  fromPanel = false,
+  canReturnToDashboard = false,
 }: {
   code: string;
   albumId: string;
@@ -103,7 +103,8 @@ export function GuestAlbum({
   eventDate: string | null;
   /** Fecha de cierre, si el organizador puso una. */
   expiresAt?: string | null;
-  fromPanel?: boolean;
+  /** Solo el dueño con sesión puede volver al panel desde el QR. */
+  canReturnToDashboard?: boolean;
 }) {
   const [guestId, setGuestId] = useLocalValue("mv_guest_id", () => crypto.randomUUID());
   const [guestName, setGuestName] = useLocalValue("mv_guest_name");
@@ -134,23 +135,6 @@ export function GuestAlbum({
   const [galleryRef, galleryWidth] = useElementWidth<HTMLDivElement>();
 
   const aviso = expiryWarning(expiresAt);
-
-  // La vuelta atrás al panel se recuerda en este navegador. Antes dependía de
-  // llegar con ?panel=1 en la dirección: en cuanto se recargaba o se
-  // compartía el enlace, el organizador se quedaba sin forma de volver y solo
-  // le quedaba el enlace a la portada.
-  const [esOrganizador, setEsOrganizador] = useState(fromPanel);
-  useEffect(() => {
-    const clave = `mv_panel_${code}`;
-    if (fromPanel) {
-      localStorage.setItem(clave, "1");
-      const timeout = window.setTimeout(() => setEsOrganizador(true), 0);
-      return () => window.clearTimeout(timeout);
-    } else if (localStorage.getItem(clave) === "1") {
-      const timeout = window.setTimeout(() => setEsOrganizador(true), 0);
-      return () => window.clearTimeout(timeout);
-    }
-  }, [code, fromPanel]);
 
   const handleRatio = useCallback((id: string, ratio: number) => {
     setRatios((prev) => (prev[id] ? prev : { ...prev, [id]: ratio }));
@@ -516,7 +500,7 @@ export function GuestAlbum({
     <main className="mx-auto max-w-4xl px-4 pb-28">
       {/* Al organizador se le deja una vuelta atrás bien visible; el invitado
           normal solo ve la marca. */}
-      {esOrganizador ? (
+      {canReturnToDashboard ? (
         <div className="pt-4">
           <Link
             href={albumId ? `/dashboard/${albumId}` : "/dashboard"}
@@ -527,8 +511,8 @@ export function GuestAlbum({
         </div>
       ) : null}
 
-      <header className={esOrganizador ? "pt-4 text-center" : "pt-6 text-center"}>
-        {!esOrganizador && (
+      <header className={canReturnToDashboard ? "pt-4 text-center" : "pt-6 text-center"}>
+        {!canReturnToDashboard && (
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"
