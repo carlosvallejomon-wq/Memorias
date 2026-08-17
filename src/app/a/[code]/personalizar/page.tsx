@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { CalendarX, BookOpen, Mail, ArrowLeft, Images } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -8,6 +8,7 @@ import { albums } from "@/db/schema";
 import { accessCookieName, hasAccess } from "@/lib/album-pin";
 import { isExpired } from "@/lib/expiry";
 import { isValidClientToken } from "@/lib/client-link";
+import { publicSiteUrl } from "@/lib/public-site-url";
 import { AlbumLock } from "@/components/AlbumLock";
 import { DotbookGenerator } from "@/components/DotbookGenerator";
 import { LazyInvitationGenerator } from "@/components/LazyInvitationGenerator";
@@ -110,10 +111,7 @@ export default async function PersonalizarPage({
 
   // Absoluta, no relativa: este mismo texto es el que se codifica en el QR de
   // la invitación, y un "/a/loquesea" escaneado no lleva a ninguna parte.
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
-  const shareUrl = `${proto}://${host}/a/${album.shareCode}`;
+  const shareUrl = `${publicSiteUrl()}/a/${album.shareCode}`;
   const albumPath = `/a/${album.shareCode}`;
   const dotbookBase = `/api/guest/${album.shareCode}/dotbook?k=${k}`;
 
