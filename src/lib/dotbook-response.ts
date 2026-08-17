@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { albums, comments, guestbookEntries, media, reactions } from "@/db/schema";
 import { buildDotbookPdf, DOTBOOK_STYLES, type DotbookStyle } from "@/lib/build-dotbook";
+import { publicSiteUrl } from "@/lib/public-site-url";
 type Album = typeof albums.$inferSelect;
 
 // Reunir todo lo que lleva el Dotbook (fotos, comentarios, reacciones y
@@ -68,10 +68,7 @@ export async function dotbookResponse(album: Album, style: DotbookStyle) {
     .where(eq(guestbookEntries.albumId, album.id))
     .orderBy(asc(guestbookEntries.createdAt));
 
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
-  const baseUrl = `${proto}://${host}`;
+  const baseUrl = publicSiteUrl();
   const shareUrl = `${baseUrl}/a/${album.shareCode}`;
 
   const pdfBytes = await buildDotbookPdf(
