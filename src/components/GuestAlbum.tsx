@@ -91,20 +91,15 @@ function dayLabel(key: string): string {
 
 export function GuestAlbum({
   code,
-  albumId,
   name,
   eventDate,
   expiresAt = null,
-  canReturnToDashboard = false,
 }: {
   code: string;
-  albumId: string;
   name: string;
   eventDate: string | null;
   /** Fecha de cierre, si el organizador puso una. */
   expiresAt?: string | null;
-  /** Solo el dueño con sesión puede volver al panel desde el QR. */
-  canReturnToDashboard?: boolean;
 }) {
   const [guestId, setGuestId] = useLocalValue("mv_guest_id", () => crypto.randomUUID());
   const [guestName, setGuestName] = useLocalValue("mv_guest_name");
@@ -498,28 +493,22 @@ export function GuestAlbum({
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-28">
-      {/* Al organizador se le deja una vuelta atrás bien visible; el invitado
-          normal solo ve la marca. */}
-      {canReturnToDashboard ? (
-        <div className="pt-4">
-          <Link
-            href={albumId ? `/dashboard/${albumId}` : "/dashboard"}
-            className="btn btn-soft px-4 py-2 text-sm"
-          >
-            <ArrowLeft size={16} /> Volver al panel del álbum
-          </Link>
-        </div>
-      ) : null}
+      {/* El QR también lo abre quien organiza el evento. Este acceso no
+          depende de una sesión de Clerk en la página pública: quien no sea
+          dueño verá el inicio de sesión normal del panel. */}
+      <div className="flex items-center justify-between gap-3 pt-4">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"
+        >
+          <Camera size={14} /> Memorias Vivas
+        </Link>
+        <Link href="/dashboard" className="btn btn-soft px-3 py-2 text-sm">
+          <ArrowLeft size={15} /> Mis álbumes
+        </Link>
+      </div>
 
-      <header className={canReturnToDashboard ? "pt-4 text-center" : "pt-6 text-center"}>
-        {!canReturnToDashboard && (
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"
-          >
-            <Camera size={14} /> Memorias Vivas
-          </Link>
-        )}
+      <header className="pt-4 text-center">
         <h1
           className="text-balance mt-2 text-3xl font-semibold sm:text-4xl"
           style={{ fontFamily: "var(--font-display)" }}
