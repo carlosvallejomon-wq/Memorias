@@ -35,8 +35,8 @@ function Tile({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-tinta/10 bg-white p-4 shadow-soft">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja-oscuro">
+    <div className="rounded-2xl border border-tinta/10 bg-white p-4 text-center shadow-soft sm:text-left">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-teja/20 to-teja/5 text-teja-oscuro sm:mx-0">
         <Icon size={16} />
       </div>
       <p
