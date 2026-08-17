@@ -248,7 +248,7 @@ const LIVE_PHOTOS = [
 
 // Maqueta del modo pantalla: las fotos van cambiando solas, como en el
 // evento real, y el contador sube cuando "llega" una foto nueva.
-export function LiveScreenMockup() {
+export function LiveScreenMockup({ english = false }: { english?: boolean }) {
   const [index, setIndex] = useState(0);
   const [count, setCount] = useState(126);
 
@@ -282,14 +282,14 @@ export function LiveScreenMockup() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teja opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teja" />
             </span>
-            En directo · {count} fotos
+            {english ? `Live · ${count} photos` : `En directo · ${count} fotos`}
           </div>
 
           <div
             key={photo.who}
             className="animate-fade-in absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1.5 text-[11px] text-white backdrop-blur-sm"
           >
-            <Upload size={11} /> Acaba de subirla {photo.who}
+            <Upload size={11} /> {english ? `${photo.who} just uploaded it` : `Acaba de subirla ${photo.who}`}
           </div>
 
           <div className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-lg bg-white p-1">
@@ -380,12 +380,19 @@ const RETOS = [
   { icon: "grupo", title: "Un selfie en tu mesa", n: 0 },
 ];
 
-export function RetosMockup() {
+export function RetosMockup({ english = false }: { english?: boolean }) {
+  const challenges = english
+    ? [
+        { icon: "brindis", title: "The toast", n: 6 },
+        { icon: "baile", title: "The best dance moment", n: 3 },
+        { icon: "grupo", title: "A selfie at your table", n: 0 },
+      ]
+    : RETOS;
   return (
     <div className="glass w-full max-w-sm rounded-2xl p-4">
       <div className="flex items-baseline justify-between">
         <p className="flex items-center gap-2 font-semibold">
-          <Target size={16} className="text-teja" /> Retos del evento
+          <Target size={16} className="text-teja" /> {english ? "Event challenges" : "Retos del evento"}
         </p>
         <span className="text-sm font-semibold text-tinta/60">2 de 3</span>
       </div>
@@ -393,7 +400,7 @@ export function RetosMockup() {
         <div className="h-full w-2/3 rounded-full bg-teja" />
       </div>
       <ul className="mt-3 space-y-2">
-        {RETOS.map((r) => (
+        {challenges.map((r) => (
           <li
             key={r.title}
             className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-sm ${
@@ -416,7 +423,7 @@ export function RetosMockup() {
               </span>
             ) : (
               <span className="shrink-0 rounded-full bg-teja px-2.5 py-1 text-xs font-semibold text-white">
-                Subir
+                {english ? "Upload" : "Subir"}
               </span>
             )}
           </li>
