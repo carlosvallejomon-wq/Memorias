@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Check, Heart, Sparkles } from "lucide-react";
+import { BuyAlbumButton } from "@/components/BuyAlbumButton";
 
 export function PricingSection({ lang }: { lang: "es" | "en" }) {
   const en = lang === "en";
+  const paymentsEnabled = Boolean(process.env.STRIPE_SECRET_KEY);
   const features = en
     ? [
         "Private event album with QR code",
@@ -78,9 +80,15 @@ export function PricingSection({ lang }: { lang: "es" | "en" }) {
                 </li>
               ))}
             </ul>
-            <Link href="/dashboard" className="btn btn-primary shimmer mt-8 w-full px-6 py-3">
-              {en ? "Create my event album" : "Crear mi álbum"}
-            </Link>
+            <div className="mt-8">
+              {paymentsEnabled ? (
+                <BuyAlbumButton english={en} />
+              ) : (
+                <Link href="/dashboard" className="btn btn-primary shimmer w-full px-6 py-3">
+                  {en ? "Create my event album" : "Crear mi álbum"}
+                </Link>
+              )}
+            </div>
             <p className="mt-3 text-center text-xs text-tinta/45">
               {en ? "Sign in only when you are ready to create your album." : "Solo iniciarás sesión cuando estés listo para crear tu álbum."}
             </p>

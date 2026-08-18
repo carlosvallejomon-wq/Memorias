@@ -15,6 +15,17 @@ export const SETUP_STATEMENTS: string[] = [
   `ALTER TABLE albums ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'evento'`,
   `ALTER TABLE albums ADD COLUMN IF NOT EXISTS pin_hash text`,
   `ALTER TABLE albums ADD COLUMN IF NOT EXISTS expires_at timestamptz`,
+  `CREATE TABLE IF NOT EXISTS purchases (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_id text NOT NULL,
+    stripe_session_id text NOT NULL UNIQUE,
+    status text NOT NULL DEFAULT 'pending',
+    amount integer,
+    album_id uuid REFERENCES albums(id) ON DELETE SET NULL,
+    redeemed_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS purchases_owner_status_idx ON purchases (owner_id, status)`,
   `CREATE TABLE IF NOT EXISTS challenges (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     album_id uuid NOT NULL REFERENCES albums(id) ON DELETE CASCADE,

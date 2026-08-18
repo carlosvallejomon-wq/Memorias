@@ -29,6 +29,26 @@ export const albums = pgTable("albums", {
     .defaultNow(),
 });
 
+// Cada pago se puede canjear por un solo álbum. Nunca confiamos en que el
+// navegador vuelva desde Stripe: el webhook es quien confirma el pago.
+export const purchases = pgTable(
+  "purchases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerId: text("owner_id").notNull(),
+    stripeSessionId: text("stripe_session_id").notNull(),
+    status: text("status").notNull().default("pending"),
+    amount: integer("amount"),
+    albumId: uuid("album_id").references(() => albums.id, { onDelete: "set null" }),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("purchases_stripe_session_idx").on(t.stripeSessionId),
+    index("purchases_owner_status_idx").on(t.ownerId, t.status),
+  ],
+);
+
 // "Retos" fotográficos: pequeñas misiones que propone el organizador ("una
 // foto con los novios", "el mejor baile") y que los invitados van
 // completando. Sirven para que la gente suba fotos con intención en vez de

@@ -7,7 +7,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import { del } from "@vercel/blob";
 import { db } from "@/db";
-import { albums, challenges, comments, guestbookEntries, media } from "@/db/schema";
+import { albums, challenges, comments, guestbookEntries, media, purchases } from "@/db/schema";
 import { DEFAULT_CHALLENGE_ICON, isChallengeIconId } from "@/lib/challenge-icons";
 import { hashPin, isValidPin } from "@/lib/album-pin";
 
@@ -41,6 +41,20 @@ export async function createAlbum(formData: FormData): Promise<ResultadoAlbum> {
     const kind = formData.get("kind") === "familia" ? "familia" : "evento";
     if (!name) return { ok: false, error: "Ponle un nombre al álbum." };
 
+    // Antes de activar Stripe el proyecto sigue permitiendo crear álbumes para
+    // pruebas. En producción, cada pago confirmado canjea exactamente un álbum.
+    const requiresPayment = Boolean(process.env.STRIPE_SECRET_KEY);
+    const [purchase] = requiresPayment
+      ? await db()
+          .select({ id: purchases.id })
+          .from(purchases)
+          .where(and(eq(purchases.ownerId, userId), eq(purchases.status, "paid")))
+          .limit(1)
+      : [];
+    if (requiresPayment && !purchase) {
+      return { ok: false, error: "Primero completa el pago de $39 para crear tu álbum." };
+    }
+
     const [album] = await db()
       .insert(albums)
       .values({
@@ -52,6 +66,12 @@ export async function createAlbum(formData: FormData): Promise<ResultadoAlbum> {
       })
       .returning();
     if (!album) return { ok: false, error: "La base de datos no devolvió el álbum." };
+    if (purchase) {
+      await db()
+        .update(purchases)
+        .set({ status: "redeemed", albumId: album.id, redeemedAt: new Date() })
+        .where(eq(purchases.id, purchase.id));
+    }
     // Sin `revalidatePath` ni `redirect`: los dos hacen que el servidor vuelva
     // a dibujar una página como parte de la respuesta de la acción, y era ese
     // redibujado el que fallaba ("An error occurred in the Server Components
