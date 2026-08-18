@@ -2044,7 +2044,9 @@ export async function buildDotbookPdf(
     const templateBytes = await leerPlantilla(TEMPLATE_COVERS[style].file);
     if (templateBytes) {
       try {
-        templateCoverImage = await pdf.embedJpg(templateBytes);
+        templateCoverImage = TEMPLATE_COVERS[style].file.toLowerCase().endsWith(".png")
+          ? await pdf.embedPng(templateBytes)
+          : await pdf.embedJpg(templateBytes);
       } catch (err) {
         console.error("No se pudo incrustar la portada de plantilla:", err);
       }
