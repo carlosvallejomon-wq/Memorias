@@ -17,6 +17,14 @@ export async function POST() {
       line_items: process.env.STRIPE_PRICE_ID
         ? [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }]
         : [{ price_data: { currency: "usd", product_data: { name: "Memorias Vivas · Álbum de evento" }, unit_amount: 3900 }, quantity: 1 }],
+      // La página de pago vive en Stripe, así que sus colores se definen aquí
+      // y no dependen del CSS de la web. Mantiene la misma paleta cálida de
+      // Memorias Vivas en cada compra.
+      branding_settings: {
+        background_color: "#FAF6EF",
+        button_color: "#C95A19",
+        display_name: "Memorias Vivas",
+      },
       success_url: `${site}/pago/exito?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${site}/#precios`,
     });
