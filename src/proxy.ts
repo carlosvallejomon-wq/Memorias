@@ -6,7 +6,6 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/api/albums(.*)",
-  "/api/stripe/checkout",
   "/api/setup",
   "/api/diagnostico",
 ]);
@@ -31,7 +30,6 @@ export const config = {
   matcher: [
     "/dashboard(.*)",
     "/api/albums(.*)",
-    "/api/stripe/checkout",
     "/api/setup",
     "/api/diagnostico",
     "/sign-up(.*)",

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { useAuth, useClerk } from "@clerk/nextjs";
 import { CreditCard, LoaderCircle } from "lucide-react";
 
 export function BuyAlbumButton({
@@ -16,19 +15,8 @@ export function BuyAlbumButton({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isLoaded, isSignedIn } = useAuth();
-  const { redirectToSignIn } = useClerk();
 
   async function startCheckout() {
-    // El endpoint de pago requiere una cuenta para asignar la compra al dueño
-    // del álbum. Al comprobarlo aquí evitamos que el fetch reciba el HTML de
-    // inicio de sesión y muestre un error técnico de JSON.
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      await redirectToSignIn({ redirectUrl: window.location.href });
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
@@ -40,6 +28,10 @@ export function BuyAlbumButton({
       } catch {
         // Si una configuración externa devuelve HTML, mostramos un mensaje
         // claro en vez del error "Unexpected token <".
+      }
+      if (response.status === 401) {
+        window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.href)}`;
+        return;
       }
       if (!response.ok || !body.url) throw new Error(body.error || "No se pudo iniciar el pago.");
       window.location.assign(body.url);
