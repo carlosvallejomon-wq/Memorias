@@ -24,6 +24,10 @@ export async function POST() {
     return NextResponse.json({ url: session.url });
   } catch (err) {
     console.error("No se pudo crear Checkout:", err);
-    return NextResponse.json({ error: "No se pudo abrir el pago seguro." }, { status: 500 });
+    // Stripe devuelve mensajes concretos para problemas de precio, permisos o
+    // configuración. Son seguros de mostrar al organizador y evitan dejarle
+    // con un mensaje genérico imposible de corregir.
+    const detail = err instanceof Error ? err.message : "Error desconocido";
+    return NextResponse.json({ error: `No se pudo abrir el pago seguro: ${detail}` }, { status: 500 });
   }
 }
