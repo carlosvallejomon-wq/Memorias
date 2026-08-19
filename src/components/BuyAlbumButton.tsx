@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { CreditCard, LoaderCircle } from "lucide-react";
 
@@ -15,8 +15,14 @@ export function BuyAlbumButton({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // En algunos navegadores móviles el primer toque solo activa el control.
+  // Arrancar al soltar el dedo evita pedir un segundo toque; la referencia
+  // también impide crear dos sesiones si llega el click sintético después.
+  const checkoutStarted = useRef(false);
 
   async function startCheckout() {
+    if (checkoutStarted.current) return;
+    checkoutStarted.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -38,12 +44,22 @@ export function BuyAlbumButton({
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo iniciar el pago.");
       setLoading(false);
+      checkoutStarted.current = false;
     }
   }
 
   return (
     <div>
-      <button type="button" onClick={startCheckout} disabled={loading} className={`btn btn-primary shimmer ${className} disabled:opacity-60`}>
+      <button
+        type="button"
+        onPointerUp={startCheckout}
+        onClick={(event) => {
+          // Los teclados y lectores de pantalla emiten click sin puntero.
+          if (event.detail === 0) startCheckout();
+        }}
+        disabled={loading}
+        className={`btn btn-primary shimmer ${className} disabled:opacity-60`}
+      >
         {loading ? <LoaderCircle size={18} className="animate-spin" /> : <CreditCard size={18} />}
         {loading
           ? (english ? "Opening secure checkout…" : "Abriendo pago seguro…")

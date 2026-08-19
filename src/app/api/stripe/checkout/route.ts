@@ -22,6 +22,15 @@ export async function POST() {
       // Permite un cupón de un solo uso para pruebas o campañas puntuales.
       // El precio y el cobro siguen siendo controlados por Stripe.
       allow_promotion_codes: true,
+      // Cada sesión conserva la identidad visual aunque en Stripe se haya
+      // configurado otra marca para recibos o el portal de clientes.
+      branding_settings: {
+        background_color: "#FFF9F4",
+        button_color: "#C95A19",
+        border_style: "rounded",
+        font_family: "lora",
+        display_name: "Memorias Vivas",
+      },
       client_reference_id: userId,
       metadata: { ownerId: userId, product: "event_album" },
       line_items: process.env.STRIPE_PRICE_ID
