@@ -19,6 +19,9 @@ export async function POST() {
     const site = publicSiteUrl();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Permite un cupón de un solo uso para pruebas o campañas puntuales.
+      // El precio y el cobro siguen siendo controlados por Stripe.
+      allow_promotion_codes: true,
       client_reference_id: userId,
       metadata: { ownerId: userId, product: "event_album" },
       line_items: process.env.STRIPE_PRICE_ID
