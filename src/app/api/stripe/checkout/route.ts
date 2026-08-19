@@ -3,7 +3,14 @@ import { NextResponse } from "next/server";
 import { getStripe, publicSiteUrl, stripeEnabled } from "@/lib/stripe";
 
 export async function POST() {
-  const { userId } = await auth();
+  let userId: string | null;
+  try {
+    ({ userId } = await auth());
+  } catch (err) {
+    console.error("No se pudo validar la sesión de Clerk:", err);
+    const detail = err instanceof Error ? err.message : "Error desconocido";
+    return NextResponse.json({ error: `No se pudo validar el inicio de sesión: ${detail}` }, { status: 500 });
+  }
   if (!userId) return NextResponse.json({ error: "Inicia sesión para comprar tu álbum." }, { status: 401 });
   if (!stripeEnabled()) return NextResponse.json({ error: "El pago estará disponible muy pronto." }, { status: 503 });
 
