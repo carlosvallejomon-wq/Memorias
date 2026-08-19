@@ -1,9 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { CreditCard, LoaderCircle } from "lucide-react";
 
-export function BuyAlbumButton({ english = false }: { english?: boolean }) {
+export function BuyAlbumButton({
+  english = false,
+  label,
+  className = "w-full px-6 py-3",
+}: {
+  english?: boolean;
+  label?: ReactNode;
+  className?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,9 +32,11 @@ export function BuyAlbumButton({ english = false }: { english?: boolean }) {
 
   return (
     <div>
-      <button type="button" onClick={startCheckout} disabled={loading} className="btn btn-primary shimmer w-full px-6 py-3 disabled:opacity-60">
+      <button type="button" onClick={startCheckout} disabled={loading} className={`btn btn-primary shimmer ${className} disabled:opacity-60`}>
         {loading ? <LoaderCircle size={18} className="animate-spin" /> : <CreditCard size={18} />}
-        {loading ? (english ? "Opening secure checkout…" : "Abriendo pago seguro…") : (english ? "Get my album for $39" : "Obtener mi álbum por $39")}
+        {loading
+          ? (english ? "Opening secure checkout…" : "Abriendo pago seguro…")
+          : (label ?? (english ? "Get my album for $39" : "Obtener mi álbum por $39"))}
       </button>
       {error && <p className="mt-2 text-center text-xs text-red-700">{error}</p>}
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Camera, Menu, X } from "lucide-react";
+import { BuyAlbumButton } from "@/components/BuyAlbumButton";
 
 const LINKS = [
   { href: "#como-funciona", label: "Cómo funciona" },
@@ -22,7 +23,13 @@ const ENGLISH_LINKS = [
 
 // Barra superior de la portada. Se vuelve opaca al bajar para que el texto
 // siga legible sobre las fotos, y en el móvil se despliega en vertical.
-export function SiteNav({ lang = "es" }: { lang?: "es" | "en" }) {
+export function SiteNav({
+  lang = "es",
+  paymentsEnabled = false,
+}: {
+  lang?: "es" | "en";
+  paymentsEnabled?: boolean;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const english = lang === "en";
@@ -68,9 +75,19 @@ export function SiteNav({ lang = "es" }: { lang?: "es" | "en" }) {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link href="/dashboard" className="btn btn-primary shimmer hidden px-5 py-2.5 sm:flex">
-            {english ? "Create my album" : "Crear mi álbum"}
-          </Link>
+          <div className="hidden sm:block">
+            {paymentsEnabled ? (
+              <BuyAlbumButton
+                english={english}
+                className="px-5 py-2.5"
+                label={english ? "Buy my album · $39" : "Comprar mi álbum · $39"}
+              />
+            ) : (
+              <Link href="/dashboard" className="btn btn-primary shimmer px-5 py-2.5">
+                {english ? "Create my album" : "Crear mi álbum"}
+              </Link>
+            )}
+          </div>
           <Link
             href={english ? "/" : "/?lang=en"}
             className="rounded-full px-2 py-1 text-xs font-semibold text-tinta/60 transition hover:bg-arena"
@@ -102,9 +119,19 @@ export function SiteNav({ lang = "es" }: { lang?: "es" | "en" }) {
               </a>
             ))}
           </nav>
-          <Link href="/dashboard" className="btn btn-primary mt-4 w-full">
-            {english ? "Create my album" : "Crear mi álbum"}
-          </Link>
+          <div className="mt-4">
+            {paymentsEnabled ? (
+              <BuyAlbumButton
+                english={english}
+                className="w-full px-5 py-3"
+                label={english ? "Buy my album · $39" : "Comprar mi álbum · $39"}
+              />
+            ) : (
+              <Link href="/dashboard" className="btn btn-primary w-full">
+                {english ? "Create my album" : "Crear mi álbum"}
+              </Link>
+            )}
+          </div>
         </div>
       )}
       </div>

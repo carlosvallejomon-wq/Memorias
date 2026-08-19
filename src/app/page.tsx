@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { PricingSection } from "@/components/PricingSection";
+import { BuyAlbumButton } from "@/components/BuyAlbumButton";
 import {
   CelebrationCarousel,
   InvitationDeck,
@@ -362,6 +363,7 @@ export default async function Home({
 }) {
   const { lang } = await searchParams;
   const english = lang === "en";
+  const paymentsEnabled = Boolean(process.env.STRIPE_SECRET_KEY);
   const trust = english ? EN_TRUST : TRUST;
   const events = EVENTS.map((event, index) => ({
     ...event,
@@ -377,7 +379,7 @@ export default async function Home({
   // iba con la página en vez de quedarse fija.
   return (
     <div className="relative z-[1] overflow-x-clip">
-      <SiteNav lang={english ? "en" : "es"} />
+      <SiteNav lang={english ? "en" : "es"} paymentsEnabled={paymentsEnabled} />
 
       <main>
         <section className="relative mx-auto flex max-w-6xl flex-col items-center gap-16 px-6 pb-20 pt-10 lg:flex-row lg:pt-16">
@@ -409,9 +411,17 @@ export default async function Home({
               <strong>{english ? "no app or sign-up required" : "sin instalar nada y sin registrarse"}</strong>.
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
-              <Link href="/dashboard" className="btn btn-primary shimmer px-8 py-3.5 text-lg">
-                {english ? "Create my album" : "Crear mi álbum"} <ArrowRight size={18} />
-              </Link>
+              {paymentsEnabled ? (
+                <BuyAlbumButton
+                  english={english}
+                  className="px-8 py-3.5 text-lg"
+                  label={<>{english ? "Buy my album · $39" : "Comprar mi álbum · $39"} <ArrowRight size={18} /></>}
+                />
+              ) : (
+                <Link href="/dashboard" className="btn btn-primary shimmer px-8 py-3.5 text-lg">
+                  {english ? "Create my album" : "Crear mi álbum"} <ArrowRight size={18} />
+                </Link>
+              )}
               <a href="#como-funciona" className="btn btn-soft px-8 py-3.5 text-lg">
                 <Play size={16} /> {english ? "How it works" : "Cómo funciona"}
               </a>
@@ -558,9 +568,17 @@ export default async function Home({
                   ))}
                 </ul>
 
-                <Link href="/dashboard" className="btn btn-primary shimmer mt-7">
-                  {english ? "Create my invitation" : "Crear mi invitación"} <ArrowRight size={17} />
-                </Link>
+                {paymentsEnabled ? (
+                  <BuyAlbumButton
+                    english={english}
+                    className="mt-7 px-5 py-2.5"
+                    label={<>{english ? "Buy my album · $39" : "Comprar mi álbum · $39"} <ArrowRight size={17} /></>}
+                  />
+                ) : (
+                  <Link href="/dashboard" className="btn btn-primary shimmer mt-7">
+                    {english ? "Create my invitation" : "Crear mi invitación"} <ArrowRight size={17} />
+                  </Link>
+                )}
               </div>
 
               <div className="flex justify-center">
@@ -660,9 +678,17 @@ export default async function Home({
               {english ? "Create your album today, share the QR code at the party and keep every memory — even the ones you did not see." : "Crea el álbum hoy, comparte el QR el día de la fiesta y quédate con todos los recuerdos —también los que tú no viste."}
             </p>
             <div className="relative mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link href="/dashboard" className="btn btn-primary shimmer px-8 py-3.5 text-lg">
-                {english ? "Create my album" : "Crear mi álbum"} <ArrowRight size={18} />
-              </Link>
+              {paymentsEnabled ? (
+                <BuyAlbumButton
+                  english={english}
+                  className="px-8 py-3.5 text-lg"
+                  label={<>{english ? "Buy my album · $39" : "Comprar mi álbum · $39"} <ArrowRight size={18} /></>}
+                />
+              ) : (
+                <Link href="/dashboard" className="btn btn-primary shimmer px-8 py-3.5 text-lg">
+                  {english ? "Create my album" : "Crear mi álbum"} <ArrowRight size={18} />
+                </Link>
+              )}
               <a
                 href="#herramientas"
                 className="btn btn-on-dark px-8 py-3.5 text-lg"
@@ -711,7 +737,7 @@ export default async function Home({
             <p className="font-semibold text-tinta/70">{english ? "Get started" : "Empezar"}</p>
             <ul className="mt-3 space-y-2 text-tinta/50">
               <li>
-                <Link href="/dashboard" className="hover:text-tinta">{english ? "Create an album" : "Crear un álbum"}</Link>
+                <a href="#precios" className="hover:text-tinta">{english ? "View pricing" : "Ver precios"}</a>
               </li>
               <li>
                 <Link href="/dashboard" className="hover:text-tinta">{english ? "Open my dashboard" : "Entrar en mi panel"}</Link>
