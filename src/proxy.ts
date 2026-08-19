@@ -34,6 +34,9 @@ export const config = {
     // para que el botón lleve al usuario a iniciar sesión sin recibir HTML.
     // Sí debe pasar por Clerk para que auth() pueda identificar al comprador.
     "/api/stripe/checkout",
+    // Esta página confirma que el pago pertenece al usuario conectado. No se
+    // protege: Stripe puede redirigir a ella sin provocar una pantalla de login.
+    "/pago/exito",
     "/api/setup",
     "/api/diagnostico",
     "/sign-up(.*)",
