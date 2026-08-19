@@ -704,9 +704,7 @@ export default async function Home({
         <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="flex items-center gap-2 font-semibold">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-tinta text-crema">
-                <Camera size={15} />
-              </span>
+              <img src="/brand/memorias-vivas-logo.png" alt="" className="h-8 w-8 rounded-lg object-cover shadow-sm" />
               <span style={{ fontFamily: "var(--font-display)" }}>Memorias Vivas</span>
             </p>
             <p className="mt-3 max-w-xs text-sm text-tinta/50">

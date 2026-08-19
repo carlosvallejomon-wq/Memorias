@@ -21,6 +21,7 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
   return (
     <main className="mx-auto flex min-h-screen max-w-xl items-center px-6 py-16 text-center">
       <div className="w-full rounded-3xl border border-tinta/10 bg-white p-8 shadow-lift">
+        <img src="/brand/memorias-vivas-logo.png" alt="Memorias Vivas" className="mx-auto mb-5 h-16 w-16 rounded-2xl object-cover shadow-soft" />
         <CheckCircle2 size={48} className="mx-auto text-teja" />
         <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-teja">Memorias Vivas</p>
         <h1 className="mt-2 text-3xl font-semibold" style={{ fontFamily: "var(--font-display)" }}>

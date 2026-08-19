@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
-import { Camera, LayoutGrid, Plus } from "lucide-react";
+import { LayoutGrid, Plus } from "lucide-react";
 
 // Barra superior común del panel: da la sensación de estar dentro de una app
 // y no en una página suelta, y deja siempre a mano crear un álbum.
@@ -9,9 +9,7 @@ export function DashboardTopBar() {
     <header className="sticky top-0 z-30 px-3 pt-2 sm:pt-3">
       <div className="barra-pastilla mx-auto flex max-w-5xl items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-tinta text-crema">
-            <Camera size={17} />
-          </span>
+          <img src="/brand/memorias-vivas-logo.png" alt="" className="h-9 w-9 rounded-xl object-cover shadow-sm" />
           <span
             className="hidden text-lg sm:block"
             style={{ fontFamily: "var(--font-display)" }}

@@ -501,7 +501,7 @@ export function GuestAlbum({
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-tinta/40 transition hover:text-tinta/70"
         >
-          <Camera size={14} /> Memorias Vivas
+          <img src="/brand/memorias-vivas-logo.png" alt="" className="h-5 w-5 rounded-md object-cover" /> Memorias Vivas
         </Link>
         <Link href="/dashboard" className="btn btn-soft px-3 py-2 text-sm">
           <ArrowLeft size={15} /> Mis álbumes

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Camera, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { BuyAlbumButton } from "@/components/BuyAlbumButton";
 
 const LINKS = [
@@ -54,9 +54,7 @@ export function SiteNav({
       >
       <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-tinta text-crema">
-            <Camera size={18} />
-          </span>
+          <img src="/brand/memorias-vivas-logo.png" alt="" className="h-9 w-9 rounded-xl object-cover shadow-sm" />
           <span style={{ fontFamily: "var(--font-display)" }} className="text-lg">
             Memorias Vivas
           </span>

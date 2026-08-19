@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Camera, KeyRound, Loader2 } from "lucide-react";
+import { KeyRound, Loader2 } from "lucide-react";
 
 // Pantalla que sale cuando el organizador ha puesto un código de acceso. Solo
 // aparece en esos álbumes: si no hay código, el invitado nunca la ve.
@@ -38,7 +38,7 @@ export function AlbumLock({ code, albumName }: { code: string; albumName: string
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col items-center justify-center px-6 text-center">
       <span className="flex items-center gap-1.5 text-sm text-tinta/40">
-        <Camera size={14} /> Memorias Vivas
+        <img src="/brand/memorias-vivas-logo.png" alt="" className="h-5 w-5 rounded-md object-cover" /> Memorias Vivas
       </span>
 
       <span className="mt-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-arena text-teja">

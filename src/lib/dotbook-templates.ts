@@ -127,7 +127,7 @@ export const TEMPLATE_COVER_LIST: TemplateCoverMeta[] = [
 
   // Quinceañera: varios diseños para elegir, que es la celebración donde más
   // se cuida la estética y con una sola portada no había dónde escoger.
-  { id: "realQuince", grupo: "quince", file: "quince.jpg", label: "Quinceañera · tarta", accent: [0.82, 0.5, 0.6] },
+  { id: "realQuince", grupo: "quince", file: "quince.png", label: "Quinceañera · tarta rosa", accent: [0.9, 0.46, 0.66] },
   { id: "realQuinceFlores", grupo: "quince", file: "quince-flores.jpg", label: "Quinceañera · flores", accent: [0.42, 0.14, 0.34] },
   { id: "realQuinceVestido", grupo: "quince", file: "quince-vestido.jpg", label: "Quinceañera · vestido", accent: [0.85, 0.52, 0.33] },
   { id: "realQuinceRosasMarco", grupo: "quince", file: "quince-rosas-marco.png", label: "Quinceañera · rosas", accent: [0.9, 0.46, 0.66] },
