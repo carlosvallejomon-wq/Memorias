@@ -30,6 +30,10 @@ export const config = {
   matcher: [
     "/dashboard(.*)",
     "/api/albums(.*)",
+    // No se protege aquí: el endpoint devuelve 401 en JSON si no hay sesión,
+    // para que el botón lleve al usuario a iniciar sesión sin recibir HTML.
+    // Sí debe pasar por Clerk para que auth() pueda identificar al comprador.
+    "/api/stripe/checkout",
     "/api/setup",
     "/api/diagnostico",
     "/sign-up(.*)",
