@@ -763,6 +763,11 @@ export default async function Home({
                 </Link>
               </li>
               <li>
+                <Link href="/legal/reembolsos" className="hover:text-tinta">
+                  {english ? "Refund policy" : "Reembolsos"}
+                </Link>
+              </li>
+              <li>
                 <a href={WHATSAPP_SUPPORT_URL} target="_blank" rel="noreferrer" className="hover:text-tinta">
                   {english ? "Contact us on WhatsApp" : "Contáctanos por WhatsApp"}
                 </a>

@@ -129,7 +129,8 @@ se entra con el enlace y no caduca nunca.
 ## Privacidad
 
 Hay páginas de [privacidad](/legal/privacidad) y
-[condiciones de uso](/legal/condiciones) enlazadas desde el pie de la
+[condiciones de uso](/legal/condiciones), junto con la
+[política de reembolsos](/legal/reembolsos), enlazadas desde el pie de la
 portada, y un aviso de consentimiento en la pantalla de subida. Los álbumes
 no se indexan en buscadores: solo entra quien tiene el enlace.
 

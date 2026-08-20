@@ -24,6 +24,9 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <Link href="/legal/condiciones" className="transition hover:text-tinta">
           Condiciones de uso
         </Link>
+        <Link href="/legal/reembolsos" className="transition hover:text-tinta">
+          Reembolsos
+        </Link>
         <a href={WHATSAPP_SUPPORT_URL} target="_blank" rel="noreferrer" className="transition hover:text-tinta">
           Contacto
         </a>
