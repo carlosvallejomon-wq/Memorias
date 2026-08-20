@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces } from "next/font/google";
+import { WhatsAppSupport } from "@/components/WhatsAppSupport";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -57,7 +58,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={fraunces.variable}>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        {children}
+        <WhatsAppSupport />
+      </body>
     </html>
   );
 }

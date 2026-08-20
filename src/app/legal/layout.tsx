@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { WHATSAPP_SUPPORT_URL } from "@/components/WhatsAppSupport";
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -23,6 +24,9 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <Link href="/legal/condiciones" className="transition hover:text-tinta">
           Condiciones de uso
         </Link>
+        <a href={WHATSAPP_SUPPORT_URL} target="_blank" rel="noreferrer" className="transition hover:text-tinta">
+          Contacto
+        </a>
       </footer>
     </main>
   );

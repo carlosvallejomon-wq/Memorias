@@ -24,6 +24,7 @@ import {
 import { SiteNav } from "@/components/SiteNav";
 import { PricingSection } from "@/components/PricingSection";
 import { BuyAlbumButton } from "@/components/BuyAlbumButton";
+import { WHATSAPP_SUPPORT_URL } from "@/components/WhatsAppSupport";
 import {
   CelebrationCarousel,
   InvitationDeck,
@@ -760,6 +761,11 @@ export default async function Home({
                 <Link href="/legal/condiciones" className="hover:text-tinta">
                   {english ? "Terms of use" : "Condiciones de uso"}
                 </Link>
+              </li>
+              <li>
+                <a href={WHATSAPP_SUPPORT_URL} target="_blank" rel="noreferrer" className="hover:text-tinta">
+                  {english ? "Contact us on WhatsApp" : "Contáctanos por WhatsApp"}
+                </a>
               </li>
             </ul>
           </div>
