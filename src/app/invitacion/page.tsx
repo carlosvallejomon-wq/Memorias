@@ -35,6 +35,21 @@ function googleCalendarUrl(state: { n: string; st?: string; l?: string }) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
+function visualTheme(style?: "quince" | "boda" | "baby") {
+  if (style === "boda") return {
+    name: "Boda editorial", accent: "#a77a55", ink: "#3c3029", paper: "#fbf8f2", blush: "#eee4d6",
+    hero: "linear-gradient(180deg, rgba(25,31,29,.14), rgba(40,31,26,.82))", ornament: "❦",
+  };
+  if (style === "baby") return {
+    name: "Baby shower delicado", accent: "#758f84", ink: "#3e534b", paper: "#fcfaf3", blush: "#e4eee8",
+    hero: "linear-gradient(180deg, rgba(75,96,87,.12), rgba(45,70,59,.78))", ornament: "✿",
+  };
+  return {
+    name: "Quinceañera romántica", accent: "#b65d7a", ink: "#542d3a", paper: "#fff8fa", blush: "#f6dfe7",
+    hero: "linear-gradient(180deg, rgba(76,31,46,.1), rgba(79,27,45,.82))", ornament: "✦",
+  };
+}
+
 function InvitationView() {
   const params = useSearchParams();
   const raw = params.get("d");
@@ -153,6 +168,7 @@ function InvitationView() {
 
   const { state, template } = invitation;
   const interactive = Boolean(state.it);
+  const theme = visualTheme(state.iv);
   const countdown = countdownLabel(state.st);
   const calendarUrl = googleCalendarUrl(state);
   const timeline = (state.tl ?? "").split("\n").map((item) => item.trim()).filter(Boolean);
@@ -180,17 +196,18 @@ function InvitationView() {
   );
 
   return (
-    <div className={interactive ? "min-h-screen bg-[#f7f1ed] text-tinta" : "flex min-h-screen flex-col items-center justify-center gap-5 bg-arena p-6"}>
+    <div className={interactive ? "min-h-screen text-tinta" : "flex min-h-screen flex-col items-center justify-center gap-5 bg-arena p-6"} style={interactive ? { backgroundColor: theme.paper } : undefined}>
       {!ready && <p className="p-6 text-center text-sm text-tinta/50">Cargando invitación…</p>}
       <canvas ref={canvasRef} className={interactive ? "hidden" : `w-full max-w-md rounded-2xl shadow-lift ${ready ? "" : "hidden"}`} />
       {ready && shareUrl && (interactive ? (
         !openedInteractiveInvitation ? (
-          <main className="mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-[#2e211e] text-white shadow-lift">
-            <section className="relative flex min-h-screen flex-col items-center justify-end overflow-hidden px-7 pb-14 text-center" style={{ backgroundImage: `linear-gradient(180deg, rgba(20,13,12,.08), rgba(25,15,13,.86)), url(${template.bgImage ?? ""})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+          <main className="mx-auto flex min-h-screen max-w-md flex-col overflow-hidden text-white shadow-lift" style={{ backgroundColor: theme.ink }}>
+            <section className="relative flex min-h-screen flex-col items-center justify-end overflow-hidden px-7 pb-14 text-center" style={{ backgroundImage: `${theme.hero}, url(${template.bgImage ?? ""})`, backgroundSize: "cover", backgroundPosition: "center" }}>
               <div className="absolute inset-5 rounded-[2rem] border border-white/45" />
               <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-black/30 to-transparent" />
+              <span className="absolute left-8 top-9 text-3xl text-white/70">{theme.ornament}</span><span className="absolute right-8 top-9 text-3xl text-white/70">{theme.ornament}</span>
               <div className="relative animate-fade-in">
-                <p className="text-[11px] font-semibold uppercase tracking-[.34em] text-white/75">Memorias Vivas presenta</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[.34em] text-white/75">{theme.name}</p>
                 <p className="mt-8 text-sm italic text-white/85">Con mucha alegría te invitamos a</p>
                 <h1 className="mt-3 text-6xl leading-[.9] drop-shadow-md" style={{ fontFamily: "var(--font-display)" }}>{state.n}</h1>
                 {state.d && <p className="mt-7 text-sm uppercase tracking-[.18em] text-white/90">{state.d}</p>}
@@ -199,8 +216,8 @@ function InvitationView() {
             </section>
           </main>
         ) : (
-        <main className="mx-auto max-w-md overflow-hidden bg-[#fffaf7] shadow-lift">
-          <section className="relative flex min-h-[560px] flex-col items-center justify-end overflow-hidden px-7 pb-12 text-center text-white" style={{ backgroundImage: `linear-gradient(180deg, rgba(35,24,20,.18), rgba(35,24,20,.75)), url(${template.bgImage ?? ""})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+        <main className="mx-auto max-w-md overflow-hidden shadow-lift" style={{ backgroundColor: theme.paper }}>
+          <section className="relative flex min-h-[560px] flex-col items-center justify-end overflow-hidden px-7 pb-12 text-center text-white" style={{ backgroundImage: `${theme.hero}, url(${template.bgImage ?? ""})`, backgroundSize: "cover", backgroundPosition: "center" }}>
             <button onClick={() => setOpenedInteractiveInvitation(false)} className="absolute left-5 top-5 z-10 rounded-full border border-white/45 bg-black/15 px-3 py-2 text-xs font-semibold backdrop-blur">← Portada</button>
             <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/35 to-transparent" />
             <div className="relative animate-fade-in">
@@ -211,30 +228,31 @@ function InvitationView() {
             </div>
           </section>
 
-          <section className="px-7 py-11 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[.23em] text-teja">Nuestro gran día</p>
+          <section className="relative overflow-hidden px-7 py-11 text-center" style={{ color: theme.ink }}>
+            <span className="absolute -left-3 -top-4 text-7xl opacity-10">{theme.ornament}</span><span className="absolute -bottom-5 -right-2 text-8xl opacity-10">{theme.ornament}</span>
+            <p className="text-xs font-semibold uppercase tracking-[.23em]" style={{ color: theme.accent }}>Nuestro gran día</p>
             <h2 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-display)" }}>{state.d || "Muy pronto"}</h2>
             {state.h && <p className="mt-2 text-base text-tinta/70">{state.h}</p>}
-            {countdown && <div className="mt-7 rounded-2xl bg-tinta px-5 py-5 text-white"><p className="text-xs uppercase tracking-[.2em] text-white/65">Faltan</p><p className="mt-2 text-2xl font-semibold">{countdown}</p></div>}
+            {countdown && <div className="mt-7 rounded-2xl px-5 py-5 text-white" style={{ backgroundColor: theme.ink }}><p className="text-xs uppercase tracking-[.2em] text-white/65">Faltan</p><p className="mt-2 text-2xl font-semibold">{countdown}</p></div>}
           </section>
 
-          <section className="border-y border-tinta/10 bg-[#f1e2d9] px-7 py-10 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[.23em] text-vino">Fecha y lugar</p>
+          <section className="border-y border-tinta/10 px-7 py-10 text-center" style={{ backgroundColor: theme.blush, color: theme.ink }}>
+            <p className="text-xs font-semibold uppercase tracking-[.23em]" style={{ color: theme.accent }}>Fecha y lugar</p>
             {state.l && <p className="mx-auto mt-4 max-w-xs text-lg leading-relaxed" style={{ fontFamily: "var(--font-display)" }}>{state.l}</p>}
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              {state.mp && <a href={state.mp} target="_blank" rel="noreferrer" className="rounded-full bg-teja px-5 py-3 text-sm font-semibold text-white">Abrir ubicación</a>}
+              {state.mp && <a href={state.mp} target="_blank" rel="noreferrer" className="rounded-full px-5 py-3 text-sm font-semibold text-white" style={{ backgroundColor: theme.accent }}>Abrir ubicación</a>}
               {calendarUrl && <a href={calendarUrl} target="_blank" rel="noreferrer" className="rounded-full border border-tinta/20 bg-white px-5 py-3 text-sm font-semibold text-tinta">Agregar al calendario</a>}
             </div>
           </section>
 
-          {state.dr && <section className="px-7 py-11 text-center"><p className="text-xs font-semibold uppercase tracking-[.23em] text-teja">Código de vestimenta</p><h2 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-display)" }}>{state.dr}</h2><div className="mx-auto mt-6 flex w-40 justify-center gap-3"><span className="h-8 w-8 rounded-full bg-[#d7ad83]" /><span className="h-8 w-8 rounded-full bg-[#8b6772]" /><span className="h-8 w-8 rounded-full bg-[#3e4b46]" /></div></section>}
+          {state.dr && <section className="px-7 py-11 text-center" style={{ color: theme.ink }}><p className="text-xs font-semibold uppercase tracking-[.23em]" style={{ color: theme.accent }}>Código de vestimenta</p><h2 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-display)" }}>{state.dr}</h2><div className="mx-auto mt-6 flex w-40 justify-center gap-3"><span className="h-8 w-8 rounded-full" style={{ backgroundColor: theme.accent }} /><span className="h-8 w-8 rounded-full" style={{ backgroundColor: theme.blush }} /><span className="h-8 w-8 rounded-full" style={{ backgroundColor: theme.ink }} /></div></section>}
 
-          {timeline.length > 0 && <section className="bg-[#3b2924] px-7 py-11 text-white"><p className="text-center text-xs font-semibold uppercase tracking-[.23em] text-white/60">La celebración</p><h2 className="mt-3 text-center text-3xl" style={{ fontFamily: "var(--font-display)" }}>Nuestra cronología</h2><div className="mt-7 grid gap-3">{timeline.map((item, index) => <p key={`${item}-${index}`} className="border-l border-[#d7ad83] pl-4 text-sm leading-relaxed text-white/90">{item}</p>)}</div></section>}
+          {timeline.length > 0 && <section className="px-7 py-11 text-white" style={{ backgroundColor: theme.ink }}><p className="text-center text-xs font-semibold uppercase tracking-[.23em] text-white/60">La celebración</p><h2 className="mt-3 text-center text-3xl" style={{ fontFamily: "var(--font-display)" }}>Nuestra cronología</h2><div className="mt-7 grid gap-3">{timeline.map((item, index) => <p key={`${item}-${index}`} className="border-l pl-4 text-sm leading-relaxed text-white/90" style={{ borderColor: theme.accent }}>{item}</p>)}</div></section>}
 
           <section className="grid gap-5 px-7 py-11">
             {state.ms && <audio controls className="w-full"><source src={state.ms} />Tu navegador no puede reproducir esta canción.</audio>}
             {rsvpForm}
-            <a href={shareUrl} className="shimmer block rounded-full bg-teja px-6 py-3 text-center font-semibold text-white shadow-soft">Ver álbum de fotos</a>
+            <a href={shareUrl} className="shimmer block rounded-full px-6 py-3 text-center font-semibold text-white shadow-soft" style={{ backgroundColor: theme.accent }}>Ver álbum de fotos</a>
           </section>
           <p className="pb-8 text-center text-xs text-tinta/40">Memorias Vivas</p>
         </main>

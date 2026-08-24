@@ -2125,6 +2125,7 @@ export type InvitationLinkState = {
   // Datos de la experiencia web interactiva. Se guardan en la URL igual que
   // el resto de la invitación para que no se pierdan al compartir el QR.
   it?: boolean;
+  iv?: "quince" | "boda" | "baby";
   st?: string;
   mp?: string;
   dr?: string;
@@ -2184,6 +2185,7 @@ export function InvitationGenerator({
   const [rsvp, setRsvp] = useState("");
   const [automaticRsvp, setAutomaticRsvp] = useState(false);
   const [interactive, setInteractive] = useState(false);
+  const [interactiveVisual, setInteractiveVisual] = useState<"quince" | "boda" | "baby">("quince");
   const [startsAt, setStartsAt] = useState("");
   const [mapUrl, setMapUrl] = useState("");
   const [dressCode, setDressCode] = useState("");
@@ -2409,6 +2411,7 @@ export function InvitationGenerator({
         q: qrLayout,
         ar: automaticRsvp || undefined,
         it: interactive || undefined,
+        iv: interactive ? interactiveVisual : undefined,
         st: startsAt || undefined,
         mp: mapUrl.trim() || undefined,
         dr: dressCode.trim() || undefined,
@@ -2600,6 +2603,13 @@ export function InvitationGenerator({
                 {interactive && (
                   <div className="grid gap-3 rounded-xl border border-vino/15 bg-white/70 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-vino">Detalles de la experiencia</p>
+                    <label className="text-xs text-tinta/65">Diseño interactivo
+                      <select value={interactiveVisual} onChange={(e) => setInteractiveVisual(e.target.value as "quince" | "boda" | "baby")} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm font-medium text-tinta outline-none focus:border-teja">
+                        <option value="quince">Quinceañera romántica</option>
+                        <option value="boda">Boda editorial</option>
+                        <option value="baby">Baby shower delicado</option>
+                      </select>
+                    </label>
                     <label className="text-xs text-tinta/65">Inicio del evento
                       <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
                     </label>
