@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import {
@@ -19,6 +19,11 @@ function InvitationView() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [rsvpName, setRsvpName] = useState("");
+  const [rsvpAttending, setRsvpAttending] = useState(true);
+  const [rsvpGuests, setRsvpGuests] = useState(1);
+  const [rsvpNote, setRsvpNote] = useState("");
+  const [rsvpState, setRsvpState] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const invitation = useMemo(() => {
     if (!raw) return { error: "Este enlace de invitación no es válido." } as const;
@@ -81,6 +86,33 @@ function InvitationView() {
     };
   }, [invitation]);
 
+  async function sendRsvp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (invitation.error) return;
+    const code = new URL(invitation.state.u).pathname.match(/^\/a\/([^/]+)/)?.[1];
+    if (!code) {
+      setRsvpState("error");
+      return;
+    }
+    setRsvpState("sending");
+    try {
+      const response = await fetch(`/api/invitaciones/${encodeURIComponent(code)}/rsvp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: rsvpName,
+          attending: rsvpAttending,
+          partySize: rsvpAttending ? rsvpGuests : 0,
+          note: rsvpNote,
+        }),
+      });
+      if (!response.ok) throw new Error("No se pudo guardar");
+      setRsvpState("sent");
+    } catch {
+      setRsvpState("error");
+    }
+  }
+
   if (invitation.error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-arena p-6 text-center text-tinta/70">
@@ -97,12 +129,29 @@ function InvitationView() {
         className={`w-full max-w-md rounded-2xl shadow-lift ${ready ? "" : "hidden"}`}
       />
       {ready && shareUrl && (
-        <a
-          href={shareUrl}
-          className="shimmer flex items-center gap-2 rounded-full bg-teja px-6 py-3 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro"
-        >
-          Ver álbum de fotos
-        </a>
+        <>
+          {invitation.state.ar && (
+            <form onSubmit={sendRsvp} className="w-full max-w-md rounded-2xl border border-tinta/10 bg-white p-5 shadow-soft">
+              <p className="text-center text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>Confirma tu asistencia</p>
+              {rsvpState === "sent" ? (
+                <p className="mt-3 rounded-xl bg-teja/10 p-3 text-center text-sm text-teja-oscuro">¡Gracias! Tu respuesta fue enviada.</p>
+              ) : (
+                <div className="mt-4 grid gap-3">
+                  <input required value={rsvpName} onChange={(e) => setRsvpName(e.target.value)} maxLength={100} placeholder="Tu nombre" className="rounded-xl border border-tinta/15 px-3 py-2.5 text-sm outline-none focus:border-teja" />
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <button type="button" onClick={() => setRsvpAttending(true)} className={`rounded-xl border px-3 py-2 ${rsvpAttending ? "border-teja bg-teja text-white" : "border-tinta/15"}`}>Sí, asistiré</button>
+                    <button type="button" onClick={() => setRsvpAttending(false)} className={`rounded-xl border px-3 py-2 ${!rsvpAttending ? "border-tinta bg-tinta text-white" : "border-tinta/15"}`}>No podré asistir</button>
+                  </div>
+                  {rsvpAttending && <label className="text-sm text-tinta/70">Personas en tu grupo<input type="number" min="1" max="20" value={rsvpGuests} onChange={(e) => setRsvpGuests(Math.max(1, Number(e.target.value) || 1))} className="mt-1 block w-full rounded-xl border border-tinta/15 px-3 py-2" /></label>}
+                  <input value={rsvpNote} onChange={(e) => setRsvpNote(e.target.value)} maxLength={300} placeholder="Mensaje opcional" className="rounded-xl border border-tinta/15 px-3 py-2.5 text-sm outline-none focus:border-teja" />
+                  <button disabled={rsvpState === "sending"} className="rounded-xl bg-teja px-4 py-3 text-sm font-semibold text-white disabled:opacity-60">{rsvpState === "sending" ? "Enviando…" : "Enviar confirmación"}</button>
+                  {rsvpState === "error" && <p className="text-center text-xs text-vino">No se pudo enviar. Inténtalo de nuevo.</p>}
+                </div>
+              )}
+            </form>
+          )}
+          <a href={shareUrl} className="shimmer flex items-center gap-2 rounded-full bg-teja px-6 py-3 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro">Ver álbum de fotos</a>
+        </>
       )}
     </div>
   );

@@ -78,4 +78,14 @@ export const SETUP_STATEMENTS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS guestbook_album_idx ON guestbook_entries (album_id)`,
+  `CREATE TABLE IF NOT EXISTS invitation_rsvps (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    album_id uuid NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
+    guest_name text NOT NULL,
+    attending boolean NOT NULL,
+    party_size integer NOT NULL DEFAULT 1,
+    note text,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS invitation_rsvps_album_idx ON invitation_rsvps (album_id)`,
 ];
