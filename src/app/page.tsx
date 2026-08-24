@@ -427,6 +427,9 @@ export default async function Home({
                 <Play size={16} /> {english ? "How it works" : "Cómo funciona"}
               </a>
             </div>
+            <Link href="/dashboard" className="mt-4 inline-flex text-sm font-semibold text-teja underline-offset-4 hover:underline">
+              {english ? "Already have an account? Sign in" : "¿Ya tienes cuenta? Iniciar sesión"}
+            </Link>
 
             <ul className="mt-10 grid gap-4 text-left sm:grid-cols-3">
               {trust.map((t) => (

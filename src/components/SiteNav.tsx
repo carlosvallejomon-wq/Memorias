@@ -73,6 +73,12 @@ export function SiteNav({
         </nav>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard"
+            className="hidden rounded-full px-3 py-2 text-sm font-semibold text-tinta/70 transition hover:bg-arena hover:text-tinta sm:inline-flex"
+          >
+            {english ? "Sign in" : "Iniciar sesión"}
+          </Link>
           <div className="hidden sm:block">
             {paymentsEnabled ? (
               <BuyAlbumButton
@@ -118,6 +124,13 @@ export function SiteNav({
             ))}
           </nav>
           <div className="mt-4">
+            <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="btn btn-soft mb-2 w-full"
+            >
+              {english ? "Sign in" : "Iniciar sesión"}
+            </Link>
             {paymentsEnabled ? (
               <BuyAlbumButton
                 english={english}
