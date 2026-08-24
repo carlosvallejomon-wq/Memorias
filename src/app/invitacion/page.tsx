@@ -46,6 +46,7 @@ function InvitationView() {
   const [rsvpGuests, setRsvpGuests] = useState(1);
   const [rsvpNote, setRsvpNote] = useState("");
   const [rsvpState, setRsvpState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [openedInteractiveInvitation, setOpenedInteractiveInvitation] = useState(false);
   const [, setClock] = useState(0);
 
   const invitation = useMemo(() => {
@@ -183,13 +184,31 @@ function InvitationView() {
       {!ready && <p className="p-6 text-center text-sm text-tinta/50">Cargando invitación…</p>}
       <canvas ref={canvasRef} className={interactive ? "hidden" : `w-full max-w-md rounded-2xl shadow-lift ${ready ? "" : "hidden"}`} />
       {ready && shareUrl && (interactive ? (
+        !openedInteractiveInvitation ? (
+          <main className="mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-[#2e211e] text-white shadow-lift">
+            <section className="relative flex min-h-screen flex-col items-center justify-end overflow-hidden px-7 pb-14 text-center" style={{ backgroundImage: `linear-gradient(180deg, rgba(20,13,12,.08), rgba(25,15,13,.86)), url(${template.bgImage ?? ""})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+              <div className="absolute inset-5 rounded-[2rem] border border-white/45" />
+              <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-black/30 to-transparent" />
+              <div className="relative animate-fade-in">
+                <p className="text-[11px] font-semibold uppercase tracking-[.34em] text-white/75">Memorias Vivas presenta</p>
+                <p className="mt-8 text-sm italic text-white/85">Con mucha alegría te invitamos a</p>
+                <h1 className="mt-3 text-6xl leading-[.9] drop-shadow-md" style={{ fontFamily: "var(--font-display)" }}>{state.n}</h1>
+                {state.d && <p className="mt-7 text-sm uppercase tracking-[.18em] text-white/90">{state.d}</p>}
+                <button onClick={() => setOpenedInteractiveInvitation(true)} className="shimmer mt-10 rounded-full border border-white/75 bg-white/15 px-7 py-3 text-sm font-semibold tracking-wide backdrop-blur transition hover:bg-white hover:text-tinta">Ver los detalles</button>
+              </div>
+            </section>
+          </main>
+        ) : (
         <main className="mx-auto max-w-md overflow-hidden bg-[#fffaf7] shadow-lift">
           <section className="relative flex min-h-[560px] flex-col items-center justify-end overflow-hidden px-7 pb-12 text-center text-white" style={{ backgroundImage: `linear-gradient(180deg, rgba(35,24,20,.18), rgba(35,24,20,.75)), url(${template.bgImage ?? ""})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+            <button onClick={() => setOpenedInteractiveInvitation(false)} className="absolute left-5 top-5 z-10 rounded-full border border-white/45 bg-black/15 px-3 py-2 text-xs font-semibold backdrop-blur">← Portada</button>
             <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/35 to-transparent" />
-            <p className="relative text-xs font-semibold uppercase tracking-[.28em] text-white/85">Estás invitado a celebrar</p>
-            <h1 className="relative mt-3 text-5xl leading-none drop-shadow-sm" style={{ fontFamily: "var(--font-display)" }}>{state.n}</h1>
-            {state.o && <p className="relative mt-4 text-sm text-white/90">{state.o}</p>}
-            <span className="relative mt-7 rounded-full border border-white/60 bg-white/15 px-4 py-2 text-xs font-semibold uppercase tracking-[.16em] backdrop-blur">Desliza para descubrir</span>
+            <div className="relative animate-fade-in">
+              <p className="text-xs font-semibold uppercase tracking-[.28em] text-white/85">Estás invitado a celebrar</p>
+              <h1 className="mt-3 text-5xl leading-none drop-shadow-sm" style={{ fontFamily: "var(--font-display)" }}>{state.n}</h1>
+              {state.o && <p className="mt-4 text-sm text-white/90">{state.o}</p>}
+              <span className="mt-7 inline-block rounded-full border border-white/60 bg-white/15 px-4 py-2 text-xs font-semibold uppercase tracking-[.16em] backdrop-blur">Desliza para descubrir</span>
+            </div>
           </section>
 
           <section className="px-7 py-11 text-center">
@@ -219,6 +238,7 @@ function InvitationView() {
           </section>
           <p className="pb-8 text-center text-xs text-tinta/40">Memorias Vivas</p>
         </main>
+        )
       ) : (
         <>
           {rsvpForm}
