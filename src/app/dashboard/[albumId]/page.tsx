@@ -12,9 +12,10 @@ import {
   Images,
   Settings,
   ShieldCheck,
+  UsersRound,
 } from "lucide-react";
 import { db } from "@/db";
-import { albums, challenges, comments, guestbookEntries, media, reactions } from "@/db/schema";
+import { albums, challenges, comments, guestbookEntries, invitationRsvps, media, reactions } from "@/db/schema";
 import { ShareCard } from "@/components/ShareCard";
 import { ClientLinkCard } from "@/components/ClientLinkCard";
 import { clientLinkPath } from "@/lib/client-link";
@@ -26,6 +27,7 @@ import { AlbumStats, type AlbumStatsData } from "@/components/AlbumStats";
 import { DashboardTopBar } from "@/components/DashboardTopBar";
 import { ChallengeManager } from "@/components/ChallengeManager";
 import { GuestbookPanel } from "@/components/GuestbookPanel";
+import { RsvpPanel } from "@/components/RsvpPanel";
 import { CommentsPanel } from "@/components/CommentsPanel";
 import { AlbumSettings } from "@/components/AlbumSettings";
 import { OwnerGallery } from "@/components/OwnerGallery";
@@ -58,7 +60,7 @@ export default async function AlbumAdminPage({
   const pendingItems = allItems.filter((i) => !i.approved);
   const items = allItems.filter((i) => i.approved);
 
-  const [challengeRows, guestbookRows, reactionRows, commentRows, commentList] =
+  const [challengeRows, guestbookRows, rsvpRows, reactionRows, commentRows, commentList] =
     await Promise.all([
     db()
       .select({
@@ -82,6 +84,18 @@ export default async function AlbumAdminPage({
       .from(guestbookEntries)
       .where(eq(guestbookEntries.albumId, albumId))
       .orderBy(desc(guestbookEntries.createdAt)),
+    db()
+      .select({
+        id: invitationRsvps.id,
+        guestName: invitationRsvps.guestName,
+        attending: invitationRsvps.attending,
+        partySize: invitationRsvps.partySize,
+        note: invitationRsvps.note,
+        createdAt: invitationRsvps.createdAt,
+      })
+      .from(invitationRsvps)
+      .where(eq(invitationRsvps.albumId, albumId))
+      .orderBy(desc(invitationRsvps.createdAt)),
     db()
       .select({ mediaId: reactions.mediaId, n: sql<number>`count(*)::int` })
       .from(reactions)
@@ -282,6 +296,13 @@ export default async function AlbumAdminPage({
 
         {items.length > 0 && <AlbumStats stats={stats} />}
 
+        {rsvpRows.length > 0 && (
+          <div className="mt-8 rounded-2xl border border-teja/20 bg-teja/5 p-4 text-sm text-teja-oscuro">
+            <UsersRound size={16} className="mr-2 inline" />
+            Ya tienes {rsvpRows.filter((row) => row.attending).reduce((total, row) => total + row.partySize, 0)} asistentes confirmados.
+          </div>
+        )}
+
         {pendingItems.length > 0 && (
           <section className="mt-8 animate-fade-in rounded-2xl border border-teja/20 bg-teja/5 p-5">
             <h2 className="flex items-center gap-2 font-semibold text-teja-oscuro">
@@ -295,6 +316,8 @@ export default async function AlbumAdminPage({
         <ChallengeManager albumId={album.id} challenges={challengeRows} />
 
         <GuestbookPanel entries={guestbookRows} />
+
+        <RsvpPanel entries={rsvpRows} />
 
         <CommentsPanel comments={commentList} />
 

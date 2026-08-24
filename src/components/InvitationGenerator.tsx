@@ -2119,6 +2119,9 @@ export type InvitationLinkState = {
   tx: TextLayout;
   dx?: TextLayout;
   q: QrLayout;
+  // RSVP automático: los invitados contestan desde el enlace y la lista se
+  // guarda en el panel del álbum. Los enlaces viejos siguen funcionando.
+  ar?: boolean;
 };
 
 export function encodeInvitationLink(state: InvitationLinkState): string {
@@ -2171,6 +2174,7 @@ export function InvitationGenerator({
   const [location, setLocation] = useState("");
   const [hosts, setHosts] = useState("");
   const [rsvp, setRsvp] = useState("");
+  const [automaticRsvp, setAutomaticRsvp] = useState(false);
 
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
   const data: InvitationData = {
@@ -2389,6 +2393,7 @@ export function InvitationGenerator({
         tx: textLayout,
         dx: detailsLayout,
         q: qrLayout,
+        ar: automaticRsvp || undefined,
       };
       const url = `${window.location.origin}/invitacion?d=${encodeInvitationLink(state)}`;
       const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 480 });
@@ -2548,6 +2553,18 @@ export function InvitationGenerator({
                   maxLength={60}
                   className="rounded-lg border border-tinta/20 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-teja focus:ring-2 focus:ring-teja/20"
                 />
+                <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-teja/20 bg-teja/5 p-3 text-sm text-tinta/75">
+                  <input
+                    type="checkbox"
+                    checked={automaticRsvp}
+                    onChange={(e) => setAutomaticRsvp(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-[#c95a19]"
+                  />
+                  <span>
+                    <strong className="block text-tinta">Confirmación automática RSVP</strong>
+                    Tus invitados responderán desde la invitación y verás la lista en tu panel.
+                  </span>
+                </label>
               </div>
 
               <div className="mt-4 rounded-xl border border-tinta/15 bg-white/60 p-3">

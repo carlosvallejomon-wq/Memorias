@@ -153,3 +153,25 @@ export const guestbookEntries = pgTable(
   },
   (t) => [index("guestbook_album_idx").on(t.albumId)],
 );
+
+// Confirmaciones enviadas desde la invitación. No requieren cuenta: el
+// organizador comparte el enlace de la invitación y ve aquí la lista real de
+// asistentes. Se mantienen separadas de los mensajes del muro porque una
+// respuesta puede ser "no asistiré" y aun así resulta útil para el conteo.
+export const invitationRsvps = pgTable(
+  "invitation_rsvps",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    albumId: uuid("album_id")
+      .notNull()
+      .references(() => albums.id, { onDelete: "cascade" }),
+    guestName: text("guest_name").notNull(),
+    attending: boolean("attending").notNull(),
+    partySize: integer("party_size").notNull().default(1),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("invitation_rsvps_album_idx").on(t.albumId)],
+);
