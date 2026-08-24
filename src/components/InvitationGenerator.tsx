@@ -2122,6 +2122,14 @@ export type InvitationLinkState = {
   // RSVP automático: los invitados contestan desde el enlace y la lista se
   // guarda en el panel del álbum. Los enlaces viejos siguen funcionando.
   ar?: boolean;
+  // Datos de la experiencia web interactiva. Se guardan en la URL igual que
+  // el resto de la invitación para que no se pierdan al compartir el QR.
+  it?: boolean;
+  st?: string;
+  mp?: string;
+  dr?: string;
+  tl?: string;
+  ms?: string;
 };
 
 export function encodeInvitationLink(state: InvitationLinkState): string {
@@ -2175,6 +2183,12 @@ export function InvitationGenerator({
   const [hosts, setHosts] = useState("");
   const [rsvp, setRsvp] = useState("");
   const [automaticRsvp, setAutomaticRsvp] = useState(false);
+  const [interactive, setInteractive] = useState(false);
+  const [startsAt, setStartsAt] = useState("");
+  const [mapUrl, setMapUrl] = useState("");
+  const [dressCode, setDressCode] = useState("");
+  const [timeline, setTimeline] = useState("");
+  const [musicUrl, setMusicUrl] = useState("");
 
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
   const data: InvitationData = {
@@ -2394,6 +2408,12 @@ export function InvitationGenerator({
         dx: detailsLayout,
         q: qrLayout,
         ar: automaticRsvp || undefined,
+        it: interactive || undefined,
+        st: startsAt || undefined,
+        mp: mapUrl.trim() || undefined,
+        dr: dressCode.trim() || undefined,
+        tl: timeline.trim() || undefined,
+        ms: musicUrl.trim() || undefined,
       };
       const url = `${window.location.origin}/invitacion?d=${encodeInvitationLink(state)}`;
       const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 480 });
@@ -2565,6 +2585,30 @@ export function InvitationGenerator({
                     Tus invitados responderán desde la invitación y verás la lista en tu panel.
                   </span>
                 </label>
+                <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-vino/20 bg-vino/5 p-3 text-sm text-tinta/75">
+                  <input
+                    type="checkbox"
+                    checked={interactive}
+                    onChange={(e) => setInteractive(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-[#6b2737]"
+                  />
+                  <span>
+                    <strong className="block text-tinta">Invitación web interactiva</strong>
+                    Crea una página para celular con contador, ubicación, vestimenta y cronología.
+                  </span>
+                </label>
+                {interactive && (
+                  <div className="grid gap-3 rounded-xl border border-vino/15 bg-white/70 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-vino">Detalles de la experiencia</p>
+                    <label className="text-xs text-tinta/65">Inicio del evento
+                      <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                    </label>
+                    <input value={mapUrl} onChange={(e) => setMapUrl(e.target.value)} placeholder="Enlace de Google Maps (opcional)" maxLength={500} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                    <input value={dressCode} onChange={(e) => setDressCode(e.target.value)} placeholder="Código de vestimenta (p. ej. Formal · tonos tierra)" maxLength={160} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                    <textarea value={timeline} onChange={(e) => setTimeline(e.target.value)} placeholder={"Cronología (una actividad por línea)\n5:00 pm · Ceremonia\n6:30 pm · Recepción"} maxLength={700} rows={4} className="resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                    <input value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)} placeholder="Enlace directo de música MP3 (opcional)" maxLength={500} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 rounded-xl border border-tinta/15 bg-white/60 p-3">
