@@ -469,3 +469,60 @@ details > summary::marker {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* --- Invitación interactiva -------------------------------------------
+   El invitado no se encuentra la invitación abierta: primero ve un sobre
+   lacrado con las iniciales del evento y lo abre tocándolo. Ese gesto es
+   además el permiso que piden los navegadores para empezar la música, así
+   que la canción arranca justo cuando se rompe el lacre. */
+.sobre {
+  perspective: 1400px;
+}
+/* La perspectiva solo alcanza a los hijos directos, así que el sobre la
+   repite: sin esto la solapa giraría en plano y no parecería abrirse. */
+.sobre-cuerpo {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+.sobre-cuerpo,
+.sobre-solapa,
+.lacre {
+  transition:
+    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.6s ease;
+}
+.sobre-solapa {
+  transform-origin: top center;
+  backface-visibility: hidden;
+}
+.sobre-abriendo .sobre-solapa {
+  transform: rotateX(-165deg);
+}
+.sobre-abriendo .lacre {
+  transform: translate(-50%, -50%) scale(0.35) rotate(-28deg);
+  opacity: 0;
+}
+.sobre-abriendo .sobre-cuerpo {
+  transform: translateY(26%) scale(0.9);
+  opacity: 0;
+  transition-delay: 0.35s;
+}
+
+/* Marco doble: el filete interior despegado del borde que llevan las
+   invitaciones impresas. Se dibuja con pseudoelementos para no ensuciar el
+   contenido con dos divs vacíos; hereda el color del texto de la sección. */
+.marco-doble::before,
+.marco-doble::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid currentColor;
+}
+.marco-doble::before {
+  inset: 0.7rem;
+  opacity: 0.32;
+}
+.marco-doble::after {
+  inset: 1.1rem;
+  opacity: 0.16;
+}

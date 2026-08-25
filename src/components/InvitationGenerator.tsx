@@ -2131,6 +2131,16 @@ export type InvitationLinkState = {
   dr?: string;
   tl?: string;
   ms?: string;
+  // Detalles que antes había que contar por WhatsApp: iniciales del lacre,
+  // paleta de la vestimenta, colores a evitar, avisos y hashtag. Todo
+  // opcional: los enlaces creados antes de esto se siguen abriendo igual.
+  si?: string;
+  pa?: string;
+  ev?: string;
+  av?: string;
+  hg?: string;
+  ga?: boolean;
+  bd?: boolean;
 };
 
 export function encodeInvitationLink(state: InvitationLinkState): string {
@@ -2191,6 +2201,13 @@ export function InvitationGenerator({
   const [dressCode, setDressCode] = useState("");
   const [timeline, setTimeline] = useState("");
   const [musicUrl, setMusicUrl] = useState("");
+  const [sealInitials, setSealInitials] = useState("");
+  const [palette, setPalette] = useState("");
+  const [avoidColors, setAvoidColors] = useState("");
+  const [notes, setNotes] = useState("");
+  const [hashtag, setHashtag] = useState("");
+  const [showGallery, setShowGallery] = useState(true);
+  const [collectWishes, setCollectWishes] = useState(true);
 
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
   const data: InvitationData = {
@@ -2417,6 +2434,13 @@ export function InvitationGenerator({
         dr: dressCode.trim() || undefined,
         tl: timeline.trim() || undefined,
         ms: musicUrl.trim() || undefined,
+        si: sealInitials.trim() || undefined,
+        pa: palette.trim() || undefined,
+        ev: avoidColors.trim() || undefined,
+        av: notes.trim() || undefined,
+        hg: hashtag.trim().replace(/^#/, "") || undefined,
+        ga: interactive ? showGallery : undefined,
+        bd: interactive ? collectWishes : undefined,
       };
       const url = `${window.location.origin}/invitacion?d=${encodeInvitationLink(state)}`;
       const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 480 });
@@ -2597,7 +2621,7 @@ export function InvitationGenerator({
                   />
                   <span>
                     <strong className="block text-tinta">Invitación web interactiva</strong>
-                    Crea una página para celular con contador, ubicación, vestimenta y cronología.
+                    Crea una página para celular con sobre lacrado, contador, ubicación, vestimenta, cronología y buenos deseos.
                   </span>
                 </label>
                 {interactive && (
@@ -2617,6 +2641,27 @@ export function InvitationGenerator({
                     <input value={dressCode} onChange={(e) => setDressCode(e.target.value)} placeholder="Código de vestimenta (p. ej. Formal · tonos tierra)" maxLength={160} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
                     <textarea value={timeline} onChange={(e) => setTimeline(e.target.value)} placeholder={"Cronología (una actividad por línea)\n5:00 pm · Ceremonia\n6:30 pm · Recepción"} maxLength={700} rows={4} className="resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
                     <input value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)} placeholder="Enlace directo de música MP3 (opcional)" maxLength={500} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                    <label className="text-xs text-tinta/65">Iniciales del lacre del sobre
+                      <input value={sealInitials} onChange={(e) => setSealInitials(e.target.value)} placeholder="p. ej. A&L" maxLength={4} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+                    <label className="text-xs text-tinta/65">Paleta de la vestimenta, separada por comas
+                      <input value={palette} onChange={(e) => setPalette(e.target.value)} placeholder="beige, vino, dorado" maxLength={200} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+                    <label className="text-xs text-tinta/65">Colores a evitar, separados por comas
+                      <input value={avoidColors} onChange={(e) => setAvoidColors(e.target.value)} placeholder="blanco, rojo" maxLength={200} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={"A tomar en cuenta (un aviso por línea)\nSolo adultos\nHay estacionamiento en el lugar"} maxLength={700} rows={3} className="resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                    <label className="text-xs text-tinta/65">Hashtag del evento (opcional)
+                      <input value={hashtag} onChange={(e) => setHashtag(e.target.value)} placeholder="BodaAnaYLuis" maxLength={60} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+                    <label className="flex cursor-pointer items-start gap-2 text-xs text-tinta/70">
+                      <input type="checkbox" checked={showGallery} onChange={(e) => setShowGallery(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#6b2737]" />
+                      <span><strong className="block text-tinta">Mostrar fotos del álbum</strong>Las últimas fotos subidas aparecen dentro de la invitación.</span>
+                    </label>
+                    <label className="flex cursor-pointer items-start gap-2 text-xs text-tinta/70">
+                      <input type="checkbox" checked={collectWishes} onChange={(e) => setCollectWishes(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#6b2737]" />
+                      <span><strong className="block text-tinta">Pedir buenos deseos</strong>Se guardan en el muro de mensajes y se imprimen en el libro de recuerdos.</span>
+                    </label>
                   </div>
                 )}
               </div>
