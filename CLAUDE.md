@@ -47,6 +47,40 @@ invitado puede borrar solo la suya (`/api/guestbook/[entryId]` con su
 `guestId`); el organizador puede borrar cualquiera desde el panel. Se
 imprimen como páginas de "Dedicatorias" al final del Dotbook.
 
+**Invitación web interactiva** (`/invitacion`, generador en
+`src/components/InvitationGenerator.tsx`): la invitación no vive en base de
+datos — todo el estado (`InvitationLinkState`) va serializado en la propia
+URL, así que se comparte por WhatsApp o por QR sin crear nada en el servidor
+y los enlaces antiguos siguen abriéndose aunque se añadan campos (todos los
+nuevos son opcionales). El organizador la arma desde el panel o, si es
+cliente de una agencia, desde `/a/[code]/personalizar?k=…`.
+
+Al abrirla, el invitado ve primero un **sobre lacrado** con las iniciales del
+evento (`si`, o las del nombre si no se ponen) y lo abre tocándolo. Ese toque
+importa: es el gesto de usuario que los navegadores exigen para dejar sonar
+la música (`ms`), así que la canción arranca justo ahí y no antes. Dentro:
+portada a pantalla completa, cuenta atrás en cuatro cajas con segundos,
+fecha y lugar con enlace a mapa y al calendario, cronología, código de
+vestimenta con **paleta** (`pa`) y **colores a evitar** (`ev`) —los nombres
+en castellano se traducen a color en la tabla `COLORES`, y el nombre siempre
+se imprime debajo del círculo para que un color desconocido no deje la
+sección muda—, avisos de "a tomar en cuenta" (`av`), las últimas fotos del
+álbum (`ga`), **buenos deseos** (`bd`) y hashtag (`hg`).
+
+Los buenos deseos se guardan por `/api/guest/[code]/guestbook`, el mismo muro
+de mensajes de siempre: acaban impresos en las páginas de dedicatorias del
+Dotbook sin que nadie copie nada a mano. La galería y los deseos se piden al
+abrir el sobre, no antes, y si el álbum tiene código de acceso el portero
+responde 403 y esas dos secciones sencillamente no aparecen.
+
+Dos detalles de estilo que conviene no revertir: sobre las plantillas claras
+el texto blanco no se leía, así que además del degradado del tema se pinta un
+velo oscuro fijo; y el botón flotante de la música va abajo a la
+**izquierda**, porque la esquina derecha ya la ocupa el botón de soporte por
+WhatsApp y lo tapaba. Las secciones aparecen al desplazar con `<Reveal>`
+(`src/components/Reveal.tsx`, antes dentro de `LandingPieces`), y el marco
+doble de las invitaciones impresas es la clase `.marco-doble`.
+
 **Preparación de archivos en el navegador** (`src/lib/prepare-upload.ts`):
 antes de subir nada se convierten los HEIC del iPhone a JPG (con `heic-to`,
 importado dinámicamente para que los ~3 MB de wasm solo los descargue quien
