@@ -55,31 +55,49 @@ y los enlaces antiguos siguen abriéndose aunque se añadan campos (todos los
 nuevos son opcionales). El organizador la arma desde el panel o, si es
 cliente de una agencia, desde `/a/[code]/personalizar?k=…`.
 
-Al abrirla, el invitado ve primero un **sobre lacrado** con las iniciales del
-evento (`si`, o las del nombre si no se ponen) y lo abre tocándolo. Ese toque
-importa: es el gesto de usuario que los navegadores exigen para dejar sonar
-la música (`ms`), así que la canción arranca justo ahí y no antes. Dentro:
-portada a pantalla completa, cuenta atrás en cuatro cajas con segundos,
-fecha y lugar con enlace a mapa y al calendario, cronología, código de
-vestimenta con **paleta** (`pa`) y **colores a evitar** (`ev`) —los nombres
-en castellano se traducen a color en la tabla `COLORES`, y el nombre siempre
-se imprime debajo del círculo para que un color desconocido no deje la
-sección muda—, avisos de "a tomar en cuenta" (`av`), las últimas fotos del
-álbum (`ga`), **buenos deseos** (`bd`) y hashtag (`hg`).
+El diseño imita la **papelería impresa**, no una web: fondo del color del
+evento en bandas que alternan claro y fuerte (`paper` / `soft` / `band` de
+`visualTheme`, con el texto en blanco sobre la fuerte), títulos en Pinyon
+Script (`.tipo-manuscrita`), rótulos en versalitas espaciadas (`.rotulo`),
+fotos con paspartú blanco (`.marco-foto`, y `.marco-arco` para la portada),
+recuadros ornamentales (`.cartucho`) y un **lacre dorado** dibujado a base de
+degradados (`.lacre-oro`), que hace de cierre del sobre y de separador entre
+secciones. La referencia son las invitaciones que circulan por WhatsApp
+(invitafy y similares); si se toca el estilo, conviene volver a mirarlas.
+Pinyon Script y Playfair Display las carga ya `ensureInvitationFonts()` para
+el lienzo del generador, así que la página no pide nada aparte.
+
+Al abrirla, el invitado ve un **sobre cerrado** con una tarjeta asomando y el
+lacre con las iniciales del evento (`si`, o las del nombre si no se ponen), y
+lo abre tocándolo: la solapa gira, la tarjeta sale y el lacre se rompe. Ese
+toque importa: es el gesto de usuario que los navegadores exigen para dejar
+sonar la música (`ms`), así que la canción arranca justo ahí y no antes.
+Dentro: portada con la foto en un marco de arco, cuenta atrás de cuatro
+números separados por dos puntos (`.cuenta-atras`), fecha y lugar con enlace
+a mapa y al calendario, cronología, código de vestimenta con **paleta**
+(`pa`) y **colores a evitar** (`ev`), avisos de "a tomar en cuenta" (`av`),
+galería del álbum (`ga`), **buenos deseos** (`bd`) y hashtag (`hg`).
+
+Los nombres de color en castellano se traducen en la tabla `COLORES`;
+`colorDe()` prueba primero el nombre entero y luego cada palabra, porque
+"rosa palo" o "verde olivo" no están como una sola clave y el círculo salía
+vacío. El nombre se imprime siempre debajo del círculo, así que un color
+desconocido no deja la sección muda.
 
 Los buenos deseos se guardan por `/api/guest/[code]/guestbook`, el mismo muro
 de mensajes de siempre: acaban impresos en las páginas de dedicatorias del
-Dotbook sin que nadie copie nada a mano. La galería y los deseos se piden al
-abrir el sobre, no antes, y si el álbum tiene código de acceso el portero
-responde 403 y esas dos secciones sencillamente no aparecen.
+Dotbook sin que nadie copie nada a mano. La galería y los deseos se piden
+mientras el invitado mira el sobre, para que la portada ya tenga su foto al
+abrirlo; si el álbum tiene código de acceso el portero responde 403 y esas
+dos secciones sencillamente no aparecen.
 
-Dos detalles de estilo que conviene no revertir: sobre las plantillas claras
-el texto blanco no se leía, así que además del degradado del tema se pinta un
-velo oscuro fijo; y el botón flotante de la música va abajo a la
-**izquierda**, porque la esquina derecha ya la ocupa el botón de soporte por
-WhatsApp y lo tapaba. Las secciones aparecen al desplazar con `<Reveal>`
-(`src/components/Reveal.tsx`, antes dentro de `LandingPieces`), y el marco
-doble de las invitaciones impresas es la clase `.marco-doble`.
+Dos detalles que conviene no revertir: los botones flotantes (música y volver
+arriba) van abajo a la **izquierda**, porque la esquina derecha ya la ocupa el
+botón de soporte por WhatsApp y los tapaba; y la invitación clásica —la que
+no marca "experiencia interactiva"— conserva su formulario de RSVP de
+siempre, porque el nuevo va pintado con los colores del tema y allí no hay
+tema. Las secciones aparecen al desplazar con `<Reveal>`
+(`src/components/Reveal.tsx`, antes dentro de `LandingPieces`).
 
 **Preparación de archivos en el navegador** (`src/lib/prepare-upload.ts`):
 antes de subir nada se convierten los HEIC del iPhone a JPG (con `heic-to`,

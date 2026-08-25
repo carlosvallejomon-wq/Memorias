@@ -2,7 +2,7 @@
 
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Music, Pause } from "lucide-react";
+import { ArrowUp, Music, Pause } from "lucide-react";
 import QRCode from "qrcode";
 import { Reveal } from "@/components/Reveal";
 import {
@@ -17,9 +17,8 @@ import {
 
 type CountdownPart = { label: string; value: number };
 
-// La cuenta atrás se pinta en cuatro cajas (días, horas, minutos, segundos)
-// en vez de una frase: es lo que la gente espera de una invitación web y se
-// lee de un vistazo en el móvil.
+// La cuenta atrás se pinta como en las invitaciones de papel: cuatro números
+// finos separados por dos puntos, con el rótulo debajo.
 function countdownParts(startsAt?: string): CountdownPart[] | "llegó" | null {
   if (!startsAt) return null;
   const target = new Date(startsAt).getTime();
@@ -29,8 +28,8 @@ function countdownParts(startsAt?: string): CountdownPart[] | "llegó" | null {
   return [
     { label: "Días", value: Math.floor(remaining / 86_400_000) },
     { label: "Horas", value: Math.floor((remaining % 86_400_000) / 3_600_000) },
-    { label: "Min", value: Math.floor((remaining % 3_600_000) / 60_000) },
-    { label: "Seg", value: Math.floor((remaining % 60_000) / 1_000) },
+    { label: "Minutos", value: Math.floor((remaining % 3_600_000) / 60_000) },
+    { label: "Segundos", value: Math.floor((remaining % 60_000) / 1_000) },
   ];
 }
 
@@ -53,8 +52,7 @@ function albumCodeFrom(shareUrl: string): string | null {
   }
 }
 
-/** Iniciales para el lacre: las que ponga el organizador o, si no, las del
- *  nombre del evento. */
+/** Iniciales del lacre: las que ponga el organizador o, si no, las del nombre. */
 function sealInitials(state: { si?: string; n: string }): string {
   const manual = (state.si ?? "").trim();
   if (manual) return manual.slice(0, 4).toUpperCase();
@@ -76,7 +74,26 @@ const COLORES: Record<string, string> = {
   lila: "#b9a3d1", morado: "#6a4a7a", fucsia: "#c2306e", rosa: "#e79ab4", rosado: "#e79ab4",
   palo: "#e2b8b3", rojo: "#c0392b", vino: "#6b2737", gris: "#9aa0a6", plata: "#c0c4c9",
   plateado: "#c0c4c9", negro: "#111111", tinta: "#2f2a26",
+  rosapalo: "#e2b8b3", palorosa: "#e2b8b3", verdeolivo: "#6b7a4b", verdementa: "#b8ddc9",
+  azulmarino: "#25395c", azulcielo: "#a8cbe4", rosaviejo: "#c98b96", oroviejo: "#b18f3a",
+  rosadorado: "#e0a899", verdeagua: "#a9d6cc", azulrey: "#1f3f8f",
 };
+
+/** Color de un nombre suelto, probando el nombre entero y luego cada palabra. */
+function colorDe(label: string): string {
+  const limpio = label
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const junto = limpio.replace(/[^a-z#0-9]/g, "");
+  if (COLORES[junto]) return COLORES[junto];
+  if (/^#[0-9a-f]{3,8}$/.test(junto)) return junto;
+  for (const palabra of limpio.split(/\s+/)) {
+    const clave = palabra.replace(/[^a-z#0-9]/g, "");
+    if (COLORES[clave]) return COLORES[clave];
+  }
+  return label;
+}
 
 function colorList(value?: string): { label: string; color: string }[] {
   return (value ?? "")
@@ -84,33 +101,72 @@ function colorList(value?: string): { label: string; color: string }[] {
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 8)
-    .map((label) => {
-      const clave = label
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z#0-9]/g, "");
-      return { label, color: COLORES[clave] ?? label };
-    });
+    .map((label) => ({ label, color: colorDe(label) }));
 }
 
+// Paleta de cada estilo. `paper` es el fondo claro, `soft` el tono medio de
+// las bandas alternas y `band` el fuerte, sobre el que el texto va en blanco.
 function visualTheme(style?: "quince" | "boda" | "baby") {
   if (style === "boda") return {
-    name: "Boda editorial", accent: "#a77a55", ink: "#3c3029", paper: "#fbf8f2", blush: "#eee4d6",
-    hero: "linear-gradient(180deg, rgba(25,31,29,.14), rgba(40,31,26,.82))", ornament: "❦",
+    name: "Boda editorial", ink: "#3c3029", paper: "#faf5ec", soft: "#f0e6d5", mezcla: "#e0cdac",
+    band: "#a07551", accent: "#a07551", ornament: "❦",
   };
   if (style === "baby") return {
-    name: "Baby shower delicado", accent: "#758f84", ink: "#3e534b", paper: "#fcfaf3", blush: "#e4eee8",
-    hero: "linear-gradient(180deg, rgba(75,96,87,.12), rgba(45,70,59,.78))", ornament: "✿",
+    name: "Baby shower delicado", ink: "#2f4a40", paper: "#f3f9f4", soft: "#dfeee4", mezcla: "#c6ded1",
+    band: "#5f8574", accent: "#5f8574", ornament: "✿",
   };
   return {
-    name: "Quinceañera romántica", accent: "#b65d7a", ink: "#542d3a", paper: "#fff8fa", blush: "#f6dfe7",
-    hero: "linear-gradient(180deg, rgba(76,31,46,.1), rgba(79,27,45,.82))", ornament: "✦",
+    name: "Quinceañera romántica", ink: "#54222f", paper: "#fdf2f6", soft: "#f8dee7", mezcla: "#f0c2d2",
+    band: "#b05a76", accent: "#b05a76", ornament: "✦",
   };
 }
 
+type Tema = ReturnType<typeof visualTheme>;
 type Recuerdo = { id: string; url: string; type: string; posterUrl: string | null };
 type Deseo = { id: string; authorName: string | null; body: string };
+
+/** Percha: el dibujo a línea del código de vestimenta. */
+function IconoVestimenta({ color }: { color: string }) {
+  return (
+    <svg viewBox="0 0 64 40" className="mx-auto h-10 w-24" fill="none" stroke={color} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M32 14c0-5-4.6-4.6-4.6-8.4A4.4 4.4 0 0 1 32 1.4a4.4 4.4 0 0 1 4.6 4.2" />
+      <path d="M32 14 4.4 31.4c-1.6 1-1 3.2.9 3.2h53.4c1.9 0 2.5-2.2.9-3.2Z" />
+    </svg>
+  );
+}
+
+/** Dos copas brindando: el dibujo de la cronología. */
+function IconoBrindis({ color }: { color: string }) {
+  return (
+    <svg viewBox="0 0 64 40" className="mx-auto h-12 w-28" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <g transform="rotate(-13 20 20)">
+        <path d="M11 6h18l-9 13z" /><path d="M20 19v13" /><path d="M14 33h12" />
+      </g>
+      <g transform="rotate(13 44 20)">
+        <path d="M35 6h18l-9 13z" /><path d="M44 19v13" /><path d="M38 33h12" />
+      </g>
+    </svg>
+  );
+}
+
+/** Lacre dorado; hace de separador entre secciones y de cierre del sobre. */
+function Lacre({ texto, tamaño = "h-16 w-16 text-xl" }: { texto: string; tamaño?: string }) {
+  return (
+    <span className={`lacre-oro tipo-manuscrita ${tamaño}`} aria-hidden="true">
+      {texto}
+    </span>
+  );
+}
+
+function SeparadorLacre({ tema, texto }: { tema: Tema; texto: string }) {
+  return (
+    <div className="flex items-center justify-center gap-4 py-8" style={{ backgroundColor: tema.paper }}>
+      <span className="h-px w-16" style={{ backgroundColor: tema.accent, opacity: 0.35 }} />
+      <Lacre texto={texto} tamaño="h-12 w-12 text-base" />
+      <span className="h-px w-16" style={{ backgroundColor: tema.accent, opacity: 0.35 }} />
+    </div>
+  );
+}
 
 function InvitationView() {
   const params = useSearchParams();
@@ -125,7 +181,7 @@ function InvitationView() {
   const [rsvpNote, setRsvpNote] = useState("");
   const [rsvpState, setRsvpState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   // El sobre pasa por tres momentos: cerrado, abriéndose (mientras dura la
-  // animación del lacre y la solapa) y abierto.
+  // animación de la solapa y el lacre) y abierto.
   const [sobre, setSobre] = useState<"cerrado" | "abriendo" | "abierto">("cerrado");
   const [musicaSonando, setMusicaSonando] = useState(false);
   const [recuerdos, setRecuerdos] = useState<Recuerdo[]>([]);
@@ -158,11 +214,12 @@ function InvitationView() {
     return () => window.clearInterval(interval);
   }, [invitation, sobre]);
 
-  // Fotos del álbum y buenos deseos ya escritos. Se piden al abrir el sobre
-  // para no gastar datos de quien solo mira la portada. Si el álbum tiene
-  // código de acceso el servidor responde 403 y las secciones no aparecen.
+  // Fotos del álbum y buenos deseos ya escritos. Se piden mientras el invitado
+  // mira el sobre, para que la portada ya tenga su foto al abrirlo. Si el
+  // álbum tiene código de acceso el servidor responde 403 y esas secciones
+  // sencillamente no aparecen.
   useEffect(() => {
-    if (invitation.error || sobre !== "abierto" || !albumCode) return;
+    if (invitation.error || !invitation.state.it || !albumCode) return;
     const { state } = invitation;
     let cancelled = false;
     if (state.ga) {
@@ -186,7 +243,7 @@ function InvitationView() {
     return () => {
       cancelled = true;
     };
-  }, [invitation, sobre, albumCode]);
+  }, [invitation, albumCode]);
 
   useEffect(() => {
     if (invitation.error) return;
@@ -306,7 +363,7 @@ function InvitationView() {
         .then(() => setMusicaSonando(true))
         .catch(() => {});
     }
-    window.setTimeout(() => setSobre("abierto"), 1200);
+    window.setTimeout(() => setSobre("abierto"), 1300);
   }
 
   function alternarMusica() {
@@ -341,22 +398,44 @@ function InvitationView() {
 
   const { state, template } = invitation;
   const interactive = Boolean(state.it);
-  const theme = visualTheme(state.iv);
+  const tema = visualTheme(state.iv);
+  const iniciales = sealInitials(state);
   const cuenta = countdownParts(state.st);
   const calendarUrl = googleCalendarUrl(state);
   const timeline = (state.tl ?? "").split("\n").map((item) => item.trim()).filter(Boolean);
   const avisos = (state.av ?? "").split("\n").map((item) => item.trim()).filter(Boolean);
   const paleta = colorList(state.pa);
   const evitar = colorList(state.ev);
-  // Las plantillas van de casi blancas a casi negras, y encima de las claras
-  // el texto blanco no se leía: además del degradado del tema se pone un velo
-  // oscuro fijo, que es lo que garantiza el contraste con cualquiera de ellas.
-  const velo = "linear-gradient(180deg, rgba(18,10,14,.46), rgba(18,10,14,.24) 38%, rgba(18,10,14,.8))";
-  const fondo = { backgroundImage: `${velo}, ${theme.hero}, url(${template.bgImage ?? ""})`, backgroundSize: "cover", backgroundPosition: "center" };
-  const rotulo = "text-xs font-semibold uppercase tracking-[.23em]";
+  // La portada lleva la primera foto del álbum; si aún no hay ninguna, el
+  // propio diseño de la invitación.
+  const fotoPortada = recuerdos[0]?.posterUrl ?? recuerdos[0]?.url ?? template.bgImage ?? null;
 
   const rsvpForm = state.ar && (
-    <form onSubmit={sendRsvp} className="rounded-3xl border border-white/70 bg-white/95 p-5 shadow-lift">
+    <form onSubmit={sendRsvp} className="cartucho px-6 py-8 text-center" style={{ color: tema.ink }}>
+      <p className="tipo-manuscrita text-4xl">Confirma tu asistencia</p>
+      <p className="mt-2 text-sm opacity-70">Nos encantará celebrar contigo.</p>
+      {rsvpState === "sent" ? (
+        <p className="mt-5 text-sm">¡Gracias! Tu respuesta fue enviada.</p>
+      ) : (
+        <div className="mt-5 grid gap-3 text-left">
+          <input required value={rsvpName} onChange={(e) => setRsvpName(e.target.value)} maxLength={100} placeholder="Tu nombre" className="rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button type="button" onClick={() => setRsvpAttending(true)} className="rotulo border px-3 py-2.5" style={rsvpAttending ? { backgroundColor: tema.accent, color: "#fff", borderColor: tema.accent } : { borderColor: tema.accent }}>Sí, asistiré</button>
+            <button type="button" onClick={() => setRsvpAttending(false)} className="rotulo border px-3 py-2.5" style={!rsvpAttending ? { backgroundColor: tema.ink, color: "#fff", borderColor: tema.ink } : { borderColor: tema.accent }}>No podré</button>
+          </div>
+          {rsvpAttending && <label className="text-xs opacity-70">Personas en tu grupo<input type="number" min="1" max="20" value={rsvpGuests} onChange={(e) => setRsvpGuests(Math.max(1, Number(e.target.value) || 1))} className="mt-1 block w-full rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm text-inherit outline-none" style={{ borderColor: tema.accent }} /></label>}
+          <input value={rsvpNote} onChange={(e) => setRsvpNote(e.target.value)} maxLength={300} placeholder="Mensaje opcional" className="rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
+          <button disabled={rsvpState === "sending"} className="rotulo mt-2 px-4 py-3 text-white disabled:opacity-60" style={{ backgroundColor: tema.accent }}>{rsvpState === "sending" ? "Enviando…" : "Enviar confirmación"}</button>
+          {rsvpState === "error" && <p className="text-center text-xs text-vino">No se pudo enviar. Inténtalo de nuevo.</p>}
+        </div>
+      )}
+    </form>
+  );
+
+  // La invitación clásica (sin experiencia interactiva) conserva su
+  // formulario de siempre: el de arriba va con los colores del tema.
+  const rsvpClasico = state.ar && (
+    <form onSubmit={sendRsvp} className="w-full max-w-md rounded-3xl border border-white/70 bg-white/95 p-5 shadow-lift">
       <p className="text-center text-xl font-semibold text-tinta" style={{ fontFamily: "var(--font-display)" }}>Confirma tu asistencia</p>
       <p className="mt-1 text-center text-sm text-tinta/60">Nos encantará celebrar contigo.</p>
       {rsvpState === "sent" ? (
@@ -378,90 +457,110 @@ function InvitationView() {
   );
 
   return (
-    <div className={interactive ? "min-h-screen text-tinta" : "flex min-h-screen flex-col items-center justify-center gap-5 bg-arena p-6"} style={interactive ? { backgroundColor: theme.paper } : undefined}>
+    <div className={interactive ? "min-h-screen" : "flex min-h-screen flex-col items-center justify-center gap-5 bg-arena p-6"} style={interactive ? { backgroundColor: tema.paper, color: tema.ink, fontFamily: '"Playfair Display", var(--font-display)' } : undefined}>
       {!ready && <p className="p-6 text-center text-sm text-tinta/50">Cargando invitación…</p>}
       <canvas ref={canvasRef} className={interactive ? "hidden" : `w-full max-w-md rounded-2xl shadow-lift ${ready ? "" : "hidden"}`} />
       {interactive && state.ms && <audio ref={musicRef} src={state.ms} loop preload="none" className="hidden" />}
       {ready && shareUrl && (interactive ? (
         sobre !== "abierto" ? (
-          <main className={`sobre mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 py-14 text-center text-white ${sobre === "abriendo" ? "sobre-abriendo" : ""}`} style={fondo}>
-            <p className={`${rotulo} text-white/75`}>{theme.name}</p>
-            <p className="mt-4 text-sm italic text-white/85">Tienes una invitación</p>
+          <main
+            className={`sobre mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-8 text-center ${sobre === "abriendo" ? "sobre-abriendo" : ""}`}
+            style={{ background: `linear-gradient(170deg, ${tema.paper} 0%, ${tema.soft} 100%)` }}
+          >
+            <p className="rotulo opacity-55">Estás invitado</p>
 
             <button
               type="button"
               onClick={abrirSobre}
               aria-label={`Abrir la invitación de ${state.n}`}
-              className="sobre-cuerpo relative mt-9 aspect-[7/5] w-full max-w-sm rounded-2xl shadow-lift"
-              style={{ backgroundColor: theme.paper }}
+              className="sobre-cuerpo relative mt-9 aspect-[7/5] w-full max-w-sm rounded-lg shadow-lift"
+              style={{ backgroundColor: tema.mezcla }}
             >
-              {/* Bolsillo del sobre: el triángulo que sube desde la base. */}
-              <span className="absolute inset-0 rounded-2xl" style={{ backgroundColor: theme.blush, clipPath: "polygon(0 100%, 50% 40%, 100% 100%)" }} />
-              <span className="absolute inset-0 rounded-2xl border border-black/10" />
-              {/* Solapa: gira sobre su borde de arriba al romperse el lacre. */}
-              <span className="sobre-solapa absolute inset-x-0 top-0 h-[62%]" style={{ backgroundColor: theme.blush, clipPath: "polygon(0 0, 100% 0, 50% 100%)" }} />
-              <span className="lacre absolute left-1/2 top-1/2 z-10 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-xl font-semibold tracking-wide text-white shadow-lift" style={{ backgroundColor: theme.accent, fontFamily: "var(--font-display)" }}>
-                {sealInitials(state)}
+              {/* Solapa cerrada; gira hacia arriba al romperse el lacre. */}
+              <span className="sobre-solapa absolute inset-x-0 top-0 z-10 h-[62%] rounded-t-lg" style={{ backgroundColor: tema.soft, clipPath: "polygon(0 0, 100% 0, 50% 100%)" }} />
+              {/* Tarjeta apoyada sobre la punta de la solapa, con el gesto. */}
+              <span className="sobre-tarjeta absolute left-1/2 top-[24%] z-20 flex h-[42%] w-[33%] -translate-x-1/2 flex-col items-center gap-[6%] bg-white p-[6%] shadow-lift">
+                <span className="rotulo shrink-0 text-[0.34rem] tracking-[.14em] opacity-55" style={{ color: tema.ink }}>Toca aquí</span>
+                {fotoPortada && <img src={fotoPortada} alt="" className="min-h-0 w-full flex-1 object-cover" />}
               </span>
+              <span className="absolute left-1/2 top-[62%] z-30 h-12 w-12 -translate-x-1/2 -translate-y-1/2">
+                <Lacre texto={iniciales} tamaño="h-12 w-12 text-base" />
+              </span>
+              <span className="pointer-events-none absolute inset-0 z-30 rounded-lg border" style={{ borderColor: "rgba(0,0,0,.08)" }} />
             </button>
 
-            <p className="mt-9 text-3xl leading-tight drop-shadow-md" style={{ fontFamily: "var(--font-display)" }}>{state.n}</p>
-            {state.d && <p className="mt-3 text-sm uppercase tracking-[.18em] text-white/90">{state.d}</p>}
-            <p className="mt-8 animate-pulse text-sm text-white/85">Toca el sobre para abrirlo</p>
+            <p className="tipo-manuscrita mt-10 text-5xl" style={{ color: tema.ink }}>{state.n}</p>
+            {state.d && <p className="rotulo mt-4 opacity-60">{state.d}</p>}
+            <p className="mt-10 animate-pulse text-xs opacity-50">Toca el sobre para abrirlo</p>
           </main>
         ) : (
-        <main className="mx-auto max-w-md overflow-hidden shadow-lift" style={{ backgroundColor: theme.paper }}>
-          <section className="marco-doble relative flex min-h-screen flex-col items-center justify-end overflow-hidden px-9 pb-14 text-center text-white animate-fade-in" style={fondo}>
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/35 to-transparent" />
-            <span className="absolute left-9 top-11 text-3xl text-white/70">{theme.ornament}</span>
-            <span className="absolute right-9 top-11 text-3xl text-white/70">{theme.ornament}</span>
-            <div className="relative">
-              <p className={`${rotulo} text-white/85`}>Estás invitado a celebrar</p>
-              <h1 className="mt-4 text-5xl leading-none drop-shadow-sm" style={{ fontFamily: "var(--font-display)" }}>{state.n}</h1>
-              {state.o && <p className="mt-4 text-sm text-white/90">{state.o}</p>}
-              <span className="mt-8 inline-block rounded-full border border-white/60 bg-white/15 px-4 py-2 text-xs font-semibold uppercase tracking-[.16em] backdrop-blur">Desliza para descubrir</span>
-            </div>
+        <main className="mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in" style={{ backgroundColor: tema.paper }}>
+          {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
+          <section className="px-8 pb-12 pt-14 text-center">
+            <p className="rotulo opacity-55">Estás invitado</p>
+            <h1 className="tipo-titulo mt-5 text-3xl uppercase tracking-[.28em]">{state.n}</h1>
+            {fotoPortada && (
+              <div className="marco-foto marco-arco mx-auto mt-8 w-[74%]">
+                <img src={fotoPortada} alt="" className="aspect-[3/4] w-full object-cover" />
+              </div>
+            )}
+            {state.d && <p className="tipo-titulo mt-7 text-lg tracking-[.18em]">{state.d}</p>}
+            {state.o && <p className="mx-auto mt-3 max-w-[15rem] text-sm italic opacity-65">{state.o}</p>}
+            <p className="mt-10 text-xs opacity-45">Desliza para descubrir</p>
           </section>
 
           <Reveal>
-            <section className="relative overflow-hidden px-7 py-11 text-center" style={{ color: theme.ink }}>
-              <span className="absolute -left-3 -top-4 text-7xl opacity-10">{theme.ornament}</span>
-              <span className="absolute -bottom-5 -right-2 text-8xl opacity-10">{theme.ornament}</span>
-              <p className={rotulo} style={{ color: theme.accent }}>Nuestro gran día</p>
-              <h2 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-display)" }}>{state.d || "Muy pronto"}</h2>
-              {state.h && <p className="mt-2 text-base text-tinta/70">{state.h}</p>}
-              {cuenta === "llegó" && <p className="mt-7 rounded-2xl px-5 py-5 text-lg font-semibold text-white" style={{ backgroundColor: theme.ink }}>¡El gran día ha llegado!</p>}
+            <section className="px-8 py-12 text-center" style={{ backgroundColor: tema.soft }}>
+              <p className="rotulo opacity-60">Falta poco para</p>
+              <p className="tipo-manuscrita mt-1 text-5xl">el gran día</p>
+              {cuenta === "llegó" && <p className="tipo-manuscrita mt-6 text-5xl">¡Hoy es el día!</p>}
               {Array.isArray(cuenta) && (
-                <div className="mt-7 grid grid-cols-4 gap-2">
-                  {cuenta.map((parte) => (
-                    <div key={parte.label} className="rounded-2xl px-1 py-4 text-white" style={{ backgroundColor: theme.ink }}>
-                      <p className="text-2xl font-semibold tabular-nums">{String(parte.value).padStart(2, "0")}</p>
-                      <p className="mt-1 text-[10px] uppercase tracking-[.14em] text-white/65">{parte.label}</p>
-                    </div>
+                <div className="mx-auto mt-7 grid max-w-[19rem] grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-start">
+                  {cuenta.map((parte, i) => (
+                    <span key={parte.label} className="contents">
+                      {i > 0 && <span className="cuenta-atras dos-puntos">:</span>}
+                      <span className="grid justify-items-center">
+                        <span className="cuenta-atras" style={i === 3 ? { opacity: 0.45 } : undefined}>
+                          {String(parte.value).padStart(2, "0")}
+                        </span>
+                        <span className="rotulo mt-1 text-[0.5rem] tracking-[.12em] opacity-55">{parte.label}</span>
+                      </span>
+                    </span>
                   ))}
                 </div>
+              )}
+              {calendarUrl && (
+                <a href={calendarUrl} target="_blank" rel="noreferrer" className="rotulo mt-8 inline-block border px-5 py-2.5" style={{ borderColor: tema.accent, color: tema.accent }}>
+                  Agendar recordatorio
+                </a>
               )}
             </section>
           </Reveal>
 
+          <SeparadorLacre tema={tema} texto={iniciales} />
+
           <Reveal>
-            <section className="border-y border-tinta/10 px-7 py-10 text-center" style={{ backgroundColor: theme.blush, color: theme.ink }}>
-              <p className={rotulo} style={{ color: theme.accent }}>Fecha y lugar</p>
-              {state.l && <p className="mx-auto mt-4 max-w-xs text-lg leading-relaxed" style={{ fontFamily: "var(--font-display)" }}>{state.l}</p>}
-              <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {state.mp && <a href={state.mp} target="_blank" rel="noreferrer" className="rounded-full px-5 py-3 text-sm font-semibold text-white" style={{ backgroundColor: theme.accent }}>Abrir ubicación</a>}
-                {calendarUrl && <a href={calendarUrl} target="_blank" rel="noreferrer" className="rounded-full border border-tinta/20 bg-white px-5 py-3 text-sm font-semibold text-tinta">Agregar al calendario</a>}
-              </div>
+            <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
+              <p className="tipo-manuscrita text-5xl">Fecha y lugar</p>
+              {state.h && <p className="rotulo mt-6 opacity-85">{state.h}</p>}
+              {state.l && <p className="tipo-titulo mx-auto mt-3 max-w-xs text-base leading-relaxed">{state.l}</p>}
+              {state.mp && (
+                <a href={state.mp} target="_blank" rel="noreferrer" className="rotulo mt-7 inline-block border border-white/70 px-5 py-2.5">
+                  Ver ubicación
+                </a>
+              )}
             </section>
           </Reveal>
 
           {timeline.length > 0 && (
             <Reveal>
-              <section className="px-7 py-11 text-white" style={{ backgroundColor: theme.ink }}>
-                <p className={`${rotulo} text-center text-white/60`}>La celebración</p>
-                <h2 className="mt-3 text-center text-3xl" style={{ fontFamily: "var(--font-display)" }}>Nuestra cronología</h2>
-                <div className="mt-7 grid gap-3">
-                  {timeline.map((item, index) => <p key={`${item}-${index}`} className="border-l pl-4 text-sm leading-relaxed text-white/90" style={{ borderColor: theme.accent }}>{item}</p>)}
+              <section className="px-8 py-12 text-center">
+                <p className="tipo-manuscrita text-5xl">Nuestra cronología</p>
+                <div className="mt-5"><IconoBrindis color={tema.accent} /></div>
+                <div className="mx-auto mt-6 grid max-w-xs gap-4">
+                  {timeline.map((item, index) => (
+                    <p key={`${item}-${index}`} className="tipo-titulo text-sm tracking-wide">{item}</p>
+                  ))}
                 </div>
               </section>
             </Reveal>
@@ -469,28 +568,30 @@ function InvitationView() {
 
           {(state.dr || paleta.length > 0 || evitar.length > 0) && (
             <Reveal>
-              <section className="marco-doble relative px-9 py-12 text-center" style={{ color: theme.ink }}>
-                <p className={rotulo} style={{ color: theme.accent }}>Código de vestimenta</p>
-                {state.dr && <h2 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-display)" }}>{state.dr}</h2>}
-                <p className="mx-auto mt-6 text-[11px] uppercase tracking-[.2em] opacity-55">Paleta sugerida</p>
-                <div className="mt-3 flex flex-wrap justify-center gap-4">
-                  {(paleta.length > 0
-                    ? paleta
-                    : [{ label: "", color: theme.accent }, { label: "", color: theme.blush }, { label: "", color: theme.ink }]
-                  ).map((color, index) => (
-                    <span key={`${color.label}-${index}`} className="grid w-16 justify-items-center gap-1.5 text-[11px] leading-tight">
-                      <span className="h-9 w-9 rounded-full border border-black/10" style={{ backgroundColor: color.color }} />
-                      {color.label}
-                    </span>
-                  ))}
-                </div>
+              <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
+                <p className="tipo-manuscrita text-5xl">Código de vestimenta</p>
+                <div className="mt-5"><IconoVestimenta color="#fff" /></div>
+                {state.dr && <p className="rotulo mt-5 text-sm">{state.dr}</p>}
+                {paleta.length > 0 && (
+                  <>
+                    <p className="rotulo mt-8 text-[0.6rem] opacity-80">Colores a usar</p>
+                    <div className="mt-4 flex flex-wrap justify-center gap-4">
+                      {paleta.map((color, index) => (
+                        <span key={`${color.label}-${index}`} className="grid w-16 justify-items-center gap-1.5 text-[10px] leading-tight opacity-90">
+                          <span className="h-8 w-8 rounded-full border border-white/40" style={{ backgroundColor: color.color }} />
+                          {color.label}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
                 {evitar.length > 0 && (
                   <>
-                    <p className="mt-8 text-[11px] uppercase tracking-[.2em] opacity-55">Colores a evitar</p>
-                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    <p className="rotulo mt-8 text-[0.6rem] opacity-80">Colores a evitar</p>
+                    <div className="mt-4 flex flex-wrap justify-center gap-3">
                       {evitar.map((color, index) => (
-                        <span key={`${color.label}-${index}`} className="flex items-center gap-2 rounded-full border border-tinta/15 bg-white/70 px-3 py-1.5 text-xs line-through opacity-75">
-                          <span className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ backgroundColor: color.color }} />
+                        <span key={`${color.label}-${index}`} className="flex items-center gap-2 text-[11px] line-through opacity-85">
+                          <span className="h-3.5 w-3.5 rounded-full border border-white/40" style={{ backgroundColor: color.color }} />
                           {color.label}
                         </span>
                       ))}
@@ -503,73 +604,80 @@ function InvitationView() {
 
           {avisos.length > 0 && (
             <Reveal>
-              <section className="px-7 py-11" style={{ backgroundColor: theme.blush, color: theme.ink }}>
-                <p className={`${rotulo} text-center`} style={{ color: theme.accent }}>A tomar en cuenta</p>
-                <ul className="mx-auto mt-5 grid max-w-xs gap-3 text-sm leading-relaxed">
-                  {avisos.map((aviso, index) => (
-                    <li key={`${aviso}-${index}`} className="flex gap-3">
-                      <span style={{ color: theme.accent }}>{theme.ornament}</span>
-                      <span>{aviso}</span>
-                    </li>
-                  ))}
-                </ul>
+              <section className="px-6 py-12" style={{ backgroundColor: tema.soft }}>
+                <div className="cartucho px-7 py-9 text-center" style={{ color: tema.accent }}>
+                  <p className="tipo-manuscrita text-5xl" style={{ color: tema.ink }}>A tomar en cuenta</p>
+                  <ul className="mx-auto mt-6 grid max-w-xs gap-3 text-left text-sm" style={{ color: tema.ink }}>
+                    {avisos.map((aviso, index) => (
+                      <li key={`${aviso}-${index}`} className="tipo-titulo flex gap-3">
+                        <span className="opacity-60">{index + 1}.</span>
+                        <span>{aviso}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </section>
             </Reveal>
           )}
 
           {recuerdos.length > 0 && (
             <Reveal>
-              <section className="px-7 py-11 text-center" style={{ color: theme.ink }}>
-                <p className={rotulo} style={{ color: theme.accent }}>Nuestro álbum</p>
-                <h2 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-display)" }}>Recuerdos compartidos</h2>
-                <div className="mt-6 grid grid-cols-3 gap-2">
+              <section className="px-6 py-12 text-center">
+                <p className="tipo-manuscrita text-5xl">Galería de fotos</p>
+                <div className="mt-7 grid grid-cols-2 gap-3">
                   {recuerdos.map((recuerdo) => (
-                    <a key={recuerdo.id} href={shareUrl} className="block overflow-hidden rounded-xl">
-                      <img src={recuerdo.posterUrl ?? recuerdo.url} alt="" loading="lazy" className="aspect-square w-full object-cover" />
+                    <a key={recuerdo.id} href={shareUrl} className="marco-foto block">
+                      <img src={recuerdo.posterUrl ?? recuerdo.url} alt="" loading="lazy" className="aspect-[3/4] w-full object-cover" />
                     </a>
                   ))}
                 </div>
-                <p className="mt-4 text-sm text-tinta/60">Sube las tuyas desde el álbum, sin instalar nada.</p>
+                <p className="mt-6 text-xs opacity-55">Sube las tuyas desde el álbum, sin instalar nada.</p>
               </section>
             </Reveal>
           )}
 
           {state.bd && albumCode && (
             <Reveal>
-              <section className="px-7 py-11 text-center" style={{ backgroundColor: theme.blush, color: theme.ink }}>
-                <p className={rotulo} style={{ color: theme.accent }}>Buenos deseos</p>
-                <h2 className="mt-3 text-3xl" style={{ fontFamily: "var(--font-display)" }}>Déjanos unas palabras</h2>
-                <p className="mx-auto mt-2 max-w-xs text-sm text-tinta/65">Se guardan en el muro de mensajes y se imprimen en el libro de recuerdos.</p>
-                {deseoEstado === "sent" ? (
-                  <p className="mt-5 rounded-2xl bg-white/85 p-4 text-sm">¡Gracias! Tu mensaje quedará en el libro.</p>
-                ) : (
-                  <form onSubmit={sendDeseo} className="mt-5 grid gap-3 text-left">
-                    <input value={deseoNombre} onChange={(e) => setDeseoNombre(e.target.value)} maxLength={100} placeholder="Tu nombre (opcional)" className="rounded-xl border border-tinta/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-teja" />
-                    <textarea required value={deseoTexto} onChange={(e) => setDeseoTexto(e.target.value)} maxLength={2000} rows={3} placeholder="Escribe tus buenos deseos…" className="resize-y rounded-xl border border-tinta/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-teja" />
-                    <button disabled={deseoEstado === "sending"} className="rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60" style={{ backgroundColor: theme.accent }}>{deseoEstado === "sending" ? "Enviando…" : "Enviar mis buenos deseos"}</button>
-                    {deseoEstado === "error" && <p className="text-center text-xs text-vino">No se pudo enviar. Inténtalo de nuevo.</p>}
-                  </form>
-                )}
-                {deseos.length > 0 && (
-                  <div className="mt-7 grid gap-3 text-left">
-                    {deseos.map((deseo) => (
-                      <blockquote key={deseo.id} className="rounded-2xl bg-white/80 p-4 text-sm">
-                        <p className="italic leading-relaxed">“{deseo.body}”</p>
-                        <footer className="mt-2 text-xs opacity-60">— {deseo.authorName || "Un invitado"}</footer>
-                      </blockquote>
-                    ))}
-                  </div>
-                )}
+              <section className="px-6 py-12" style={{ backgroundColor: tema.soft }}>
+                <div className="cartucho px-7 py-9 text-center" style={{ color: tema.accent }}>
+                  <p className="tipo-manuscrita text-5xl" style={{ color: tema.ink }}>Buenos</p>
+                  <p className="tipo-titulo -mt-1 text-xl uppercase tracking-[.3em]" style={{ color: tema.ink }}>Deseos</p>
+                  <p className="mx-auto mt-4 max-w-xs text-xs opacity-70" style={{ color: tema.ink }}>
+                    Se guardan en el muro de mensajes y se imprimen en el libro de recuerdos.
+                  </p>
+                  {deseoEstado === "sent" ? (
+                    <p className="mt-6 text-sm" style={{ color: tema.ink }}>¡Gracias! Tu mensaje quedará en el libro.</p>
+                  ) : (
+                    <form onSubmit={sendDeseo} className="mt-6 grid gap-3 text-left" style={{ color: tema.ink }}>
+                      <input value={deseoNombre} onChange={(e) => setDeseoNombre(e.target.value)} maxLength={100} placeholder="Tu nombre (opcional)" className="border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
+                      <textarea required value={deseoTexto} onChange={(e) => setDeseoTexto(e.target.value)} maxLength={2000} rows={3} placeholder="Escribe tus buenos deseos…" className="resize-y border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
+                      <button disabled={deseoEstado === "sending"} className="rotulo mt-1 px-4 py-3 text-white disabled:opacity-60" style={{ backgroundColor: tema.accent }}>
+                        {deseoEstado === "sending" ? "Enviando…" : "Enviar buenos deseos"}
+                      </button>
+                      {deseoEstado === "error" && <p className="text-center text-xs text-vino">No se pudo enviar. Inténtalo de nuevo.</p>}
+                    </form>
+                  )}
+                  {deseos.length > 0 && (
+                    <div className="mt-8 grid gap-4" style={{ color: tema.ink }}>
+                      {deseos.map((deseo) => (
+                        <blockquote key={deseo.id}>
+                          <p className="tipo-titulo text-sm italic leading-relaxed">“{deseo.body}”</p>
+                          <footer className="rotulo mt-2 text-[0.55rem] opacity-60">{deseo.authorName || "Un invitado"}</footer>
+                        </blockquote>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </section>
             </Reveal>
           )}
 
           {state.hg && (
             <Reveal>
-              <section className="px-7 py-11 text-center" style={{ color: theme.ink }}>
-                <p className={rotulo} style={{ color: theme.accent }}>Comparte tus fotos</p>
-                <p className="mt-3 text-3xl" style={{ fontFamily: "var(--font-display)" }}>#{state.hg}</p>
-                <button onClick={() => copiarHashtag(state.hg as string)} className="mt-5 rounded-full border border-tinta/20 bg-white px-5 py-2.5 text-sm font-semibold text-tinta">
+              <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
+                <p className="rotulo opacity-80">Comparte tus fotos</p>
+                <p className="tipo-manuscrita mt-3 text-5xl">#{state.hg}</p>
+                <button onClick={() => copiarHashtag(state.hg as string)} className="rotulo mt-6 border border-white/70 px-5 py-2.5">
                   {hashtagCopiado ? "¡Copiado!" : "Copiar hashtag"}
                 </button>
               </section>
@@ -577,30 +685,44 @@ function InvitationView() {
           )}
 
           <Reveal>
-            <section className="grid gap-5 px-7 py-11">
+            <section className="grid gap-6 px-6 py-12">
               {rsvpForm}
-              <a href={shareUrl} className="shimmer block rounded-full px-6 py-3 text-center font-semibold text-white shadow-soft" style={{ backgroundColor: theme.accent }}>Ver álbum de fotos</a>
+              <a href={shareUrl} className="rotulo block px-6 py-3.5 text-center text-white" style={{ backgroundColor: tema.accent }}>
+                Ver álbum de fotos
+              </a>
             </section>
           </Reveal>
-          <p className="pb-8 text-center text-xs text-tinta/40">Memorias Vivas</p>
+
+          <SeparadorLacre tema={tema} texto={iniciales} />
+          <p className="rotulo pb-10 text-center text-[0.55rem] opacity-40">Memorias Vivas</p>
 
           {/* Abajo a la izquierda: la esquina de la derecha ya la ocupa el
-              botón de soporte por WhatsApp y tapaba este. */}
-          {state.ms && (
+              botón de soporte por WhatsApp y tapaba estos. */}
+          <div className="fixed bottom-5 left-5 z-20 grid gap-2">
             <button
-              onClick={alternarMusica}
-              aria-label={musicaSonando ? "Pausar la música" : "Poner la música"}
-              className="fixed bottom-5 left-5 z-20 flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lift"
-              style={{ backgroundColor: theme.accent }}
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              aria-label="Volver arriba"
+              className="flex h-11 w-11 items-center justify-center rounded-full border text-current shadow-soft"
+              style={{ borderColor: tema.accent, backgroundColor: tema.paper, color: tema.accent }}
             >
-              {musicaSonando ? <Pause size={18} /> : <Music size={18} />}
+              <ArrowUp size={18} />
             </button>
-          )}
+            {state.ms && (
+              <button
+                onClick={alternarMusica}
+                aria-label={musicaSonando ? "Pausar la música" : "Poner la música"}
+                className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lift"
+                style={{ backgroundColor: tema.accent }}
+              >
+                {musicaSonando ? <Pause size={18} /> : <Music size={18} />}
+              </button>
+            )}
+          </div>
         </main>
         )
       ) : (
         <>
-          {rsvpForm}
+          {rsvpClasico}
           <a href={shareUrl} className="shimmer flex items-center gap-2 rounded-full bg-teja px-6 py-3 font-semibold text-white shadow-soft transition hover:bg-teja-oscuro">Ver álbum de fotos</a>
         </>
       ))}
