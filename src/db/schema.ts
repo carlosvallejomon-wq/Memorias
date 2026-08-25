@@ -1,4 +1,5 @@
 import {
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -175,3 +176,20 @@ export const invitationRsvps = pgTable(
   },
   (t) => [index("invitation_rsvps_album_idx").on(t.albumId)],
 );
+
+// La invitación que prepara el organizador antes de repartirla. Una por
+// álbum, guardada entera como JSON: el formato lo manda `InvitationLinkState`
+// y cambia a menudo (cada detalle nuevo es un campo más), así que una tabla
+// con una columna por dato obligaría a migrar el esquema cada vez.
+//
+// Guardarla es lo que permite prepararla en varias sentadas —subir las fotos
+// de los novios hoy y escribir la cronología mañana— y que el enlace corto
+// `/i/<código>` siga sirviendo lo último.
+export const invitations = pgTable("invitations", {
+  albumId: uuid("album_id")
+    .primaryKey()
+    .references(() => albums.id, { onDelete: "cascade" }),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

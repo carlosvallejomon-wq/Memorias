@@ -47,36 +47,66 @@ invitado puede borrar solo la suya (`/api/guestbook/[entryId]` con su
 `guestId`); el organizador puede borrar cualquiera desde el panel. Se
 imprimen como páginas de "Dedicatorias" al final del Dotbook.
 
-**Invitación web interactiva** (`/invitacion`, generador en
-`src/components/InvitationGenerator.tsx`): la invitación no vive en base de
-datos — todo el estado (`InvitationLinkState`) va serializado en la propia
-URL, así que se comparte por WhatsApp o por QR sin crear nada en el servidor
-y los enlaces antiguos siguen abriéndose aunque se añadan campos (todos los
-nuevos son opcionales). El organizador la arma desde el panel o, si es
-cliente de una agencia, desde `/a/[code]/personalizar?k=…`.
+**Invitación web interactiva**: la prepara el organizador en
+`src/components/InvitationGenerator.tsx` y la ve el invitado en
+`src/components/InvitationView.tsx`. Llega por dos caminos:
+
+- `/invitacion?d=…` — el estado entero (`InvitationLinkState`, en
+  `src/lib/invitation-link.ts`) serializado en la URL. No crea nada en el
+  servidor, pero para cambiar algo hay que repartir un enlace nuevo. Sigue
+  ahí porque los QR ya entregados apuntan aquí.
+- `/i/<código del álbum>` — el estado guardado en la tabla `invitations`
+  (una fila por álbum, el JSON entero en una columna `jsonb`, porque el
+  formato crece con cada detalle nuevo y una columna por dato obligaría a
+  migrar cada vez). **Es el camino normal**: se puede volver al editor,
+  cambiar la fecha o las fotos y guardar otra vez sin que el QR deje de
+  valer.
+
+Guardar va por `POST /api/invitaciones/[code]`, que **no pasa por Clerk** a
+propósito: el editor lo usan el panel y `/a/[code]/personalizar?k=…`, donde
+el dueño del evento es cliente de una agencia y no tiene cuenta. El permiso
+es el mismo token firmado del enlace privado (`clientToken`), que el panel
+calcula por su cuenta. Las dos pantallas cargan lo guardado con
+`cargarInvitacion()` y se lo pasan al editor, para que no se abra en blanco.
+
+**Las fotos son de los dueños del evento, no del álbum.** Cuando se reparte
+la invitación el álbum está vacío, así que el editor sube la foto de portada
+(`fp`) y las de la galería (`fg`) con `kind: "invitacion"` en
+`/api/blob-upload`: van a Blob como cualquier recuerdo pero **no se
+registran**, así que no salen en la galería de los invitados ni gastan su
+cupo. Si no se pone ninguna, la invitación cae a las del álbum y luego al
+diseño de la plantilla. El editor tiene además una **vista previa** en un
+móvil (`vista === "web"`), que abre la propia página en un iframe con
+`abierto=1` para saltarse el sobre en cada refresco; sin ella los campos se
+rellenaban a ciegas.
 
 El diseño imita la **papelería impresa**, no una web: fondo del color del
 evento en bandas que alternan claro y fuerte (`paper` / `soft` / `band` de
-`visualTheme`, con el texto en blanco sobre la fuerte), títulos en Pinyon
-Script (`.tipo-manuscrita`), rótulos en versalitas espaciadas (`.rotulo`),
-fotos con paspartú blanco (`.marco-foto`, y `.marco-arco` para la portada),
-recuadros ornamentales (`.cartucho`) y un **lacre dorado** dibujado a base de
-degradados (`.lacre-oro`), que hace de cierre del sobre y de separador entre
-secciones. La referencia son las invitaciones que circulan por WhatsApp
-(invitafy y similares); si se toca el estilo, conviene volver a mirarlas.
-Pinyon Script y Playfair Display las carga ya `ensureInvitationFonts()` para
-el lienzo del generador, así que la página no pide nada aparte.
+`TEMAS`, con el texto en blanco sobre la fuerte), títulos en Pinyon Script
+(`.tipo-manuscrita`), rótulos en versalitas espaciadas (`.rotulo`), fotos con
+paspartú blanco (`.marco-foto`, y `.marco-arco` para la portada), recuadros
+ornamentales (`.cartucho`), filigranas bajo los títulos (`.filigrana`) y un
+**lacre dorado** dibujado a base de degradados (`.lacre-oro`). Hay un estilo
+por tipo de evento (`ESTILOS_INVITACION`: quince, boda, baby, cumple,
+bautizo, comunión, graduación). La referencia son las invitaciones que
+circulan por WhatsApp (invitafy y similares); si se toca el estilo, conviene
+volver a mirarlas. Pinyon Script y Playfair Display las carga ya
+`ensureInvitationFonts()` para el lienzo del generador, así que la página no
+pide nada aparte.
 
 Al abrirla, el invitado ve un **sobre cerrado** con una tarjeta asomando y el
 lacre con las iniciales del evento (`si`, o las del nombre si no se ponen), y
-lo abre tocándolo: la solapa gira, la tarjeta sale y el lacre se rompe. Ese
-toque importa: es el gesto de usuario que los navegadores exigen para dejar
-sonar la música (`ms`), así que la canción arranca justo ahí y no antes.
-Dentro: portada con la foto en un marco de arco, cuenta atrás de cuatro
-números separados por dos puntos (`.cuenta-atras`), fecha y lugar con enlace
-a mapa y al calendario, cronología, código de vestimenta con **paleta**
-(`pa`) y **colores a evitar** (`ev`), avisos de "a tomar en cuenta" (`av`),
-galería del álbum (`ga`), **buenos deseos** (`bd`) y hashtag (`hg`).
+lo abre tocándolo: la solapa gira, la tarjeta sale y el lacre **se parte en
+dos** (`.lacre-roto` son dos copias del mismo sello recortadas a media pieza,
+que de cerrado se ven como una). Ese toque importa: es el gesto de usuario
+que los navegadores exigen para dejar sonar la música (`ms`), así que la
+canción arranca justo ahí y no antes. Dentro: portada con la foto en un marco
+de arco, cuenta atrás de cuatro números separados por dos puntos
+(`.cuenta-atras`, con los segundos latiendo), fecha y lugar con enlace a mapa
+y al calendario, cronología, código de vestimenta con **paleta** (`pa`) y
+**colores a evitar** (`ev`), avisos de "a tomar en cuenta" (`av`), galería
+(`ga`), **buenos deseos** (`bd`) y hashtag (`hg`). De fondo caen pétalos
+(`.petalo`), que desaparecen con `prefers-reduced-motion`.
 
 Los nombres de color en castellano se traducen en la tabla `COLORES`;
 `colorDe()` prueba primero el nombre entero y luego cada palabra, porque
@@ -86,10 +116,10 @@ desconocido no deja la sección muda.
 
 Los buenos deseos se guardan por `/api/guest/[code]/guestbook`, el mismo muro
 de mensajes de siempre: acaban impresos en las páginas de dedicatorias del
-Dotbook sin que nadie copie nada a mano. La galería y los deseos se piden
-mientras el invitado mira el sobre, para que la portada ya tenga su foto al
-abrirlo; si el álbum tiene código de acceso el portero responde 403 y esas
-dos secciones sencillamente no aparecen.
+Dotbook sin que nadie copie nada a mano. La galería del álbum y los deseos se
+piden mientras el invitado mira el sobre, para que la portada ya tenga su
+foto al abrirlo; si el álbum tiene código de acceso el portero responde 403 y
+esas dos secciones sencillamente no aparecen.
 
 Dos detalles que conviene no revertir: los botones flotantes (música y volver
 arriba) van abajo a la **izquierda**, porque la esquina derecha ya la ocupa el

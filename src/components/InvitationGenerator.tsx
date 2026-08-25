@@ -2,7 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { PartyPopper, X, Download, ImagePlus, QrCode } from "lucide-react";
+import { upload } from "@vercel/blob/client";
+import {
+  encodeInvitationLink,
+  type InvitationLinkState,
+  type EstiloInvitacion,
+  type QrLayout,
+  type TextLayout,
+} from "@/lib/invitation-link";
+import { MAX_INVITATION_PHOTOS } from "@/lib/limits";
+import { PartyPopper, X, Download, ImagePlus, QrCode, Save, Smartphone, Trash2 } from "lucide-react";
 
 const CANVAS_W = 1000;
 const CANVAS_H = 1400;
@@ -17,16 +26,6 @@ export type InvitationData = {
   shareUrl: string;
 };
 
-export type TextLayout = {
-  x: number;
-  y: number;
-  fontSize: number;
-  fontFamily: string;
-  color: string;
-  maxWidth: number;
-};
-
-export type QrLayout = { x: number; y: number; size: number };
 type PhotoLayout = { x: number; y: number; size: number; shape: "circle" | "square" };
 type SelectedKey = "text" | "detalles" | "qr" | "photo" | null;
 
@@ -2102,70 +2101,12 @@ export function templateGroup(id: string): string {
   return "otras";
 }
 
-// --- Enlace compartible de la invitación (para un QR aparte del de fotos) --
-// Guarda el diseño completo (plantilla, textos y posiciones) en la propia
-// URL, sin necesitar guardar nada en el servidor: la página /invitacion lo
-// vuelve a dibujar con estos mismos datos.
-
-export type InvitationLinkState = {
-  t: string;
-  n: string;
-  d?: string;
-  h?: string;
-  l?: string;
-  o?: string;
-  r?: string;
-  u: string;
-  tx: TextLayout;
-  dx?: TextLayout;
-  q: QrLayout;
-  // RSVP automático: los invitados contestan desde el enlace y la lista se
-  // guarda en el panel del álbum. Los enlaces viejos siguen funcionando.
-  ar?: boolean;
-  // Datos de la experiencia web interactiva. Se guardan en la URL igual que
-  // el resto de la invitación para que no se pierdan al compartir el QR.
-  it?: boolean;
-  iv?: "quince" | "boda" | "baby";
-  st?: string;
-  mp?: string;
-  dr?: string;
-  tl?: string;
-  ms?: string;
-  // Detalles que antes había que contar por WhatsApp: iniciales del lacre,
-  // paleta de la vestimenta, colores a evitar, avisos y hashtag. Todo
-  // opcional: los enlaces creados antes de esto se siguen abriendo igual.
-  si?: string;
-  pa?: string;
-  ev?: string;
-  av?: string;
-  hg?: string;
-  ga?: boolean;
-  bd?: boolean;
-};
-
-export function encodeInvitationLink(state: InvitationLinkState): string {
-  return encodeURIComponent(JSON.stringify(state));
-}
-
-export function decodeInvitationLink(raw: string): InvitationLinkState | null {
-  try {
-    const parsed = JSON.parse(decodeURIComponent(raw));
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      typeof parsed.t !== "string" ||
-      typeof parsed.n !== "string" ||
-      typeof parsed.u !== "string" ||
-      !parsed.tx ||
-      !parsed.q
-    ) {
-      return null;
-    }
-    return parsed as InvitationLinkState;
-  } catch {
-    return null;
-  }
-}
+export {
+  encodeInvitationLink,
+  decodeInvitationLink,
+  parseInvitationState,
+} from "@/lib/invitation-link";
+export type { InvitationLinkState, QrLayout, TextLayout } from "@/lib/invitation-link";
 
 // --- Componente ---------------------------------------------------------
 
@@ -2176,6 +2117,8 @@ export function InvitationGenerator({
   initiallyOpen = false,
   hideTrigger = false,
   onClose,
+  saveToken,
+  savedInvitation,
 }: {
   albumName: string;
   eventDateLabel: string | null;
@@ -2183,6 +2126,10 @@ export function InvitationGenerator({
   initiallyOpen?: boolean;
   hideTrigger?: boolean;
   onClose?: () => void;
+  /** Permiso para guardar; lo calculan las pantallas que montan el editor. */
+  saveToken?: string;
+  /** Lo guardado la última vez, para seguir editando donde se dejó. */
+  savedInvitation?: InvitationLinkState | null;
 }) {
   const [open, setOpen] = useState(initiallyOpen);
   const [templateId, setTemplateId] = useState(TEMPLATES[0].id);
@@ -2195,7 +2142,7 @@ export function InvitationGenerator({
   const [rsvp, setRsvp] = useState("");
   const [automaticRsvp, setAutomaticRsvp] = useState(false);
   const [interactive, setInteractive] = useState(false);
-  const [interactiveVisual, setInteractiveVisual] = useState<"quince" | "boda" | "baby">("quince");
+  const [interactiveVisual, setInteractiveVisual] = useState<EstiloInvitacion>("quince");
   const [startsAt, setStartsAt] = useState("");
   const [mapUrl, setMapUrl] = useState("");
   const [dressCode, setDressCode] = useState("");
@@ -2208,6 +2155,24 @@ export function InvitationGenerator({
   const [hashtag, setHashtag] = useState("");
   const [showGallery, setShowGallery] = useState(true);
   const [collectWishes, setCollectWishes] = useState(true);
+  // Fotos de los dueños del evento. Se suben al preparar la invitación,
+  // cuando el álbum todavía está vacío, así que no pueden salir de ahí.
+  const [coverPhoto, setCoverPhoto] = useState("");
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
+  const [subiendoFoto, setSubiendoFoto] = useState<"portada" | "galeria" | null>(null);
+  const [errorFoto, setErrorFoto] = useState<string | null>(null);
+  // Vista previa de la invitación web dentro del propio editor: sin ella hay
+  // que rellenar los campos a ciegas y abrir el enlace en otra pestaña.
+  const [vista, setVista] = useState<"imagen" | "web">("imagen");
+  const [urlVista, setUrlVista] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const [guardado, setGuardado] = useState(Boolean(savedInvitation));
+  const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
+  const [enlaceGuardado, setEnlaceGuardado] = useState<string | null>(null);
+  const [enlaceCopiado, setEnlaceCopiado] = useState(false);
+
+  const albumCode = shareUrl.match(/\/a\/([^/?#]+)/)?.[1] ?? null;
+  const puedeGuardar = Boolean(saveToken && albumCode);
 
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
   const data: InvitationData = {
@@ -2241,6 +2206,42 @@ export function InvitationGenerator({
     offX: number;
     offY: number;
   } | null>(null);
+
+  // Lo guardado la última vez vuelve a los campos, para poder seguir
+  // preparando la invitación en varias sentadas en vez de empezar de cero.
+  const yaCargado = useRef(false);
+  useEffect(() => {
+    if (!open || yaCargado.current || !savedInvitation) return;
+    yaCargado.current = true;
+    const v = savedInvitation;
+    setTemplateId(v.t);
+    setTitle(v.n);
+    setDate(v.d ?? "");
+    setTime(v.h ?? "");
+    setLocation(v.l ?? "");
+    setHosts(v.o ?? "");
+    setRsvp(v.r ?? "");
+    setTextLayout(v.tx);
+    setDetailsLayout(v.dx ?? defaultDetailsLayout(v.tx));
+    setQrLayout(v.q);
+    setAutomaticRsvp(Boolean(v.ar));
+    setInteractive(Boolean(v.it));
+    if (v.iv) setInteractiveVisual(v.iv);
+    setStartsAt(v.st ?? "");
+    setMapUrl(v.mp ?? "");
+    setDressCode(v.dr ?? "");
+    setTimeline(v.tl ?? "");
+    setMusicUrl(v.ms ?? "");
+    setSealInitials(v.si ?? "");
+    setPalette(v.pa ?? "");
+    setAvoidColors(v.ev ?? "");
+    setNotes(v.av ?? "");
+    setHashtag(v.hg ?? "");
+    setShowGallery(v.ga !== false);
+    setCollectWishes(v.bd !== false);
+    setCoverPhoto(v.fp ?? "");
+    setGalleryPhotos(v.fg ?? []);
+  }, [open, savedInvitation]);
 
   function chooseTemplate(next: Template) {
     setTemplateId(next.id);
@@ -2414,40 +2415,116 @@ export function InvitationGenerator({
   async function handleGenerateInvitationLink() {
     setGeneratingLink(true);
     try {
-      const state: InvitationLinkState = {
-        t: templateId,
-        n: title,
-        d: date.trim() || undefined,
-        h: time.trim() || undefined,
-        l: location.trim() || undefined,
-        o: hosts.trim() || undefined,
-        r: rsvp.trim() || undefined,
-        u: shareUrl,
-        tx: textLayout,
-        dx: detailsLayout,
-        q: qrLayout,
-        ar: automaticRsvp || undefined,
-        it: interactive || undefined,
-        iv: interactive ? interactiveVisual : undefined,
-        st: startsAt || undefined,
-        mp: mapUrl.trim() || undefined,
-        dr: dressCode.trim() || undefined,
-        tl: timeline.trim() || undefined,
-        ms: musicUrl.trim() || undefined,
-        si: sealInitials.trim() || undefined,
-        pa: palette.trim() || undefined,
-        ev: avoidColors.trim() || undefined,
-        av: notes.trim() || undefined,
-        hg: hashtag.trim().replace(/^#/, "") || undefined,
-        ga: interactive ? showGallery : undefined,
-        bd: interactive ? collectWishes : undefined,
-      };
-      const url = `${window.location.origin}/invitacion?d=${encodeInvitationLink(state)}`;
+      const url = enlaceDeLaInvitacion();
       const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 480 });
       setInvitationLinkQr(qrDataUrl);
     } finally {
       setGeneratingLink(false);
     }
+  }
+
+  /** Todo lo que el organizador ha rellenado, listo para compartir o previsualizar. */
+  function estadoDeLaInvitacion(): InvitationLinkState {
+    return {
+      t: templateId,
+      n: title,
+      d: date.trim() || undefined,
+      h: time.trim() || undefined,
+      l: location.trim() || undefined,
+      o: hosts.trim() || undefined,
+      r: rsvp.trim() || undefined,
+      u: shareUrl,
+      tx: textLayout,
+      dx: detailsLayout,
+      q: qrLayout,
+      ar: automaticRsvp || undefined,
+      it: interactive || undefined,
+      iv: interactive ? interactiveVisual : undefined,
+      st: startsAt || undefined,
+      mp: mapUrl.trim() || undefined,
+      dr: dressCode.trim() || undefined,
+      tl: timeline.trim() || undefined,
+      ms: musicUrl.trim() || undefined,
+      si: sealInitials.trim() || undefined,
+      pa: palette.trim() || undefined,
+      ev: avoidColors.trim() || undefined,
+      av: notes.trim() || undefined,
+      hg: hashtag.trim().replace(/^#/, "") || undefined,
+      ga: interactive ? showGallery : undefined,
+      bd: interactive ? collectWishes : undefined,
+      fp: coverPhoto || undefined,
+      fg: galleryPhotos.length > 0 ? galleryPhotos : undefined,
+    };
+  }
+
+  function enlaceDeLaInvitacion(): string {
+    return `${window.location.origin}/invitacion?d=${encodeInvitationLink(estadoDeLaInvitacion())}`;
+  }
+
+  /**
+   * Sube una foto de los dueños del evento. Va por el mismo camino que las
+   * de los invitados (directa a Vercel Blob), pero marcada como "invitacion":
+   * no se registra como recuerdo, así que no aparece en la galería del álbum
+   * ni gasta su cupo.
+   */
+  async function subirFoto(archivo: File, destino: "portada" | "galeria") {
+    if (!albumCode) {
+      setErrorFoto("No se pudo identificar el álbum.");
+      return;
+    }
+    setErrorFoto(null);
+    setSubiendoFoto(destino);
+    try {
+      // Convierte los HEIC del iPhone; sin esto la foto no se ve en Android.
+      const { prepareForUpload } = await import("@/lib/prepare-upload");
+      const { file } = await prepareForUpload(archivo);
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/blob-upload",
+        clientPayload: JSON.stringify({ code: albumCode, kind: "invitacion" }),
+      });
+      if (destino === "portada") setCoverPhoto(blob.url);
+      else setGalleryPhotos((fotos) => [...fotos, blob.url].slice(0, MAX_INVITATION_PHOTOS));
+    } catch (err) {
+      setErrorFoto(err instanceof Error ? err.message : "No se pudo subir la foto.");
+    } finally {
+      setSubiendoFoto(null);
+    }
+  }
+
+  /**
+   * Guarda la invitación en el álbum. A partir de ahí el enlace y el QR son
+   * fijos: se puede volver a este editor, cambiar lo que sea y guardar otra
+   * vez sin repartir nada nuevo.
+   */
+  async function guardarInvitacion() {
+    if (!puedeGuardar || !albumCode) return;
+    setGuardando(true);
+    setErrorGuardar(null);
+    try {
+      const respuesta = await fetch(`/api/invitaciones/${encodeURIComponent(albumCode)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ k: saveToken, data: estadoDeLaInvitacion() }),
+      });
+      if (!respuesta.ok) {
+        const cuerpo = (await respuesta.json().catch(() => ({}))) as { error?: string };
+        throw new Error(cuerpo.error ?? "No se pudo guardar la invitación.");
+      }
+      const enlace = `${window.location.origin}/i/${albumCode}`;
+      setEnlaceGuardado(enlace);
+      setGuardado(true);
+      setInvitationLinkQr(await QRCode.toDataURL(enlace, { margin: 1, width: 480 }));
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : "No se pudo guardar la invitación.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  /** Refresca el móvil de la derecha con lo que hay escrito ahora mismo. */
+  function refrescarVista() {
+    setUrlVista(`${enlaceDeLaInvitacion()}&abierto=1&v=${Date.now()}`);
   }
 
   function closeEditor() {
@@ -2627,13 +2704,70 @@ export function InvitationGenerator({
                 {interactive && (
                   <div className="grid gap-3 rounded-xl border border-vino/15 bg-white/70 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-vino">Detalles de la experiencia</p>
-                    <label className="text-xs text-tinta/65">Diseño interactivo
-                      <select value={interactiveVisual} onChange={(e) => setInteractiveVisual(e.target.value as "quince" | "boda" | "baby")} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm font-medium text-tinta outline-none focus:border-teja">
+                    <label className="text-xs text-tinta/65">Estilo, según el evento
+                      <select value={interactiveVisual} onChange={(e) => setInteractiveVisual(e.target.value as EstiloInvitacion)} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm font-medium text-tinta outline-none focus:border-teja">
                         <option value="quince">Quinceañera romántica</option>
                         <option value="boda">Boda editorial</option>
                         <option value="baby">Baby shower delicado</option>
+                        <option value="cumple">Cumpleaños cálido</option>
+                        <option value="bautizo">Bautizo celeste</option>
+                        <option value="comunion">Comunión dorada</option>
+                        <option value="graduacion">Graduación de gala</option>
                       </select>
                     </label>
+
+                    {/* Fotos de los dueños del evento. Cuando se reparte la
+                        invitación el álbum está vacío, así que sin esto la
+                        portada salía con el diseño de la plantilla. */}
+                    <div className="rounded-lg border border-tinta/15 bg-arena/40 p-3">
+                      <p className="text-xs font-semibold text-tinta">Fotos de los novios o del homenajeado</p>
+                      <p className="mt-0.5 text-xs text-tinta/55">Van solo en la invitación: no aparecen en el álbum de los invitados.</p>
+
+                      <div className="mt-3 flex items-center gap-3">
+                        {coverPhoto ? (
+                          <img src={coverPhoto} alt="" className="h-16 w-12 rounded object-cover shadow-soft" />
+                        ) : (
+                          <span className="flex h-16 w-12 items-center justify-center rounded border border-dashed border-tinta/25 text-tinta/30"><ImagePlus size={16} /></span>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-tinta">Foto de portada</p>
+                          <div className="mt-1 flex gap-2">
+                            <label className="cursor-pointer rounded-md border border-tinta/20 bg-white px-2.5 py-1 text-xs font-semibold text-tinta hover:bg-arena">
+                              {subiendoFoto === "portada" ? "Subiendo…" : coverPhoto ? "Cambiar" : "Elegir foto"}
+                              <input type="file" accept="image/*,.heic,.heif" className="hidden" disabled={subiendoFoto !== null}
+                                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) subirFoto(f, "portada"); }} />
+                            </label>
+                            {coverPhoto && (
+                              <button onClick={() => setCoverPhoto("")} className="rounded-md px-2 py-1 text-xs text-tinta/60 underline">Quitar</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="mt-4 text-xs font-medium text-tinta">Galería de la invitación</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {galleryPhotos.map((foto) => (
+                          <span key={foto} className="relative">
+                            <img src={foto} alt="" className="h-14 w-11 rounded object-cover shadow-soft" />
+                            <button
+                              onClick={() => setGalleryPhotos((fotos) => fotos.filter((f) => f !== foto))}
+                              aria-label="Quitar esta foto"
+                              className="absolute -right-1.5 -top-1.5 rounded-full bg-white p-0.5 text-tinta/60 shadow-soft"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </span>
+                        ))}
+                        {galleryPhotos.length < MAX_INVITATION_PHOTOS && (
+                          <label className="flex h-14 w-11 cursor-pointer items-center justify-center rounded border border-dashed border-tinta/25 text-tinta/40 hover:bg-white">
+                            {subiendoFoto === "galeria" ? <span className="text-[9px]">…</span> : <ImagePlus size={14} />}
+                            <input type="file" accept="image/*,.heic,.heif" className="hidden" disabled={subiendoFoto !== null}
+                              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) subirFoto(f, "galeria"); }} />
+                          </label>
+                        )}
+                      </div>
+                      {errorFoto && <p className="mt-2 text-xs text-vino">{errorFoto}</p>}
+                    </div>
                     <label className="text-xs text-tinta/65">Inicio del evento
                       <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
                     </label>
@@ -2854,13 +2988,59 @@ export function InvitationGenerator({
                   Un código distinto al de las fotos: al escanearlo se abre esta invitación en el
                   celular (no el álbum).
                 </p>
-                <button
-                  onClick={handleGenerateInvitationLink}
-                  disabled={generatingLink || !ready}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-tinta/20 bg-white py-2 text-sm font-semibold text-tinta transition hover:bg-arena disabled:opacity-50"
-                >
-                  <QrCode size={14} /> {generatingLink ? "Generando…" : "Generar QR de la invitación"}
-                </button>
+                {puedeGuardar ? (
+                  <>
+                    <p className="mt-1 text-xs text-tinta/60">
+                      Al guardarla, el enlace y el QR quedan fijos: puedes volver aquí, cambiar la
+                      fecha o las fotos y guardar otra vez sin repartir nada nuevo.
+                    </p>
+                    <button
+                      onClick={guardarInvitacion}
+                      disabled={guardando || !ready}
+                      className="shimmer mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-teja py-2 text-sm font-semibold text-white transition hover:bg-teja-oscuro disabled:opacity-50"
+                    >
+                      <Save size={14} /> {guardando ? "Guardando…" : guardado ? "Guardar los cambios" : "Guardar invitación"}
+                    </button>
+                    {errorGuardar && <p className="mt-2 text-xs text-vino">{errorGuardar}</p>}
+                    {enlaceGuardado && (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-teja-oscuro">
+                          Guardada. Este es su enlace:
+                        </p>
+                        <div className="mt-1 flex gap-1.5">
+                          <input
+                            readOnly
+                            value={enlaceGuardado}
+                            onFocus={(e) => e.currentTarget.select()}
+                            className="min-w-0 flex-1 rounded-lg border border-tinta/20 bg-white px-2 py-1.5 text-xs text-tinta"
+                          />
+                          <button
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(enlaceGuardado);
+                                setEnlaceCopiado(true);
+                                window.setTimeout(() => setEnlaceCopiado(false), 2000);
+                              } catch {
+                                // Sin portapapeles el enlace se ve igual y se puede copiar a mano.
+                              }
+                            }}
+                            className="shrink-0 rounded-lg border border-tinta/20 bg-white px-2.5 text-xs font-semibold text-tinta hover:bg-arena"
+                          >
+                            {enlaceCopiado ? "¡Copiado!" : "Copiar"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={handleGenerateInvitationLink}
+                    disabled={generatingLink || !ready}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-tinta/20 bg-white py-2 text-sm font-semibold text-tinta transition hover:bg-arena disabled:opacity-50"
+                  >
+                    <QrCode size={14} /> {generatingLink ? "Generando…" : "Generar QR de la invitación"}
+                  </button>
+                )}
                 {invitationLinkQr && (
                   <div className="mt-3 flex flex-col items-center gap-2">
                     <img src={invitationLinkQr} alt="QR de la invitación" className="h-32 w-32" />
@@ -2888,6 +3068,45 @@ export function InvitationGenerator({
             </div>
 
             <div className="order-1 flex min-h-0 flex-col items-center justify-start md:order-2 md:justify-center">
+              {/* Con la experiencia interactiva activada hay dos cosas que
+                  mirar: la imagen que se descarga y la página web. Sin esta
+                  vista previa había que rellenar los campos a ciegas. */}
+              {interactive && (
+                <div className="mb-2 flex items-center gap-1.5 rounded-full bg-white/70 p-1">
+                  <button
+                    onClick={() => setVista("imagen")}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${vista === "imagen" ? "bg-tinta text-white" : "text-tinta/70"}`}
+                  >
+                    Imagen
+                  </button>
+                  <button
+                    onClick={() => { setVista("web"); refrescarVista(); }}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${vista === "web" ? "bg-tinta text-white" : "text-tinta/70"}`}
+                  >
+                    <Smartphone size={12} /> Invitación web
+                  </button>
+                </div>
+              )}
+
+              {interactive && vista === "web" ? (
+                <>
+                  <div className="overflow-hidden rounded-[2rem] border-4 border-tinta/80 bg-white shadow-lift">
+                    <iframe
+                      key={urlVista ?? "vacia"}
+                      src={urlVista ?? undefined}
+                      title="Vista previa de la invitación web"
+                      className="block h-[58vh] w-[280px] border-0"
+                    />
+                  </div>
+                  <button onClick={refrescarVista} className="mt-2 rounded-full border border-tinta/20 bg-white px-4 py-1.5 text-xs font-semibold text-tinta hover:bg-arena">
+                    Actualizar vista previa
+                  </button>
+                  <p className="mt-1 text-center text-xs text-tinta/50">
+                    Se abre ya sin el sobre, para que veas el interior mientras editas.
+                  </p>
+                </>
+              ) : (
+              <>
               <p className="mb-2 text-center text-xs text-tinta/50">
                 Arrastra el texto, el código QR o la foto para moverlos
               </p>
@@ -2909,6 +3128,8 @@ export function InvitationGenerator({
                   ready ? "" : "hidden"
                 }`}
               />
+              </>
+              )}
             </div>
             </div>
           </div>

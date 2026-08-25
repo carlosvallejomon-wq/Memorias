@@ -88,4 +88,10 @@ export const SETUP_STATEMENTS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS invitation_rsvps_album_idx ON invitation_rsvps (album_id)`,
+  `CREATE TABLE IF NOT EXISTS invitations (
+    album_id uuid PRIMARY KEY REFERENCES albums(id) ON DELETE CASCADE,
+    data jsonb NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
 ];

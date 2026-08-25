@@ -405,7 +405,7 @@ body::before {
    arriba, así que el contenido aparece ya colocado. */
 .reveal {
   opacity: 0;
-  transform: translateY(18px);
+  transform: translateY(18px) scale(0.985);
   transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -593,7 +593,7 @@ details > summary::marker {
 .sobre-cuerpo,
 .sobre-solapa,
 .sobre-tarjeta,
-.sobre-cuerpo .lacre-oro {
+.lacre-roto .lacre-oro {
   transition:
     transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
     opacity 0.6s ease;
@@ -606,14 +606,109 @@ details > summary::marker {
   transform: rotateX(-168deg);
 }
 .sobre-abriendo .sobre-tarjeta {
-  transform: translate(-50%, -78%);
-}
-.sobre-abriendo .lacre-oro {
-  transform: translate(-50%, -50%) scale(0.3) rotate(-30deg);
-  opacity: 0;
+  transform: translate(-50%, -80%);
 }
 .sobre-abriendo .sobre-cuerpo {
   transform: translateY(24%) scale(0.9);
   opacity: 0;
-  transition-delay: 0.4s;
+  transition-delay: 0.45s;
+}
+
+/* El lacre se parte en dos: son dos copias del mismo sello, cada una
+   recortada a su mitad, así que de cerrado se ven como una sola pieza. */
+.lacre-roto {
+  position: relative;
+}
+.lacre-roto .lacre-oro {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.lacre-roto .mitad-izq {
+  clip-path: inset(0 50% 0 0);
+}
+.lacre-roto .mitad-der {
+  clip-path: inset(0 0 0 50%);
+}
+.sobre-abriendo .mitad-izq {
+  transform: translate(-75%, 34%) rotate(-40deg);
+  opacity: 0;
+}
+.sobre-abriendo .mitad-der {
+  transform: translate(75%, 38%) rotate(44deg);
+  opacity: 0;
+}
+
+/* Pétalos cayendo de fondo. Son nueve, con transformaciones y opacidad: no
+   repintan el documento y con `prefers-reduced-motion` se quedan quietos. */
+.lluvia {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.petalo {
+  position: absolute;
+  top: -8%;
+  width: 12px;
+  height: 12px;
+  border-radius: 60% 0 60% 0;
+  opacity: 0;
+  animation: caer linear infinite;
+}
+@keyframes caer {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.32;
+  }
+  88% {
+    opacity: 0.32;
+  }
+  100% {
+    transform: translate3d(3vw, 108vh, 0) rotate(320deg);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .petalo {
+    animation: none;
+    display: none;
+  }
+}
+
+/* Los segundos laten al cambiar: se remonta el número cada segundo y la
+   animación vuelve a empezar sola. */
+@keyframes latido {
+  from {
+    opacity: 0.25;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.late {
+  animation: latido 0.45s ease-out;
+}
+
+/* Filigrana: la línea con el adorno del tema que va bajo los títulos. */
+.filigrana {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+.filigrana::before,
+.filigrana::after {
+  content: "";
+  height: 1px;
+  width: 2.2rem;
+  background: currentColor;
+  opacity: 0.4;
 }
