@@ -2238,6 +2238,9 @@ export function InvitationGenerator({
     setQrLayout(v.q);
     setAutomaticRsvp(Boolean(v.ar));
     setInteractive(Boolean(v.it));
+    // Se hidrata una sola vez al abrir el editor. Es estado de formulario
+    // guardado, no una reacción a cada cambio del usuario.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (v.iv) setPlantillaId(plantillaDe(v.iv).id);
     setStartsAt(v.st ?? "");
     setMapUrl(v.mp ?? "");
