@@ -1,4 +1,5 @@
 import {
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -146,6 +147,11 @@ export const guestbookEntries = pgTable(
       .references(() => albums.id, { onDelete: "cascade" }),
     authorName: text("author_name"),
     guestId: text("guest_id"),
+    // "deseo" son las dedicatorias de siempre (las que se imprimen en el
+    // libro) y "cancion" las que sugieren los invitados desde la invitación
+    // para la lista de la fiesta. Comparten tabla porque son lo mismo: un
+    // texto corto firmado por un invitado.
+    kind: text("kind").notNull().default("deseo"),
     body: text("body").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -175,3 +181,20 @@ export const invitationRsvps = pgTable(
   },
   (t) => [index("invitation_rsvps_album_idx").on(t.albumId)],
 );
+
+// La invitación que prepara el organizador antes de repartirla. Una por
+// álbum, guardada entera como JSON: el formato lo manda `InvitationLinkState`
+// y cambia a menudo (cada detalle nuevo es un campo más), así que una tabla
+// con una columna por dato obligaría a migrar el esquema cada vez.
+//
+// Guardarla es lo que permite prepararla en varias sentadas —subir las fotos
+// de los novios hoy y escribir la cronología mañana— y que el enlace corto
+// `/i/<código>` siga sirviendo lo último.
+export const invitations = pgTable("invitations", {
+  albumId: uuid("album_id")
+    .primaryKey()
+    .references(() => albums.id, { onDelete: "cascade" }),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

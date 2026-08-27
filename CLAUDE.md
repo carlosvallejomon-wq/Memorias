@@ -45,7 +45,123 @@ queda etiquetada; borrar un reto no borra las fotos (`ON DELETE SET NULL`).
 **Muro de mensajes** (tabla `guestbook_entries`): dedicatorias sin foto. Cada
 invitado puede borrar solo la suya (`/api/guestbook/[entryId]` con su
 `guestId`); el organizador puede borrar cualquiera desde el panel. Se
-imprimen como páginas de "Dedicatorias" al final del Dotbook.
+imprimen como páginas de "Dedicatorias" al final del Dotbook. La columna
+`kind` distingue las dedicatorias (`deseo`) de las **canciones** que piden
+los invitados desde la invitación (`cancion`): comparten tabla porque son lo
+mismo —un texto corto firmado— pero el Dotbook solo imprime las primeras.
+
+**Invitación web interactiva**: la prepara el organizador en
+`src/components/InvitationGenerator.tsx` y la ve el invitado en
+`src/components/InvitationView.tsx`. Llega por dos caminos:
+
+- `/invitacion?d=…` — el estado entero (`InvitationLinkState`, en
+  `src/lib/invitation-link.ts`) serializado en la URL. No crea nada en el
+  servidor, pero para cambiar algo hay que repartir un enlace nuevo. Sigue
+  ahí porque los QR ya entregados apuntan aquí.
+- `/i/<código del álbum>` — el estado guardado en la tabla `invitations`
+  (una fila por álbum, el JSON entero en una columna `jsonb`, porque el
+  formato crece con cada detalle nuevo y una columna por dato obligaría a
+  migrar cada vez). **Es el camino normal**: se puede volver al editor,
+  cambiar la fecha o las fotos y guardar otra vez sin que el QR deje de
+  valer.
+
+Guardar va por `POST /api/invitaciones/[code]`, que **no pasa por Clerk** a
+propósito: el editor lo usan el panel y `/a/[code]/personalizar?k=…`, donde
+el dueño del evento es cliente de una agencia y no tiene cuenta. El permiso
+es el mismo token firmado del enlace privado (`clientToken`), que el panel
+calcula por su cuenta. Las dos pantallas cargan lo guardado con
+`cargarInvitacion()` y se lo pasan al editor, para que no se abra en blanco.
+
+**Las fotos son de los dueños del evento, no del álbum.** Cuando se reparte
+la invitación el álbum está vacío, así que el editor sube la foto de portada
+(`fp`) y las de la galería (`fg`) con `kind: "invitacion"` en
+`/api/blob-upload`: van a Blob como cualquier recuerdo pero **no se
+registran**, así que no salen en la galería de los invitados ni gastan su
+cupo. Si no se pone ninguna, la invitación cae a las del álbum y luego al
+diseño de la plantilla. El editor tiene además una **vista previa** en un
+móvil (`vista === "web"`), que abre la propia página en un iframe con
+`abierto=1` para saltarse el sobre en cada refresco; sin ella los campos se
+rellenaban a ciegas.
+
+El diseño imita la **papelería impresa**, no una web: títulos manuscritos en
+Pinyon Script (`.tipo-manuscrita`), rótulos en versalitas espaciadas
+(`.rotulo`), fotos con paspartú blanco (`.marco-foto`), recuadros
+ornamentales (`.cartucho`) y un **lacre dorado** dibujado a base de
+degradados (`.lacre-oro`). La referencia son las invitaciones que circulan
+por WhatsApp (invitafy, hamuqinti y similares); si se toca el estilo,
+conviene volver a mirarlas. Pinyon Script y Playfair Display las carga ya
+`ensureInvitationFonts()` para el lienzo del generador, así que la página no
+pide nada aparte.
+
+**Catálogo de plantillas** (`src/lib/invitation-styles.ts`): al principio
+había una sola maqueta con siete paletas —cambiaba el color y poco más—, así
+que ahora cada plantilla decide cinco cosas además de la paleta: cómo se
+alternan los fondos (`bandas`: alternas, claras u oscuras), qué adorno se
+repite (`motivo`: floral, botánico, déco, corazones, estrellas, lazo), cómo
+se escriben los títulos (`titulos`: manuscrita o versalitas), con qué forma
+se enmarca la foto de portada (`marco`: arco, óvalo o recto) y qué cae de
+fondo (`lluvia`: pétalos, destellos o nada). Con eso, dos plantillas del
+mismo color ya no se parecen. Añadir una es **añadir una entrada a
+`PLANTILLAS`**: no hay imágenes que subir, porque los adornos están dibujados
+en SVG (`src/components/InvitationOrnaments.tsx`) y se tiñen solos, y la
+miniatura del selector (`InvitationTemplatePicker.tsx`) sale de la misma
+definición, así que aparece sola y con su aspecto real.
+
+El campo `iv` del enlace guarda el identificador de la plantilla.
+`plantillaDe()` acepta también el nombre del evento a secas ("quince",
+"boda"…), que es lo que traían los enlaces repartidos antes del catálogo, y
+cae a la primera plantilla si no reconoce nada. La textura de papel
+(`.papel`) son dos luces blancas, así que en las plantillas oscuras no se
+pone: dejaba el fondo gris.
+
+Al abrirla, el invitado ve un **sobre cerrado** con una tarjeta asomando y el
+lacre con las iniciales del evento (`si`, o las del nombre si no se ponen), y
+lo abre tocándolo: la solapa gira, la tarjeta sale y el lacre **se parte en
+dos** (`.lacre-roto` son dos copias del mismo sello recortadas a media pieza,
+que de cerrado se ven como una). Ese toque importa: es el gesto de usuario
+que los navegadores exigen para dejar sonar la música (`ms`), así que la
+canción arranca justo ahí y no antes. Dentro, y en este orden: portada con la
+foto en un marco de arco, cuenta atrás de cuatro números separados por dos
+puntos (`.cuenta-atras`, con los segundos latiendo), menciones a padres y
+padrinos (`pd`, una línea por "Rol: Nombre"), una banda de foto a todo lo
+ancho, **ceremonia** (`ce`/`ch`/`cm`) y **recepción** (`re`/`rh`/`rm`) por
+separado con su hora y su mapa —si no se rellenan, cae al bloque "Fecha y
+lugar" de siempre con `l`/`mp`—, cronología, código de vestimenta con
+**paleta** (`pa`) y **colores a evitar** (`ev`), avisos de "a tomar en
+cuenta" (`av`), **mesa de regalos** (`mr`) y datos de transferencia (`cl`,
+con botón de copiar), **hospedaje** (`ho`), galería (`ga`), **sugerencias de
+canciones** (`sc`), **buenos deseos** (`bd`) y hashtag (`hg`). De fondo caen
+pétalos (`.petalo`), que desaparecen con `prefers-reduced-motion`.
+
+Todas las secciones se ocultan solas si su campo va vacío: es así como el
+organizador elige qué enseña, sin una lista de interruptores.
+
+Cuidado al tocar `decodeInvitationLink`: `useSearchParams()` ya deshace el
+porcentaje, así que el JSON llega tal cual. Antes se le pasaba otro
+`decodeURIComponent` y eso reventaba cualquier invitación con un "%" en el
+texto ("10% de descuento"), porque el segundo decodificado se encontraba un
+escape a medias. Hay pruebas de eso en `src/lib/invitation-link.test.ts`.
+
+Los nombres de color en castellano se traducen en la tabla `COLORES`;
+`colorDe()` prueba primero el nombre entero y luego cada palabra, porque
+"rosa palo" o "verde olivo" no están como una sola clave y el círculo salía
+vacío. El nombre se imprime siempre debajo del círculo, así que un color
+desconocido no deja la sección muda.
+
+Los buenos deseos se guardan por `/api/guest/[code]/guestbook`, el mismo muro
+de mensajes de siempre: acaban impresos en las páginas de dedicatorias del
+Dotbook sin que nadie copie nada a mano. La galería del álbum y los deseos se
+piden mientras el invitado mira el sobre, para que la portada ya tenga su
+foto al abrirlo; si el álbum tiene código de acceso el portero responde 403 y
+esas dos secciones sencillamente no aparecen.
+
+Dos detalles que conviene no revertir: los botones flotantes (música y volver
+arriba) van abajo a la **izquierda**, porque la esquina derecha ya la ocupa el
+botón de soporte por WhatsApp y los tapaba; y la invitación clásica —la que
+no marca "experiencia interactiva"— conserva su formulario de RSVP de
+siempre, porque el nuevo va pintado con los colores del tema y allí no hay
+tema. Las secciones aparecen al desplazar con `<Reveal>`
+(`src/components/Reveal.tsx`, antes dentro de `LandingPieces`).
 
 **Preparación de archivos en el navegador** (`src/lib/prepare-upload.ts`):
 antes de subir nada se convierten los HEIC del iPhone a JPG (con `heic-to`,

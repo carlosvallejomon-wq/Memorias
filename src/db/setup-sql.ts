@@ -77,6 +77,7 @@ export const SETUP_STATEMENTS: string[] = [
     body text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
+  `ALTER TABLE guestbook_entries ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'deseo'`,
   `CREATE INDEX IF NOT EXISTS guestbook_album_idx ON guestbook_entries (album_id)`,
   `CREATE TABLE IF NOT EXISTS invitation_rsvps (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -88,4 +89,10 @@ export const SETUP_STATEMENTS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS invitation_rsvps_album_idx ON invitation_rsvps (album_id)`,
+  `CREATE TABLE IF NOT EXISTS invitations (
+    album_id uuid PRIMARY KEY REFERENCES albums(id) ON DELETE CASCADE,
+    data jsonb NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
 ];

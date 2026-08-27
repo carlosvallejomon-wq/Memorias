@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { PartyPopper } from "lucide-react";
 import { useState } from "react";
+import type { InvitationLinkState } from "@/lib/invitation-link";
 
 const InvitationEditor = dynamic(
   () =>
@@ -30,10 +31,14 @@ export function LazyInvitationGenerator({
   albumName,
   eventDateLabel,
   shareUrl,
+  saveToken,
+  savedInvitation,
 }: {
   albumName: string;
   eventDateLabel: string | null;
   shareUrl: string;
+  saveToken?: string;
+  savedInvitation?: InvitationLinkState | null;
 }) {
   const [active, setActive] = useState(false);
 
@@ -45,6 +50,8 @@ export function LazyInvitationGenerator({
         shareUrl={shareUrl}
         initiallyOpen
         hideTrigger
+        saveToken={saveToken}
+        savedInvitation={savedInvitation}
         onClose={() => setActive(false)}
       />
     );

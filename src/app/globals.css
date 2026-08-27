@@ -405,7 +405,7 @@ body::before {
    arriba, así que el contenido aparece ya colocado. */
 .reveal {
   opacity: 0;
-  transform: translateY(18px);
+  transform: translateY(18px) scale(0.985);
   transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -468,4 +468,264 @@ details > summary::marker {
   color: var(--color-teja);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* --- Invitación interactiva -------------------------------------------
+   Papelería, no una web. La referencia son las invitaciones digitales que
+   circulan por WhatsApp: fondo del color del evento, títulos manuscritos,
+   rótulos en versalitas espaciadas, marcos y un lacre dorado de verdad. */
+
+/* Tipografías: las carga `ensureInvitationFonts()` para el lienzo, y aquí se
+   aprovechan. Si Google Fonts no responde, los respaldos mantienen el tono. */
+.tipo-manuscrita {
+  font-family: "Pinyon Script", "Snell Roundhand", cursive;
+  font-weight: 400;
+  line-height: 1.15;
+}
+.tipo-titulo {
+  font-family: "Playfair Display", var(--font-display);
+}
+.rotulo {
+  font-family: "Playfair Display", var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 0.7rem;
+}
+
+/* Cuenta atrás: números finos separados por dos puntos, como en las
+   invitaciones de papel. Nada de cajas de colores. */
+.cuenta-atras {
+  font-family: "Playfair Display", var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 13vw, 3rem);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.cuenta-atras.dos-puntos {
+  opacity: 0.3;
+}
+
+/* Lacre dorado. Se dibuja entero con degradados: un PNG habría que servirlo,
+   y así toma el tamaño que le pidan sin pixelarse. El borde irregular sale
+   de un radio elíptico distinto en cada esquina. */
+.lacre-oro {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 47% 53% 51% 49% / 51% 47% 53% 49%;
+  background: radial-gradient(
+    circle at 34% 28%,
+    #f7e6b4 0%,
+    #dcb85f 32%,
+    #bc8f33 66%,
+    #8e6a1e 100%
+  );
+  box-shadow:
+    0 8px 16px rgba(72, 48, 10, 0.3),
+    inset 0 -3px 7px rgba(92, 62, 12, 0.5),
+    inset 0 3px 7px rgba(255, 243, 208, 0.55);
+  color: #6d4b12;
+  text-shadow: 0 1px 0 rgba(255, 244, 210, 0.5);
+}
+.lacre-oro::before {
+  content: "";
+  position: absolute;
+  inset: 15%;
+  border-radius: inherit;
+  border: 1px solid rgba(120, 85, 20, 0.4);
+}
+
+/* Textura de papel: dos luces muy suaves para que el fondo no sea un color
+   plano de pantalla. Va encima del color del tema, no en su lugar. */
+.papel {
+  background-image:
+    radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.55), transparent 42%),
+    radial-gradient(circle at 88% 72%, rgba(255, 255, 255, 0.32), transparent 38%);
+}
+
+/* Marco de foto: la cartulina blanca alrededor de la imagen. */
+.marco-foto {
+  background: #fff;
+  padding: 0.5rem;
+  box-shadow: 0 10px 24px rgba(60, 40, 40, 0.14);
+}
+/* Las tres formas con las que las plantillas enmarcan la foto de portada. */
+.marco-arco,
+.marco-arco > img {
+  border-radius: 50% 50% 10px 10px / 26% 26% 2% 2%;
+}
+.marco-ovalo,
+.marco-ovalo > img {
+  border-radius: 50%;
+}
+.marco-recto {
+  outline: 1px solid currentColor;
+  outline-offset: 6px;
+}
+
+/* Cartucho: el recuadro ornamental que enmarca algunas secciones. Dos
+   filetes con esquinas elípticas; hereda el color del texto. */
+.cartucho {
+  position: relative;
+  border: 1px solid currentColor;
+  border-radius: 2.6rem / 3.4rem;
+}
+.cartucho::before {
+  content: "";
+  position: absolute;
+  inset: 0.42rem;
+  pointer-events: none;
+  border: 1px solid currentColor;
+  border-radius: 2.2rem / 3rem;
+  opacity: 0.45;
+}
+
+/* Marco doble para las bandas de foto a todo lo ancho. */
+.marco-doble::before,
+.marco-doble::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid currentColor;
+}
+.marco-doble::before {
+  inset: 0.7rem;
+  opacity: 0.32;
+}
+.marco-doble::after {
+  inset: 1.1rem;
+  opacity: 0.16;
+}
+
+/* El sobre lacrado. La solapa gira sobre su borde de arriba, la tarjeta sale
+   hacia arriba y el lacre se encoge; después el sobre entero se va. Ese toque
+   es además el permiso que piden los navegadores para dejar sonar la música. */
+.sobre {
+  perspective: 1400px;
+}
+.sobre-cuerpo {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+.sobre-cuerpo,
+.sobre-solapa,
+.sobre-tarjeta,
+.lacre-roto .lacre-oro {
+  transition:
+    transform 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.6s ease;
+}
+.sobre-solapa {
+  transform-origin: top center;
+  backface-visibility: hidden;
+}
+.sobre-abriendo .sobre-solapa {
+  transform: rotateX(-168deg);
+}
+.sobre-abriendo .sobre-tarjeta {
+  transform: translate(-50%, -80%);
+}
+.sobre-abriendo .sobre-cuerpo {
+  transform: translateY(24%) scale(0.9);
+  opacity: 0;
+  transition-delay: 0.45s;
+}
+
+/* El lacre se parte en dos: son dos copias del mismo sello, cada una
+   recortada a su mitad, así que de cerrado se ven como una sola pieza. */
+.lacre-roto {
+  position: relative;
+}
+.lacre-roto .lacre-oro {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.lacre-roto .mitad-izq {
+  clip-path: inset(0 50% 0 0);
+}
+.lacre-roto .mitad-der {
+  clip-path: inset(0 0 0 50%);
+}
+.sobre-abriendo .mitad-izq {
+  transform: translate(-75%, 34%) rotate(-40deg);
+  opacity: 0;
+}
+.sobre-abriendo .mitad-der {
+  transform: translate(75%, 38%) rotate(44deg);
+  opacity: 0;
+}
+
+/* Pétalos cayendo de fondo. Son nueve, con transformaciones y opacidad: no
+   repintan el documento y con `prefers-reduced-motion` se quedan quietos. */
+.lluvia {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.petalo {
+  position: absolute;
+  top: -8%;
+  width: 12px;
+  height: 12px;
+  border-radius: 60% 0 60% 0;
+  opacity: 0;
+  animation: caer linear infinite;
+}
+@keyframes caer {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.32;
+  }
+  88% {
+    opacity: 0.32;
+  }
+  100% {
+    transform: translate3d(3vw, 108vh, 0) rotate(320deg);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .petalo {
+    animation: none;
+    display: none;
+  }
+}
+
+/* Los segundos laten al cambiar: se remonta el número cada segundo y la
+   animación vuelve a empezar sola. */
+@keyframes latido {
+  from {
+    opacity: 0.25;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.late {
+  animation: latido 0.45s ease-out;
+}
+
+/* Filigrana: la línea con el adorno del tema que va bajo los títulos. */
+.filigrana {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+.filigrana::before,
+.filigrana::after {
+  content: "";
+  height: 1px;
+  width: 2.2rem;
+  background: currentColor;
+  opacity: 0.4;
 }

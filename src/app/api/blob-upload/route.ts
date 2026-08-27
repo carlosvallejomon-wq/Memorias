@@ -8,6 +8,7 @@ import { registerMedia } from "@/lib/register-media";
 import {
   MAX_FILE_BYTES,
   MAX_ITEMS_PER_ALBUM,
+  MAX_INVITATION_PHOTO_BYTES,
   MAX_ITEMS_PER_GUEST,
   MAX_POSTER_BYTES,
   formatMb,
@@ -21,8 +22,14 @@ type ClientPayload = {
   uploaderId?: string;
   takenAt?: number;
   challengeId?: string | null;
-  /** "poster" son las miniaturas de vídeo: se suben pero no son un recuerdo. */
-  kind?: "media" | "poster";
+  /**
+   * "poster" son las miniaturas de vídeo y "invitacion" las fotos que el
+   * organizador pone en la invitación (la de portada y las de su galería).
+   * Ninguna de las dos es un recuerdo del álbum: se guardan en Blob pero no
+   * se registran, así que no salen en la galería de los invitados ni gastan
+   * el cupo del álbum.
+   */
+  kind?: "media" | "poster" | "invitacion";
 };
 
 // Comprueba los topes antes de conceder el token: es el único momento en que
@@ -75,15 +82,16 @@ export async function POST(request: Request) {
         const album = guard.album;
 
         const isPoster = payload.kind === "poster";
-        if (!isPoster) await checkQuota(album.id, payload.uploaderId);
+        const isInvitacion = payload.kind === "invitacion";
+        if (!isPoster && !isInvitacion) await checkQuota(album.id, payload.uploaderId);
 
         return {
-          allowedContentTypes: isPoster ? ["image/jpeg"] : ["image/*", "video/*"],
-          maximumSizeInBytes: isPoster ? MAX_POSTER_BYTES : MAX_FILE_BYTES,
+          allowedContentTypes: isPoster || isInvitacion ? ["image/jpeg", "image/png", "image/webp"] : ["image/*", "video/*"],
+          maximumSizeInBytes: isPoster ? MAX_POSTER_BYTES : isInvitacion ? MAX_INVITATION_PHOTO_BYTES : MAX_FILE_BYTES,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
             albumId: album.id,
-            kind: isPoster ? "poster" : "media",
+            kind: isPoster ? "poster" : isInvitacion ? "invitacion" : "media",
             uploaderName: payload.uploaderName ?? null,
             uploaderId: payload.uploaderId ?? null,
             takenAt: payload.takenAt ?? null,
@@ -99,16 +107,16 @@ export async function POST(request: Request) {
       onUploadCompleted: async ({ blob, tokenPayload }) => {
         const payload = JSON.parse(tokenPayload ?? "{}") as {
           albumId?: string;
-          kind?: "media" | "poster";
+          kind?: "media" | "poster" | "invitacion";
           uploaderName?: string | null;
           uploaderId?: string | null;
           takenAt?: number | null;
           challengeId?: string | null;
           approved?: boolean;
         };
-        // Las miniaturas no son un recuerdo aparte: las registra el cliente
-        // junto al vídeo al que pertenecen.
-        if (!payload.albumId || payload.kind === "poster") return;
+        // Las miniaturas las registra el cliente junto al vídeo al que
+        // pertenecen, y las fotos de la invitación no son un recuerdo.
+        if (!payload.albumId || payload.kind === "poster" || payload.kind === "invitacion") return;
         await registerMedia({
           albumId: payload.albumId,
           url: blob.url,

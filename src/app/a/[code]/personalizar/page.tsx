@@ -8,6 +8,7 @@ import { albums } from "@/db/schema";
 import { accessCookieName, hasAccess } from "@/lib/album-pin";
 import { isExpired } from "@/lib/expiry";
 import { isValidClientToken } from "@/lib/client-link";
+import { cargarInvitacion } from "@/lib/invitation-store";
 import { publicSiteUrl } from "@/lib/public-site-url";
 import { AlbumLock } from "@/components/AlbumLock";
 import { DotbookGenerator } from "@/components/DotbookGenerator";
@@ -112,6 +113,8 @@ export default async function PersonalizarPage({
   // Absoluta, no relativa: este mismo texto es el que se codifica en el QR de
   // la invitación, y un "/a/loquesea" escaneado no lleva a ninguna parte.
   const shareUrl = `${publicSiteUrl()}/a/${album.shareCode}`;
+  // Lo guardado la última vez, para que el editor no se abra en blanco.
+  const invitacionGuardada = await cargarInvitacion(album.id);
   const albumPath = `/a/${album.shareCode}`;
   const dotbookBase = `/api/guest/${album.shareCode}/dotbook?k=${k}`;
 
@@ -147,6 +150,8 @@ export default async function PersonalizarPage({
             albumName={album.name}
             eventDateLabel={eventDateLabel}
             shareUrl={shareUrl}
+            saveToken={k}
+            savedInvitation={invitacionGuardada}
           />
         </div>
       </section>

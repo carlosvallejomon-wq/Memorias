@@ -18,7 +18,8 @@ import { db } from "@/db";
 import { albums, challenges, comments, guestbookEntries, invitationRsvps, media, reactions } from "@/db/schema";
 import { ShareCard } from "@/components/ShareCard";
 import { ClientLinkCard } from "@/components/ClientLinkCard";
-import { clientLinkPath } from "@/lib/client-link";
+import { clientLinkPath, clientToken } from "@/lib/client-link";
+import { cargarInvitacion } from "@/lib/invitation-store";
 import { publicSiteUrl } from "@/lib/public-site-url";
 import { ModerationToggle } from "@/components/ModerationToggle";
 import { LazyInvitationGenerator } from "@/components/LazyInvitationGenerator";
@@ -79,6 +80,7 @@ export default async function AlbumAdminPage({
         id: guestbookEntries.id,
         authorName: guestbookEntries.authorName,
         body: guestbookEntries.body,
+        kind: guestbookEntries.kind,
         createdAt: guestbookEntries.createdAt,
       })
       .from(guestbookEntries)
@@ -172,6 +174,8 @@ export default async function AlbumAdminPage({
   const siteUrl = publicSiteUrl();
   const shareUrl = `${siteUrl}/a/${album.shareCode}`;
   const clientUrl = `${siteUrl}${clientLinkPath(album.shareCode, album.id)}`;
+  // Lo guardado la última vez, para que el editor no se abra en blanco.
+  const invitacionGuardada = await cargarInvitacion(album.id);
   const eventDateLabel = album.eventDate
     ? new Date(album.eventDate + "T00:00:00").toLocaleDateString("es-ES", {
         day: "numeric",
@@ -274,6 +278,8 @@ export default async function AlbumAdminPage({
                 albumName={album.name}
                 eventDateLabel={eventDateLabel}
                 shareUrl={shareUrl}
+                saveToken={clientToken(album.id)}
+                savedInvitation={invitacionGuardada}
               />
               <DotbookGenerator albumId={album.id} />
               <a
