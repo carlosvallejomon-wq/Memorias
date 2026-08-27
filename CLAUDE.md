@@ -45,7 +45,10 @@ queda etiquetada; borrar un reto no borra las fotos (`ON DELETE SET NULL`).
 **Muro de mensajes** (tabla `guestbook_entries`): dedicatorias sin foto. Cada
 invitado puede borrar solo la suya (`/api/guestbook/[entryId]` con su
 `guestId`); el organizador puede borrar cualquiera desde el panel. Se
-imprimen como páginas de "Dedicatorias" al final del Dotbook.
+imprimen como páginas de "Dedicatorias" al final del Dotbook. La columna
+`kind` distingue las dedicatorias (`deseo`) de las **canciones** que piden
+los invitados desde la invitación (`cancion`): comparten tabla porque son lo
+mismo —un texto corto firmado— pero el Dotbook solo imprime las primeras.
 
 **Invitación web interactiva**: la prepara el organizador en
 `src/components/InvitationGenerator.tsx` y la ve el invitado en
@@ -100,13 +103,27 @@ lo abre tocándolo: la solapa gira, la tarjeta sale y el lacre **se parte en
 dos** (`.lacre-roto` son dos copias del mismo sello recortadas a media pieza,
 que de cerrado se ven como una). Ese toque importa: es el gesto de usuario
 que los navegadores exigen para dejar sonar la música (`ms`), así que la
-canción arranca justo ahí y no antes. Dentro: portada con la foto en un marco
-de arco, cuenta atrás de cuatro números separados por dos puntos
-(`.cuenta-atras`, con los segundos latiendo), fecha y lugar con enlace a mapa
-y al calendario, cronología, código de vestimenta con **paleta** (`pa`) y
-**colores a evitar** (`ev`), avisos de "a tomar en cuenta" (`av`), galería
-(`ga`), **buenos deseos** (`bd`) y hashtag (`hg`). De fondo caen pétalos
-(`.petalo`), que desaparecen con `prefers-reduced-motion`.
+canción arranca justo ahí y no antes. Dentro, y en este orden: portada con la
+foto en un marco de arco, cuenta atrás de cuatro números separados por dos
+puntos (`.cuenta-atras`, con los segundos latiendo), menciones a padres y
+padrinos (`pd`, una línea por "Rol: Nombre"), una banda de foto a todo lo
+ancho, **ceremonia** (`ce`/`ch`/`cm`) y **recepción** (`re`/`rh`/`rm`) por
+separado con su hora y su mapa —si no se rellenan, cae al bloque "Fecha y
+lugar" de siempre con `l`/`mp`—, cronología, código de vestimenta con
+**paleta** (`pa`) y **colores a evitar** (`ev`), avisos de "a tomar en
+cuenta" (`av`), **mesa de regalos** (`mr`) y datos de transferencia (`cl`,
+con botón de copiar), **hospedaje** (`ho`), galería (`ga`), **sugerencias de
+canciones** (`sc`), **buenos deseos** (`bd`) y hashtag (`hg`). De fondo caen
+pétalos (`.petalo`), que desaparecen con `prefers-reduced-motion`.
+
+Todas las secciones se ocultan solas si su campo va vacío: es así como el
+organizador elige qué enseña, sin una lista de interruptores.
+
+Cuidado al tocar `decodeInvitationLink`: `useSearchParams()` ya deshace el
+porcentaje, así que el JSON llega tal cual. Antes se le pasaba otro
+`decodeURIComponent` y eso reventaba cualquier invitación con un "%" en el
+texto ("10% de descuento"), porque el segundo decodificado se encontraba un
+escape a medias. Hay pruebas de eso en `src/lib/invitation-link.test.ts`.
 
 Los nombres de color en castellano se traducen en la tabla `COLORES`;
 `colorDe()` prueba primero el nombre entero y luego cada palabra, porque

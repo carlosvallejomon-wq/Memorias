@@ -2159,6 +2159,17 @@ export function InvitationGenerator({
   // cuando el álbum todavía está vacío, así que no pueden salir de ahí.
   const [coverPhoto, setCoverPhoto] = useState("");
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
+  const [padrinos, setPadrinos] = useState("");
+  const [ceremonia, setCeremonia] = useState("");
+  const [ceremoniaHora, setCeremoniaHora] = useState("");
+  const [ceremoniaMapa, setCeremoniaMapa] = useState("");
+  const [recepcion, setRecepcion] = useState("");
+  const [recepcionHora, setRecepcionHora] = useState("");
+  const [recepcionMapa, setRecepcionMapa] = useState("");
+  const [mesaRegalos, setMesaRegalos] = useState("");
+  const [datosBanco, setDatosBanco] = useState("");
+  const [hospedaje, setHospedaje] = useState("");
+  const [pedirCanciones, setPedirCanciones] = useState(true);
   const [subiendoFoto, setSubiendoFoto] = useState<"portada" | "galeria" | null>(null);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   // Vista previa de la invitación web dentro del propio editor: sin ella hay
@@ -2241,6 +2252,17 @@ export function InvitationGenerator({
     setCollectWishes(v.bd !== false);
     setCoverPhoto(v.fp ?? "");
     setGalleryPhotos(v.fg ?? []);
+    setPadrinos(v.pd ?? "");
+    setCeremonia(v.ce ?? "");
+    setCeremoniaHora(v.ch ?? "");
+    setCeremoniaMapa(v.cm ?? "");
+    setRecepcion(v.re ?? "");
+    setRecepcionHora(v.rh ?? "");
+    setRecepcionMapa(v.rm ?? "");
+    setMesaRegalos(v.mr ?? "");
+    setDatosBanco(v.cl ?? "");
+    setHospedaje(v.ho ?? "");
+    setPedirCanciones(v.sc !== false);
   }, [open, savedInvitation]);
 
   function chooseTemplate(next: Template) {
@@ -2454,6 +2476,17 @@ export function InvitationGenerator({
       bd: interactive ? collectWishes : undefined,
       fp: coverPhoto || undefined,
       fg: galleryPhotos.length > 0 ? galleryPhotos : undefined,
+      pd: padrinos.trim() || undefined,
+      ce: ceremonia.trim() || undefined,
+      ch: ceremoniaHora.trim() || undefined,
+      cm: ceremoniaMapa.trim() || undefined,
+      re: recepcion.trim() || undefined,
+      rh: recepcionHora.trim() || undefined,
+      rm: recepcionMapa.trim() || undefined,
+      mr: mesaRegalos.trim() || undefined,
+      cl: datosBanco.trim() || undefined,
+      ho: hospedaje.trim() || undefined,
+      sc: interactive ? pedirCanciones : undefined,
     };
   }
 
@@ -2773,6 +2806,26 @@ export function InvitationGenerator({
                     </label>
                     <input value={mapUrl} onChange={(e) => setMapUrl(e.target.value)} placeholder="Enlace de Google Maps (opcional)" maxLength={500} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
                     <input value={dressCode} onChange={(e) => setDressCode(e.target.value)} placeholder="Código de vestimenta (p. ej. Formal · tonos tierra)" maxLength={160} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                    <label className="text-xs text-tinta/65">Menciones: padres, padrinos… (una por línea, «Rol: Nombre»)
+                      <textarea value={padrinos} onChange={(e) => setPadrinos(e.target.value)} placeholder={"Padres: Ana y Luis\nPadrinos de honor: Marta y Jorge"} maxLength={600} rows={3} className="mt-1 block w-full resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+
+                    <div className="grid gap-2 rounded-lg border border-tinta/15 bg-arena/40 p-3">
+                      <p className="text-xs font-semibold text-tinta">Ceremonia</p>
+                      <textarea value={ceremonia} onChange={(e) => setCeremonia(e.target.value)} placeholder={"Parroquia de San Francisco\nCalle Mayor 12, Madrid"} maxLength={300} rows={2} className="resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input value={ceremoniaHora} onChange={(e) => setCeremoniaHora(e.target.value)} placeholder="Hora" maxLength={40} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                        <input value={ceremoniaMapa} onChange={(e) => setCeremoniaMapa(e.target.value)} placeholder="Enlace de mapa" maxLength={500} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                      </div>
+                      <p className="mt-1 text-xs font-semibold text-tinta">Recepción</p>
+                      <textarea value={recepcion} onChange={(e) => setRecepcion(e.target.value)} placeholder={"Hacienda El Roble\nCarretera del Lago km 4"} maxLength={300} rows={2} className="resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input value={recepcionHora} onChange={(e) => setRecepcionHora(e.target.value)} placeholder="Hora" maxLength={40} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                        <input value={recepcionMapa} onChange={(e) => setRecepcionMapa(e.target.value)} placeholder="Enlace de mapa" maxLength={500} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
+                      </div>
+                      <p className="text-xs text-tinta/55">Si lo dejas en blanco se enseña solo el lugar de arriba.</p>
+                    </div>
+
                     <textarea value={timeline} onChange={(e) => setTimeline(e.target.value)} placeholder={"Cronología (una actividad por línea)\n5:00 pm · Ceremonia\n6:30 pm · Recepción"} maxLength={700} rows={4} className="resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
                     <input value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)} placeholder="Enlace directo de música MP3 (opcional)" maxLength={500} className="rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
                     <label className="text-xs text-tinta/65">Iniciales del lacre del sobre
@@ -2787,6 +2840,19 @@ export function InvitationGenerator({
                     <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={"A tomar en cuenta (un aviso por línea)\nSolo adultos\nHay estacionamiento en el lugar"} maxLength={700} rows={3} className="resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm outline-none focus:border-teja" />
                     <label className="text-xs text-tinta/65">Hashtag del evento (opcional)
                       <input value={hashtag} onChange={(e) => setHashtag(e.target.value)} placeholder="BodaAnaYLuis" maxLength={60} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+                    <label className="text-xs text-tinta/65">Mesa de regalos (enlace)
+                      <input value={mesaRegalos} onChange={(e) => setMesaRegalos(e.target.value)} placeholder="https://…" maxLength={500} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+                    <label className="text-xs text-tinta/65">Datos para transferencia (sale con botón de copiar)
+                      <textarea value={datosBanco} onChange={(e) => setDatosBanco(e.target.value)} placeholder={"Banco Ejemplo\nCLABE 0123 4567 8901 2345 67\nA nombre de Ana Pérez"} maxLength={400} rows={3} className="mt-1 block w-full resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+                    <label className="text-xs text-tinta/65">Hospedaje sugerido (uno por línea)
+                      <textarea value={hospedaje} onChange={(e) => setHospedaje(e.target.value)} placeholder={"Hotel Plaza · 10% con el código BODA\nPosada del Lago · a 5 min del salón"} maxLength={500} rows={2} className="mt-1 block w-full resize-y rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm text-tinta outline-none focus:border-teja" />
+                    </label>
+                    <label className="flex cursor-pointer items-start gap-2 text-xs text-tinta/70">
+                      <input type="checkbox" checked={pedirCanciones} onChange={(e) => setPedirCanciones(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#6b2737]" />
+                      <span><strong className="block text-tinta">Pedir canciones</strong>Los invitados sugieren qué quieren bailar; las verás en el muro del álbum.</span>
                     </label>
                     <label className="flex cursor-pointer items-start gap-2 text-xs text-tinta/70">
                       <input type="checkbox" checked={showGallery} onChange={(e) => setShowGallery(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#6b2737]" />

@@ -77,6 +77,26 @@ export type InvitationLinkState = {
   // igual que los recuerdos, pero no se registran como tales.
   fp?: string;
   fg?: string[];
+  // Secciones que las invitaciones de este tipo dan por hechas y aquí
+  // faltaban: a quién se menciona, los dos sitios del día por separado, el
+  // regalo y las canciones que piden los invitados.
+  /** Menciones, una por línea en formato "Rol: Nombre". */
+  pd?: string;
+  /** Ceremonia: lugar y dirección (varias líneas) + hora y enlace de mapa. */
+  ce?: string;
+  ch?: string;
+  cm?: string;
+  /** Recepción: lo mismo. */
+  re?: string;
+  rh?: string;
+  rm?: string;
+  /** Mesa de regalos: enlace y datos para transferencia. */
+  mr?: string;
+  cl?: string;
+  /** Hospedaje sugerido, una línea por sitio. */
+  ho?: string;
+  /** Pedir canciones a los invitados. */
+  sc?: boolean;
 };
 
 /**
@@ -103,9 +123,32 @@ export function encodeInvitationLink(state: InvitationLinkState): string {
   return encodeURIComponent(JSON.stringify(state));
 }
 
+/**
+ * Lee el estado del parámetro `d`.
+ *
+ * `useSearchParams()` ya deshace el porcentaje, así que lo normal es que aquí
+ * llegue el JSON tal cual. Antes se le pasaba otro `decodeURIComponent` y eso
+ * reventaba cualquier invitación con un "%" en el texto ("10% de descuento"):
+ * el navegador lo entregaba como "10%" y el segundo decodificado se
+ * encontraba un escape a medias. Se intentan las dos formas para que los
+ * enlaces que llegan sin decodificar sigan abriéndose.
+ */
 export function decodeInvitationLink(raw: string): InvitationLinkState | null {
+  for (const texto of [raw, decodificarSuave(raw)]) {
+    if (!texto) continue;
+    try {
+      const estado = parseInvitationState(JSON.parse(texto));
+      if (estado) return estado;
+    } catch {
+      // Probamos con la otra forma.
+    }
+  }
+  return null;
+}
+
+function decodificarSuave(valor: string): string | null {
   try {
-    return parseInvitationState(JSON.parse(decodeURIComponent(raw)));
+    return decodeURIComponent(valor);
   } catch {
     return null;
   }

@@ -80,6 +80,7 @@ export default async function AlbumAdminPage({
         id: guestbookEntries.id,
         authorName: guestbookEntries.authorName,
         body: guestbookEntries.body,
+        kind: guestbookEntries.kind,
         createdAt: guestbookEntries.createdAt,
       })
       .from(guestbookEntries)

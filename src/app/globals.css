@@ -535,6 +535,14 @@ details > summary::marker {
   border: 1px solid rgba(120, 85, 20, 0.4);
 }
 
+/* Textura de papel: dos luces muy suaves para que el fondo no sea un color
+   plano de pantalla. Va encima del color del tema, no en su lugar. */
+.papel {
+  background-image:
+    radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.55), transparent 42%),
+    radial-gradient(circle at 88% 72%, rgba(255, 255, 255, 0.32), transparent 38%);
+}
+
 /* Marco de foto: la cartulina blanca alrededor de la imagen. */
 .marco-foto {
   background: #fff;

@@ -24,6 +24,7 @@ export async function GET(
       id: guestbookEntries.id,
       authorName: guestbookEntries.authorName,
       guestId: guestbookEntries.guestId,
+      kind: guestbookEntries.kind,
       body: guestbookEntries.body,
       createdAt: guestbookEntries.createdAt,
     })
@@ -56,7 +57,10 @@ export async function POST(
     authorName?: string | null;
     guestId?: string | null;
     body?: string;
+    kind?: string;
   };
+  // Solo hay dos tipos; cualquier otra cosa se guarda como dedicatoria.
+  const kind = body.kind === "cancion" ? "cancion" : "deseo";
 
   const text = (body.body ?? "").trim().slice(0, 2000);
   if (!text) {
@@ -67,6 +71,7 @@ export async function POST(
     .insert(guestbookEntries)
     .values({
       albumId,
+      kind,
       authorName: body.authorName?.trim().slice(0, 100) || null,
       guestId: body.guestId || null,
       body: text,
@@ -75,6 +80,7 @@ export async function POST(
       id: guestbookEntries.id,
       authorName: guestbookEntries.authorName,
       guestId: guestbookEntries.guestId,
+      kind: guestbookEntries.kind,
       body: guestbookEntries.body,
       createdAt: guestbookEntries.createdAt,
     });

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { albums, comments, guestbookEntries, media, reactions } from "@/db/schema";
 import { buildDotbookPdf, DOTBOOK_STYLES, type DotbookStyle } from "@/lib/build-dotbook";
@@ -65,7 +65,8 @@ export async function dotbookResponse(album: Album, style: DotbookStyle) {
       createdAt: guestbookEntries.createdAt,
     })
     .from(guestbookEntries)
-    .where(eq(guestbookEntries.albumId, album.id))
+    // Las canciones sugeridas comparten tabla pero no son dedicatorias.
+    .where(and(eq(guestbookEntries.albumId, album.id), eq(guestbookEntries.kind, "deseo")))
     .orderBy(asc(guestbookEntries.createdAt));
 
   const baseUrl = publicSiteUrl();

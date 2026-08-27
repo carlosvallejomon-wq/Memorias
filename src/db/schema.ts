@@ -147,6 +147,11 @@ export const guestbookEntries = pgTable(
       .references(() => albums.id, { onDelete: "cascade" }),
     authorName: text("author_name"),
     guestId: text("guest_id"),
+    // "deseo" son las dedicatorias de siempre (las que se imprimen en el
+    // libro) y "cancion" las que sugieren los invitados desde la invitación
+    // para la lista de la fiesta. Comparten tabla porque son lo mismo: un
+    // texto corto firmado por un invitado.
+    kind: text("kind").notNull().default("deseo"),
     body: text("body").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

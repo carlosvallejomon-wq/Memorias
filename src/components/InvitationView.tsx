@@ -143,7 +143,7 @@ function visualTheme(style?: EstiloInvitacion) {
 
 type Tema = ReturnType<typeof visualTheme>;
 type Recuerdo = { id: string; url: string; type: string; posterUrl: string | null };
-type Deseo = { id: string; authorName: string | null; body: string };
+type Deseo = { id: string; authorName: string | null; body: string; kind?: string };
 
 /** Percha: el dibujo a línea del código de vestimenta. */
 function IconoVestimenta({ color }: { color: string }) {
@@ -226,6 +226,47 @@ function Petalos({ tema }: { tema: Tema }) {
   );
 }
 
+/**
+ * Ceremonia y recepción se pintan igual, y las invitaciones de este tipo las
+ * enseñan por separado con su hora, su dirección y su botón de mapa.
+ */
+function Lugar({
+  tema, titulo, lineas, hora, mapa, fondo,
+}: {
+  tema: Tema; titulo: string; lineas: string[]; hora?: string; mapa?: string; fondo: "claro" | "fuerte";
+}) {
+  const claro = fondo === "fuerte";
+  return (
+    <section
+      className="px-8 py-12 text-center"
+      style={claro ? { backgroundColor: tema.band, color: "#fff" } : { backgroundColor: tema.paper }}
+    >
+      <p className="tipo-manuscrita text-5xl">{titulo}</p>
+      <Filigrana tema={tema} claro={claro} />
+      {hora && <p className="rotulo mt-5 opacity-85">{hora}</p>}
+      {lineas.map((linea, i) => (
+        <p key={`${linea}-${i}`} className={i === 0 ? "tipo-titulo mx-auto mt-3 max-w-xs text-base" : "mx-auto mt-1 max-w-xs text-sm opacity-75"}>
+          {linea}
+        </p>
+      ))}
+      {mapa && (
+        <a href={mapa} target="_blank" rel="noreferrer" className="rotulo mt-7 inline-block border px-5 py-2.5" style={claro ? { borderColor: "rgba(255,255,255,.7)" } : { borderColor: tema.accent, color: tema.accent }}>
+          Ver ubicación
+        </a>
+      )}
+    </section>
+  );
+}
+
+/** Foto a todo lo ancho entre secciones, con el filete doble de la papelería. */
+function BandaFoto({ foto }: { foto: string }) {
+  return (
+    <div className="marco-doble relative text-white">
+      <img src={foto} alt="" loading="lazy" className="block h-56 w-full object-cover" />
+    </div>
+  );
+}
+
 function SeparadorLacre({ tema, texto }: { tema: Tema; texto: string }) {
   return (
     <div className="flex items-center justify-center gap-4 py-8" style={{ backgroundColor: tema.paper }}>
@@ -274,7 +315,9 @@ export function InvitationView({
   const [deseoNombre, setDeseoNombre] = useState("");
   const [deseoTexto, setDeseoTexto] = useState("");
   const [deseoEstado, setDeseoEstado] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [hashtagCopiado, setHashtagCopiado] = useState(false);
+  const [cancion, setCancion] = useState("");
+  const [cancionEstado, setCancionEstado] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [copiado, setCopiado] = useState<string | null>(null);
   const [, setClock] = useState(0);
 
   const invitation = useMemo(() => {
@@ -318,7 +361,7 @@ export function InvitationView({
         .then((r) => (r.ok ? r.json() : null))
         .then((data: { items?: Deseo[] } | null) => {
           if (cancelled || !data?.items) return;
-          setDeseos(data.items.slice(0, 3));
+          setDeseos(data.items.filter((d) => (d.kind ?? "deseo") === "deseo").slice(0, 3));
         })
         .catch(() => {});
     }
@@ -459,14 +502,41 @@ export function InvitationView({
     }
   }
 
-  async function copiarHashtag(hashtag: string) {
+  /** Copia al portapapeles y marca cuál se copió, para el "¡Copiado!". */
+  async function copiar(texto: string, clave: string) {
     try {
-      await navigator.clipboard.writeText(`#${hashtag}`);
-      setHashtagCopiado(true);
-      window.setTimeout(() => setHashtagCopiado(false), 2000);
+      await navigator.clipboard.writeText(texto);
+      setCopiado(clave);
+      window.setTimeout(() => setCopiado(null), 2000);
     } catch {
-      // Sin portapapeles (navegadores antiguos) el hashtag se ve igual y se
+      // Sin portapapeles (navegadores antiguos) el texto se ve igual y se
       // puede copiar a mano; no merece un aviso de error.
+    }
+  }
+
+  /** Manda una canción al muro, marcada para no imprimirse en el libro. */
+  async function sendCancion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!albumCode) {
+      setCancionEstado("error");
+      return;
+    }
+    setCancionEstado("sending");
+    try {
+      let guestId = localStorage.getItem("mv_guest_id") ?? "";
+      if (!guestId) {
+        guestId = crypto.randomUUID();
+        localStorage.setItem("mv_guest_id", guestId);
+      }
+      const respuesta = await fetch(`/api/guest/${encodeURIComponent(albumCode)}/guestbook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authorName: null, guestId, body: cancion, kind: "cancion" }),
+      });
+      if (!respuesta.ok) throw new Error("No se pudo guardar");
+      setCancionEstado("sent");
+    } catch {
+      setCancionEstado("error");
     }
   }
 
@@ -494,6 +564,10 @@ export function InvitationView({
   const fotoPortada = state.fp ?? recuerdos[0]?.posterUrl ?? recuerdos[0]?.url ?? template.bgImage ?? null;
   // Lo mismo con la galería: manda la que preparó el organizador, porque
   // cuando reparte la invitación el álbum suele estar vacío.
+  const menciones = (state.pd ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
+  const hospedaje = (state.ho ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
+  const ceremonia = (state.ce ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
+  const recepcion = (state.re ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
   const galeria: string[] = (state.fg ?? []).length > 0
     ? (state.fg as string[])
     : recuerdos.map((recuerdo) => recuerdo.posterUrl ?? recuerdo.url);
@@ -583,10 +657,12 @@ export function InvitationView({
             <p className="mt-10 animate-pulse text-xs opacity-50">Toca el sobre para abrirlo</p>
           </main>
         ) : (
-        <main className="relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in" style={{ backgroundColor: tema.paper }}>
+        <main className="papel relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in" style={{ backgroundColor: tema.paper }}>
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
-          <section className="px-8 pb-12 pt-14 text-center">
+          <section className="marco-doble relative px-9 pb-14 pt-16 text-center">
+            <span className="absolute left-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
+            <span className="absolute right-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <p className="rotulo opacity-55">Estás invitado</p>
             <h1 className="tipo-titulo mt-5 text-3xl uppercase tracking-[.28em]">{state.n}</h1>
             {fotoPortada && (
@@ -634,19 +710,52 @@ export function InvitationView({
 
           <SeparadorLacre tema={tema} texto={iniciales} />
 
-          <Reveal>
-            <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
-              <p className="tipo-manuscrita text-5xl">Fecha y lugar</p>
-              <Filigrana tema={tema} claro />
-              {state.h && <p className="rotulo mt-6 opacity-85">{state.h}</p>}
-              {state.l && <p className="tipo-titulo mx-auto mt-3 max-w-xs text-base leading-relaxed">{state.l}</p>}
-              {state.mp && (
-                <a href={state.mp} target="_blank" rel="noreferrer" className="rotulo mt-7 inline-block border border-white/70 px-5 py-2.5">
-                  Ver ubicación
-                </a>
+          {menciones.length > 0 && (
+            <Reveal>
+              <section className="px-8 py-12 text-center">
+                <p className="rotulo opacity-55">Con la bendición de</p>
+                <div className="mx-auto mt-6 grid max-w-xs gap-4">
+                  {menciones.map((linea, i) => {
+                    const [rol, ...resto] = linea.split(":");
+                    const nombre = resto.join(":").trim();
+                    return (
+                      <div key={`${linea}-${i}`}>
+                        {nombre ? (
+                          <>
+                            <p className="rotulo text-[0.6rem] opacity-55">{rol.trim()}</p>
+                            <p className="tipo-manuscrita mt-1 text-3xl">{nombre}</p>
+                          </>
+                        ) : (
+                          <p className="tipo-manuscrita text-3xl">{linea}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </Reveal>
+          )}
+
+          {galeria[1] && <BandaFoto foto={galeria[1]} />}
+
+          {ceremonia.length > 0 || recepcion.length > 0 ? (
+            <>
+              {ceremonia.length > 0 && (
+                <Reveal>
+                  <Lugar tema={tema} titulo="Ceremonia" lineas={ceremonia} hora={state.ch} mapa={state.cm} fondo="fuerte" />
+                </Reveal>
               )}
-            </section>
-          </Reveal>
+              {recepcion.length > 0 && (
+                <Reveal>
+                  <Lugar tema={tema} titulo="Recepción" lineas={recepcion} hora={state.rh} mapa={state.rm} fondo={ceremonia.length > 0 ? "claro" : "fuerte"} />
+                </Reveal>
+              )}
+            </>
+          ) : (
+            <Reveal>
+              <Lugar tema={tema} titulo="Fecha y lugar" lineas={state.l ? [state.l] : []} hora={state.h} mapa={state.mp} fondo="fuerte" />
+            </Reveal>
+          )}
 
           {timeline.length > 0 && (
             <Reveal>
@@ -718,6 +827,48 @@ export function InvitationView({
             </Reveal>
           )}
 
+          {(state.mr || state.cl) && (
+            <Reveal>
+              <section className="px-8 py-12 text-center">
+                <p className="tipo-manuscrita text-5xl">Mesa de regalos</p>
+                <Filigrana tema={tema} />
+                <p className="mx-auto mt-4 max-w-xs text-sm opacity-70">
+                  Tu presencia es el mejor regalo. Si quieres tener un detalle:
+                </p>
+                <div className="mt-6 grid gap-3">
+                  {state.mr && (
+                    <a href={state.mr} target="_blank" rel="noreferrer" className="rotulo mx-auto inline-block border px-5 py-2.5" style={{ borderColor: tema.accent, color: tema.accent }}>
+                      Abrir mesa de regalos
+                    </a>
+                  )}
+                  {state.cl && (
+                    <div className="mx-auto max-w-xs">
+                      <p className="rotulo text-[0.6rem] opacity-55">Transferencia</p>
+                      <p className="tipo-titulo mt-2 text-sm whitespace-pre-line">{state.cl}</p>
+                      <button onClick={() => copiar(state.cl as string, "banco")} className="rotulo mt-3 border px-4 py-2" style={{ borderColor: tema.accent, color: tema.accent }}>
+                        {copiado === "banco" ? "¡Copiado!" : "Copiar datos"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </Reveal>
+          )}
+
+          {hospedaje.length > 0 && (
+            <Reveal>
+              <section className="px-8 py-12 text-center" style={{ backgroundColor: tema.soft }}>
+                <p className="tipo-manuscrita text-5xl">Hospedaje</p>
+                <Filigrana tema={tema} />
+                <div className="mx-auto mt-5 grid max-w-xs gap-3 text-sm">
+                  {hospedaje.map((linea, i) => (
+                    <p key={`${linea}-${i}`} className="tipo-titulo">{linea}</p>
+                  ))}
+                </div>
+              </section>
+            </Reveal>
+          )}
+
           {galeria.length > 0 && (
             <Reveal>
               <section className="px-6 py-12 text-center">
@@ -731,6 +882,36 @@ export function InvitationView({
                   ))}
                 </div>
                 <p className="mt-6 text-xs opacity-55">Sube las tuyas desde el álbum, sin instalar nada.</p>
+              </section>
+            </Reveal>
+          )}
+
+          {state.sc && albumCode && (
+            <Reveal>
+              <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
+                <p className="tipo-manuscrita text-5xl">Sugiere una canción</p>
+                <Filigrana tema={tema} claro />
+                <p className="mx-auto mt-4 max-w-xs text-sm opacity-85">
+                  ¿Qué no puede faltar en la fiesta? Dinos qué quieres bailar.
+                </p>
+                {cancionEstado === "sent" ? (
+                  <p className="mt-6 text-sm">¡Anotada! Gracias por la idea.</p>
+                ) : (
+                  <form onSubmit={sendCancion} className="mx-auto mt-6 grid max-w-xs gap-3">
+                    <input
+                      required
+                      value={cancion}
+                      onChange={(e) => setCancion(e.target.value)}
+                      maxLength={200}
+                      placeholder="Canción y artista"
+                      className="border-0 border-b border-white/50 bg-transparent px-1 py-2 text-center text-sm text-white outline-none placeholder:text-white/60"
+                    />
+                    <button disabled={cancionEstado === "sending"} className="rotulo border border-white/70 px-4 py-2.5 disabled:opacity-60">
+                      {cancionEstado === "sending" ? "Enviando…" : "Enviar canción"}
+                    </button>
+                    {cancionEstado === "error" && <p className="text-xs">No se pudo enviar. Inténtalo de nuevo.</p>}
+                  </form>
+                )}
               </section>
             </Reveal>
           )}
@@ -776,8 +957,8 @@ export function InvitationView({
               <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
                 <p className="rotulo opacity-80">Comparte tus fotos</p>
                 <p className="tipo-manuscrita mt-3 text-5xl">#{state.hg}</p>
-                <button onClick={() => copiarHashtag(state.hg as string)} className="rotulo mt-6 border border-white/70 px-5 py-2.5">
-                  {hashtagCopiado ? "¡Copiado!" : "Copiar hashtag"}
+                <button onClick={() => copiar(`#${state.hg}`, "hashtag")} className="rotulo mt-6 border border-white/70 px-5 py-2.5">
+                  {copiado === "hashtag" ? "¡Copiado!" : "Copiar hashtag"}
                 </button>
               </section>
             </Reveal>
