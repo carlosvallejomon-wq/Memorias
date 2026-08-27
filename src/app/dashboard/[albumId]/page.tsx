@@ -15,6 +15,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { db } from "@/db";
+import { ensureInvitationSchema } from "@/db/ensure-invitation-schema";
 import { albums, challenges, comments, guestbookEntries, invitationRsvps, media, reactions } from "@/db/schema";
 import { ShareCard } from "@/components/ShareCard";
 import { ClientLinkCard } from "@/components/ClientLinkCard";
@@ -51,6 +52,10 @@ export default async function AlbumAdminPage({
     .from(albums)
     .where(and(eq(albums.id, albumId), eq(albums.ownerId, userId)));
   if (!album) notFound();
+
+  // Los álbumes creados antes de las invitaciones todavía no tienen estas
+  // tablas. Se preparan antes de leer RSVP o la invitación guardada.
+  await ensureInvitationSchema();
 
   const allItems = await db()
     .select()
