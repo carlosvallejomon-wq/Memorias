@@ -583,6 +583,13 @@ export default async function Home({
                     {english ? "Create my invitation" : "Crear mi invitación"} <ArrowRight size={17} />
                   </Link>
                 )}
+                {/* Los diseños de la invitación web, para poder verlos enteros
+                    antes de crear nada. */}
+                <p className="mt-4 text-sm">
+                  <Link href="/plantillas" className="font-semibold text-teja underline">
+                    {english ? "See the web invitation designs" : "Ver los diseños de la invitación web"}
+                  </Link>
+                </p>
               </div>
 
               <div className="flex justify-center">

@@ -107,6 +107,11 @@ en SVG (`src/components/InvitationOrnaments.tsx`) y se tiñen solos, y la
 miniatura del selector (`InvitationTemplatePicker.tsx`) sale de la misma
 definición, así que aparece sola y con su aspecto real.
 
+Los diseños se pueden ver enteros en **`/plantillas`**, un escaparate público
+que arma una invitación de ejemplo por plantilla con datos inventados: no
+hace falta crear un álbum ni guardar nada para enseñarlos. La portada enlaza
+ahí desde la sección de invitaciones.
+
 El campo `iv` del enlace guarda el identificador de la plantilla.
 `plantillaDe()` acepta también el nombre del evento a secas ("quince",
 "boda"…), que es lo que traían los enlaces repartidos antes del catálogo, y
