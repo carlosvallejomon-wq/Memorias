@@ -6,11 +6,12 @@ import { upload } from "@vercel/blob/client";
 import {
   encodeInvitationLink,
   type InvitationLinkState,
-  type EstiloInvitacion,
   type QrLayout,
   type TextLayout,
 } from "@/lib/invitation-link";
 import { MAX_INVITATION_PHOTOS } from "@/lib/limits";
+import { PLANTILLA_POR_DEFECTO, plantillaDe } from "@/lib/invitation-styles";
+import { SelectorPlantilla } from "@/components/InvitationTemplatePicker";
 import { PartyPopper, X, Download, ImagePlus, QrCode, Save, Smartphone, Trash2 } from "lucide-react";
 
 const CANVAS_W = 1000;
@@ -2142,7 +2143,7 @@ export function InvitationGenerator({
   const [rsvp, setRsvp] = useState("");
   const [automaticRsvp, setAutomaticRsvp] = useState(false);
   const [interactive, setInteractive] = useState(false);
-  const [interactiveVisual, setInteractiveVisual] = useState<EstiloInvitacion>("quince");
+  const [plantillaId, setPlantillaId] = useState(PLANTILLA_POR_DEFECTO.id);
   const [startsAt, setStartsAt] = useState("");
   const [mapUrl, setMapUrl] = useState("");
   const [dressCode, setDressCode] = useState("");
@@ -2237,7 +2238,7 @@ export function InvitationGenerator({
     setQrLayout(v.q);
     setAutomaticRsvp(Boolean(v.ar));
     setInteractive(Boolean(v.it));
-    if (v.iv) setInteractiveVisual(v.iv);
+    if (v.iv) setPlantillaId(plantillaDe(v.iv).id);
     setStartsAt(v.st ?? "");
     setMapUrl(v.mp ?? "");
     setDressCode(v.dr ?? "");
@@ -2461,7 +2462,7 @@ export function InvitationGenerator({
       q: qrLayout,
       ar: automaticRsvp || undefined,
       it: interactive || undefined,
-      iv: interactive ? interactiveVisual : undefined,
+      iv: interactive ? plantillaId : undefined,
       st: startsAt || undefined,
       mp: mapUrl.trim() || undefined,
       dr: dressCode.trim() || undefined,
@@ -2737,17 +2738,12 @@ export function InvitationGenerator({
                 {interactive && (
                   <div className="grid gap-3 rounded-xl border border-vino/15 bg-white/70 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-vino">Detalles de la experiencia</p>
-                    <label className="text-xs text-tinta/65">Estilo, según el evento
-                      <select value={interactiveVisual} onChange={(e) => setInteractiveVisual(e.target.value as EstiloInvitacion)} className="mt-1 block w-full rounded-lg border border-tinta/20 bg-white px-3 py-2 text-sm font-medium text-tinta outline-none focus:border-teja">
-                        <option value="quince">Quinceañera romántica</option>
-                        <option value="boda">Boda editorial</option>
-                        <option value="baby">Baby shower delicado</option>
-                        <option value="cumple">Cumpleaños cálido</option>
-                        <option value="bautizo">Bautizo celeste</option>
-                        <option value="comunion">Comunión dorada</option>
-                        <option value="graduacion">Graduación de gala</option>
-                      </select>
-                    </label>
+                    <div>
+                      <p className="text-xs text-tinta/65">Plantilla de la invitación web</p>
+                      <div className="mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-tinta/15 bg-white/70 p-2">
+                        <SelectorPlantilla valor={plantillaId} onChange={setPlantillaId} />
+                      </div>
+                    </div>
 
                     {/* Fotos de los dueños del evento. Cuando se reparte la
                         invitación el álbum está vacío, así que sin esto la

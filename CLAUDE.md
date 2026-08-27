@@ -83,19 +83,36 @@ móvil (`vista === "web"`), que abre la propia página en un iframe con
 `abierto=1` para saltarse el sobre en cada refresco; sin ella los campos se
 rellenaban a ciegas.
 
-El diseño imita la **papelería impresa**, no una web: fondo del color del
-evento en bandas que alternan claro y fuerte (`paper` / `soft` / `band` de
-`TEMAS`, con el texto en blanco sobre la fuerte), títulos en Pinyon Script
-(`.tipo-manuscrita`), rótulos en versalitas espaciadas (`.rotulo`), fotos con
-paspartú blanco (`.marco-foto`, y `.marco-arco` para la portada), recuadros
-ornamentales (`.cartucho`), filigranas bajo los títulos (`.filigrana`) y un
-**lacre dorado** dibujado a base de degradados (`.lacre-oro`). Hay un estilo
-por tipo de evento (`ESTILOS_INVITACION`: quince, boda, baby, cumple,
-bautizo, comunión, graduación). La referencia son las invitaciones que
-circulan por WhatsApp (invitafy y similares); si se toca el estilo, conviene
-volver a mirarlas. Pinyon Script y Playfair Display las carga ya
+El diseño imita la **papelería impresa**, no una web: títulos manuscritos en
+Pinyon Script (`.tipo-manuscrita`), rótulos en versalitas espaciadas
+(`.rotulo`), fotos con paspartú blanco (`.marco-foto`), recuadros
+ornamentales (`.cartucho`) y un **lacre dorado** dibujado a base de
+degradados (`.lacre-oro`). La referencia son las invitaciones que circulan
+por WhatsApp (invitafy, hamuqinti y similares); si se toca el estilo,
+conviene volver a mirarlas. Pinyon Script y Playfair Display las carga ya
 `ensureInvitationFonts()` para el lienzo del generador, así que la página no
 pide nada aparte.
+
+**Catálogo de plantillas** (`src/lib/invitation-styles.ts`): al principio
+había una sola maqueta con siete paletas —cambiaba el color y poco más—, así
+que ahora cada plantilla decide cinco cosas además de la paleta: cómo se
+alternan los fondos (`bandas`: alternas, claras u oscuras), qué adorno se
+repite (`motivo`: floral, botánico, déco, corazones, estrellas, lazo), cómo
+se escriben los títulos (`titulos`: manuscrita o versalitas), con qué forma
+se enmarca la foto de portada (`marco`: arco, óvalo o recto) y qué cae de
+fondo (`lluvia`: pétalos, destellos o nada). Con eso, dos plantillas del
+mismo color ya no se parecen. Añadir una es **añadir una entrada a
+`PLANTILLAS`**: no hay imágenes que subir, porque los adornos están dibujados
+en SVG (`src/components/InvitationOrnaments.tsx`) y se tiñen solos, y la
+miniatura del selector (`InvitationTemplatePicker.tsx`) sale de la misma
+definición, así que aparece sola y con su aspecto real.
+
+El campo `iv` del enlace guarda el identificador de la plantilla.
+`plantillaDe()` acepta también el nombre del evento a secas ("quince",
+"boda"…), que es lo que traían los enlaces repartidos antes del catálogo, y
+cae a la primera plantilla si no reconoce nada. La textura de papel
+(`.papel`) son dos luces blancas, así que en las plantillas oscuras no se
+pone: dejaba el fondo gris.
 
 Al abrirla, el invitado ve un **sobre cerrado** con una tarjeta asomando y el
 lacre con las iniciales del evento (`si`, o las del nombre si no se ponen), y

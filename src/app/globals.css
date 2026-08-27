@@ -549,9 +549,18 @@ details > summary::marker {
   padding: 0.5rem;
   box-shadow: 0 10px 24px rgba(60, 40, 40, 0.14);
 }
+/* Las tres formas con las que las plantillas enmarcan la foto de portada. */
 .marco-arco,
 .marco-arco > img {
   border-radius: 50% 50% 10px 10px / 26% 26% 2% 2%;
+}
+.marco-ovalo,
+.marco-ovalo > img {
+  border-radius: 50%;
+}
+.marco-recto {
+  outline: 1px solid currentColor;
+  outline-offset: 6px;
 }
 
 /* Cartucho: el recuadro ornamental que enmarca algunas secciones. Dos

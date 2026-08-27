@@ -12,7 +12,9 @@ import {
   ensureInvitationFonts,
   type InvitationData,
 } from "@/components/InvitationGenerator";
-import type { EstiloInvitacion, InvitationLinkState } from "@/lib/invitation-link";
+import type { InvitationLinkState } from "@/lib/invitation-link";
+import { plantillaDe, type Motivo, type Paleta, type PlantillaInvitacion } from "@/lib/invitation-styles";
+import { Adorno, IconoBrindis, IconoVestimenta } from "@/components/InvitationOrnaments";
 
 type CountdownPart = { label: string; value: number };
 
@@ -103,71 +105,15 @@ function colorList(value?: string): { label: string; color: string }[] {
     .map((label) => ({ label, color: colorDe(label) }));
 }
 
-// Paleta de cada estilo, uno por tipo de evento. `paper` es el fondo claro,
-// `soft` el tono medio de las bandas alternas, `mezcla` el del sobre y `band`
-// el fuerte, sobre el que el texto va en blanco.
-const TEMAS = {
-  quince: {
-    name: "Quinceañera romántica", ink: "#54222f", paper: "#fdf2f6", soft: "#f8dee7",
-    mezcla: "#f0c2d2", band: "#b05a76", accent: "#b05a76", ornament: "✦",
-  },
-  boda: {
-    name: "Boda editorial", ink: "#3c3029", paper: "#faf5ec", soft: "#f0e6d5",
-    mezcla: "#e0cdac", band: "#a07551", accent: "#a07551", ornament: "❦",
-  },
-  baby: {
-    name: "Baby shower delicado", ink: "#2f4a40", paper: "#f3f9f4", soft: "#dfeee4",
-    mezcla: "#c6ded1", band: "#5f8574", accent: "#5f8574", ornament: "✿",
-  },
-  cumple: {
-    name: "Cumpleaños cálido", ink: "#5a2f22", paper: "#fdf5f0", soft: "#fae0d3",
-    mezcla: "#f4c6ae", band: "#c06a3c", accent: "#c06a3c", ornament: "❋",
-  },
-  bautizo: {
-    name: "Bautizo celeste", ink: "#26405c", paper: "#f4f8fc", soft: "#dde9f4",
-    mezcla: "#c2d8ea", band: "#5a80a6", accent: "#5a80a6", ornament: "✧",
-  },
-  comunion: {
-    name: "Comunión dorada", ink: "#4a3f2a", paper: "#fdfaf1", soft: "#f4ecd8",
-    mezcla: "#e8dbb8", band: "#9c8546", accent: "#9c8546", ornament: "✤",
-  },
-  graduacion: {
-    name: "Graduación de gala", ink: "#22283f", paper: "#f6f6fa", soft: "#e2e4ee",
-    mezcla: "#c8cbdd", band: "#474f76", accent: "#474f76", ornament: "✦",
-  },
-} as const;
+/** Colores y decoración ya resueltos de la plantilla que toca. */
+type Tema = Paleta & { ornament: string; plantilla: PlantillaInvitacion };
 
-function visualTheme(style?: EstiloInvitacion) {
-  return TEMAS[style ?? "quince"] ?? TEMAS.quince;
-}
-
-type Tema = ReturnType<typeof visualTheme>;
+/** Un glifo por motivo, para las esquinas y las listas. */
+const GLIFOS: Record<Motivo, string> = {
+  floral: "✦", botanico: "❦", deco: "◆", corazones: "♥", estrellas: "✧", lazo: "✿",
+};
 type Recuerdo = { id: string; url: string; type: string; posterUrl: string | null };
 type Deseo = { id: string; authorName: string | null; body: string; kind?: string };
-
-/** Percha: el dibujo a línea del código de vestimenta. */
-function IconoVestimenta({ color }: { color: string }) {
-  return (
-    <svg viewBox="0 0 64 40" className="mx-auto h-10 w-24" fill="none" stroke={color} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M32 14c0-5-4.6-4.6-4.6-8.4A4.4 4.4 0 0 1 32 1.4a4.4 4.4 0 0 1 4.6 4.2" />
-      <path d="M32 14 4.4 31.4c-1.6 1-1 3.2.9 3.2h53.4c1.9 0 2.5-2.2.9-3.2Z" />
-    </svg>
-  );
-}
-
-/** Dos copas brindando: el dibujo de la cronología. */
-function IconoBrindis({ color }: { color: string }) {
-  return (
-    <svg viewBox="0 0 64 40" className="mx-auto h-12 w-28" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <g transform="rotate(-13 20 20)">
-        <path d="M11 6h18l-9 13z" /><path d="M20 19v13" /><path d="M14 33h12" />
-      </g>
-      <g transform="rotate(13 44 20)">
-        <path d="M35 6h18l-9 13z" /><path d="M44 19v13" /><path d="M38 33h12" />
-      </g>
-    </svg>
-  );
-}
 
 /** Lacre dorado; hace de separador entre secciones y de cierre del sobre. */
 function Lacre({ texto, tamaño = "h-16 w-16 text-xl" }: { texto: string; tamaño?: string }) {
@@ -188,17 +134,29 @@ function LacreRoto({ texto, tamaño }: { texto: string; tamaño: string }) {
   );
 }
 
-/** Filete con el adorno del tema en medio; va bajo los títulos. */
+/** El adorno de la plantilla, con su filete, bajo los títulos de sección. */
 function Filigrana({ tema, claro = false }: { tema: Tema; claro?: boolean }) {
   return (
-    <p className={`filigrana mt-3 text-xs ${claro ? "text-white/70" : ""}`} style={claro ? undefined : { color: tema.accent }} aria-hidden="true">
-      {tema.ornament}
-    </p>
+    <div className="mt-3" style={claro ? { color: "rgba(255,255,255,.8)" } : { color: tema.accent }}>
+      <Adorno motivo={tema.plantilla.motivo} filete />
+    </div>
   );
 }
 
-/** Pétalos cayendo despacio de fondo. Con `prefers-reduced-motion` no salen. */
+/** Título de sección: manuscrito o en versalitas, según la plantilla. */
+function Titulo({ tema, children }: { tema: Tema; children: React.ReactNode }) {
+  if (tema.plantilla.titulos === "versalitas") {
+    return <p className="tipo-titulo text-xl uppercase tracking-[.26em]">{children}</p>;
+  }
+  return <p className="tipo-manuscrita text-5xl">{children}</p>;
+}
+
+/**
+ * Lo que cae de fondo: pétalos, destellos o nada, según la plantilla. Con
+ * `prefers-reduced-motion` no sale nada en ningún caso.
+ */
 function Petalos({ tema }: { tema: Tema }) {
+  const cual = tema.plantilla.lluvia;
   // Posiciones fijas y no aleatorias: si cambiaran en cada render, React
   // volvería a arrancar las animaciones y los pétalos darían saltos.
   const semillas = [
@@ -206,6 +164,7 @@ function Petalos({ tema }: { tema: Tema }) {
     { x: 45, d: 24, r: 2, s: 9 }, { x: 58, d: 19, r: 12, s: 12 }, { x: 70, d: 26, r: 7, s: 10 },
     { x: 82, d: 16, r: 14, s: 8 }, { x: 91, d: 22, r: 4, s: 12 }, { x: 38, d: 28, r: 18, s: 9 },
   ];
+  if (cual === "ninguna") return null;
   return (
     <div className="lluvia" aria-hidden="true">
       {semillas.map((p) => (
@@ -214,8 +173,9 @@ function Petalos({ tema }: { tema: Tema }) {
           className="petalo"
           style={{
             left: `${p.x}%`,
-            width: p.s,
-            height: p.s,
+            width: cual === "destellos" ? Math.round(p.s * 0.6) : p.s,
+            height: cual === "destellos" ? Math.round(p.s * 0.6) : p.s,
+            borderRadius: cual === "destellos" ? "50%" : undefined,
             backgroundColor: tema.accent,
             animationDuration: `${p.d}s`,
             animationDelay: `${-p.r}s`,
@@ -231,17 +191,14 @@ function Petalos({ tema }: { tema: Tema }) {
  * enseñan por separado con su hora, su dirección y su botón de mapa.
  */
 function Lugar({
-  tema, titulo, lineas, hora, mapa, fondo,
+  tema, titulo, lineas, hora, mapa, estilo, claro, borde,
 }: {
-  tema: Tema; titulo: string; lineas: string[]; hora?: string; mapa?: string; fondo: "claro" | "fuerte";
+  tema: Tema; titulo: string; lineas: string[]; hora?: string; mapa?: string;
+  estilo: React.CSSProperties; claro: boolean; borde: string;
 }) {
-  const claro = fondo === "fuerte";
   return (
-    <section
-      className="px-8 py-12 text-center"
-      style={claro ? { backgroundColor: tema.band, color: "#fff" } : { backgroundColor: tema.paper }}
-    >
-      <p className="tipo-manuscrita text-5xl">{titulo}</p>
+    <section className="px-8 py-12 text-center" style={estilo}>
+      <Titulo tema={tema}>{titulo}</Titulo>
       <Filigrana tema={tema} claro={claro} />
       {hora && <p className="rotulo mt-5 opacity-85">{hora}</p>}
       {lineas.map((linea, i) => (
@@ -250,7 +207,7 @@ function Lugar({
         </p>
       ))}
       {mapa && (
-        <a href={mapa} target="_blank" rel="noreferrer" className="rotulo mt-7 inline-block border px-5 py-2.5" style={claro ? { borderColor: "rgba(255,255,255,.7)" } : { borderColor: tema.accent, color: tema.accent }}>
+        <a href={mapa} target="_blank" rel="noreferrer" className="rotulo mt-7 inline-block border px-5 py-2.5" style={{ borderColor: borde, color: claro ? undefined : tema.accent }}>
           Ver ubicación
         </a>
       )}
@@ -550,7 +507,27 @@ export function InvitationView({
 
   const { state, template } = invitation;
   const interactive = Boolean(state.it);
-  const tema = visualTheme(state.iv);
+  const plantilla = plantillaDe(state.iv);
+  const tema: Tema = { ...plantilla.paleta, ornament: GLIFOS[plantilla.motivo], plantilla };
+  // Cómo se pinta cada franja según la plantilla: alternando claro y fuerte,
+  // todo claro (más aireado) o mandando el tono oscuro.
+  const bandaFuerte =
+    plantilla.bandas === "alternas"
+      ? { backgroundColor: tema.band, color: "#fff" }
+      : plantilla.bandas === "claras"
+        ? { backgroundColor: tema.soft, color: tema.ink }
+        : { backgroundColor: tema.soft, color: tema.ink };
+  const bandaSuave =
+    plantilla.bandas === "oscuras"
+      ? { backgroundColor: tema.mezcla, color: tema.ink }
+      : { backgroundColor: tema.soft, color: tema.ink };
+  // Solo cuando la franja fuerte va en color hay texto blanco encima.
+  const enBlanco = plantilla.bandas === "alternas";
+  const bordeFuerte = enBlanco ? "rgba(255,255,255,.7)" : tema.accent;
+  const claseMarco = plantilla.marco === "ovalo" ? "marco-ovalo" : plantilla.marco === "recto" ? "marco-recto" : "marco-arco";
+  // La textura de papel son dos luces blancas: sobre una plantilla oscura
+  // lavaba el fondo y lo dejaba gris, así que allí no se pone.
+  const texturaPapel = plantilla.bandas === "oscuras" ? "" : "papel";
   const iniciales = sealInitials(state);
   const cuenta = countdownParts(state.st);
   const calendarUrl = googleCalendarUrl(state);
@@ -657,7 +634,7 @@ export function InvitationView({
             <p className="mt-10 animate-pulse text-xs opacity-50">Toca el sobre para abrirlo</p>
           </main>
         ) : (
-        <main className="papel relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in" style={{ backgroundColor: tema.paper }}>
+        <main className={`relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in ${texturaPapel}`} style={{ backgroundColor: tema.paper }}>
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
           <section className="marco-doble relative px-9 pb-14 pt-16 text-center">
@@ -666,7 +643,7 @@ export function InvitationView({
             <p className="rotulo opacity-55">Estás invitado</p>
             <h1 className="tipo-titulo mt-5 text-3xl uppercase tracking-[.28em]">{state.n}</h1>
             {fotoPortada && (
-              <div className="marco-foto marco-arco mx-auto mt-8 w-[74%]">
+              <div className={`marco-foto ${claseMarco} mx-auto mt-8 w-[74%]`}>
                 <img src={fotoPortada} alt="" className="aspect-[3/4] w-full object-cover" />
               </div>
             )}
@@ -676,7 +653,7 @@ export function InvitationView({
           </section>
 
           <Reveal>
-            <section className="px-8 py-12 text-center" style={{ backgroundColor: tema.soft }}>
+            <section className="px-8 py-12 text-center" style={bandaSuave}>
               <p className="rotulo opacity-60">Falta poco para</p>
               <p className="tipo-manuscrita mt-1 text-5xl">el gran día</p>
               <Filigrana tema={tema} />
@@ -742,27 +719,27 @@ export function InvitationView({
             <>
               {ceremonia.length > 0 && (
                 <Reveal>
-                  <Lugar tema={tema} titulo="Ceremonia" lineas={ceremonia} hora={state.ch} mapa={state.cm} fondo="fuerte" />
+                  <Lugar tema={tema} titulo="Ceremonia" lineas={ceremonia} hora={state.ch} mapa={state.cm} estilo={bandaFuerte} claro={enBlanco} borde={bordeFuerte} />
                 </Reveal>
               )}
               {recepcion.length > 0 && (
                 <Reveal>
-                  <Lugar tema={tema} titulo="Recepción" lineas={recepcion} hora={state.rh} mapa={state.rm} fondo={ceremonia.length > 0 ? "claro" : "fuerte"} />
+                  <Lugar tema={tema} titulo="Recepción" lineas={recepcion} hora={state.rh} mapa={state.rm} estilo={ceremonia.length > 0 ? { backgroundColor: tema.paper } : bandaFuerte} claro={ceremonia.length > 0 ? false : enBlanco} borde={ceremonia.length > 0 ? tema.accent : bordeFuerte} />
                 </Reveal>
               )}
             </>
           ) : (
             <Reveal>
-              <Lugar tema={tema} titulo="Fecha y lugar" lineas={state.l ? [state.l] : []} hora={state.h} mapa={state.mp} fondo="fuerte" />
+              <Lugar tema={tema} titulo="Fecha y lugar" lineas={state.l ? [state.l] : []} hora={state.h} mapa={state.mp} estilo={bandaFuerte} claro={enBlanco} borde={bordeFuerte} />
             </Reveal>
           )}
 
           {timeline.length > 0 && (
             <Reveal>
               <section className="px-8 py-12 text-center">
-                <p className="tipo-manuscrita text-5xl">Nuestra cronología</p>
+                <Titulo tema={tema}>Nuestra cronología</Titulo>
               <Filigrana tema={tema} />
-                <div className="mt-5"><IconoBrindis color={tema.accent} /></div>
+                <div className="mt-5"><span style={{ color: tema.accent }}><IconoBrindis /></span></div>
                 <div className="mx-auto mt-6 grid max-w-xs gap-4">
                   {timeline.map((item, index) => (
                     <p key={`${item}-${index}`} className="tipo-titulo text-sm tracking-wide">{item}</p>
@@ -774,10 +751,10 @@ export function InvitationView({
 
           {(state.dr || paleta.length > 0 || evitar.length > 0) && (
             <Reveal>
-              <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
-                <p className="tipo-manuscrita text-5xl">Código de vestimenta</p>
-              <Filigrana tema={tema} claro />
-                <div className="mt-5"><IconoVestimenta color="#fff" /></div>
+              <section className="px-8 py-12 text-center" style={bandaFuerte}>
+                <Titulo tema={tema}>Código de vestimenta</Titulo>
+              <Filigrana tema={tema} claro={enBlanco} />
+                <div className="mt-5"><IconoVestimenta /></div>
                 {state.dr && <p className="rotulo mt-5 text-sm">{state.dr}</p>}
                 {paleta.length > 0 && (
                   <>
@@ -785,7 +762,7 @@ export function InvitationView({
                     <div className="mt-4 flex flex-wrap justify-center gap-4">
                       {paleta.map((color, index) => (
                         <span key={`${color.label}-${index}`} className="grid w-16 justify-items-center gap-1.5 text-[10px] leading-tight opacity-90">
-                          <span className="h-8 w-8 rounded-full border border-white/40" style={{ backgroundColor: color.color }} />
+                          <span className="h-8 w-8 rounded-full border" style={{ backgroundColor: color.color, borderColor: enBlanco ? "rgba(255,255,255,.4)" : "rgba(0,0,0,.12)" }} />
                           {color.label}
                         </span>
                       ))}
@@ -798,7 +775,7 @@ export function InvitationView({
                     <div className="mt-4 flex flex-wrap justify-center gap-3">
                       {evitar.map((color, index) => (
                         <span key={`${color.label}-${index}`} className="flex items-center gap-2 text-[11px] line-through opacity-85">
-                          <span className="h-3.5 w-3.5 rounded-full border border-white/40" style={{ backgroundColor: color.color }} />
+                          <span className="h-3.5 w-3.5 rounded-full border" style={{ backgroundColor: color.color, borderColor: enBlanco ? "rgba(255,255,255,.4)" : "rgba(0,0,0,.12)" }} />
                           {color.label}
                         </span>
                       ))}
@@ -811,9 +788,9 @@ export function InvitationView({
 
           {avisos.length > 0 && (
             <Reveal>
-              <section className="px-6 py-12" style={{ backgroundColor: tema.soft }}>
+              <section className="px-6 py-12" style={bandaSuave}>
                 <div className="cartucho px-7 py-9 text-center" style={{ color: tema.accent }}>
-                  <p className="tipo-manuscrita text-5xl" style={{ color: tema.ink }}>A tomar en cuenta</p>
+                  <span style={{ color: tema.ink }}><Titulo tema={tema}>A tomar en cuenta</Titulo></span>
                   <ul className="mx-auto mt-6 grid max-w-xs gap-3 text-left text-sm" style={{ color: tema.ink }}>
                     {avisos.map((aviso, index) => (
                       <li key={`${aviso}-${index}`} className="tipo-titulo flex gap-3">
@@ -830,7 +807,7 @@ export function InvitationView({
           {(state.mr || state.cl) && (
             <Reveal>
               <section className="px-8 py-12 text-center">
-                <p className="tipo-manuscrita text-5xl">Mesa de regalos</p>
+                <Titulo tema={tema}>Mesa de regalos</Titulo>
                 <Filigrana tema={tema} />
                 <p className="mx-auto mt-4 max-w-xs text-sm opacity-70">
                   Tu presencia es el mejor regalo. Si quieres tener un detalle:
@@ -857,8 +834,8 @@ export function InvitationView({
 
           {hospedaje.length > 0 && (
             <Reveal>
-              <section className="px-8 py-12 text-center" style={{ backgroundColor: tema.soft }}>
-                <p className="tipo-manuscrita text-5xl">Hospedaje</p>
+              <section className="px-8 py-12 text-center" style={bandaSuave}>
+                <Titulo tema={tema}>Hospedaje</Titulo>
                 <Filigrana tema={tema} />
                 <div className="mx-auto mt-5 grid max-w-xs gap-3 text-sm">
                   {hospedaje.map((linea, i) => (
@@ -872,7 +849,7 @@ export function InvitationView({
           {galeria.length > 0 && (
             <Reveal>
               <section className="px-6 py-12 text-center">
-                <p className="tipo-manuscrita text-5xl">Galería de fotos</p>
+                <Titulo tema={tema}>Galería de fotos</Titulo>
               <Filigrana tema={tema} />
                 <div className="mt-7 grid grid-cols-2 gap-3">
                   {galeria.map((foto, index) => (
@@ -888,9 +865,9 @@ export function InvitationView({
 
           {state.sc && albumCode && (
             <Reveal>
-              <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
-                <p className="tipo-manuscrita text-5xl">Sugiere una canción</p>
-                <Filigrana tema={tema} claro />
+              <section className="px-8 py-12 text-center" style={bandaFuerte}>
+                <Titulo tema={tema}>Sugiere una canción</Titulo>
+                <Filigrana tema={tema} claro={enBlanco} />
                 <p className="mx-auto mt-4 max-w-xs text-sm opacity-85">
                   ¿Qué no puede faltar en la fiesta? Dinos qué quieres bailar.
                 </p>
@@ -904,9 +881,9 @@ export function InvitationView({
                       onChange={(e) => setCancion(e.target.value)}
                       maxLength={200}
                       placeholder="Canción y artista"
-                      className="border-0 border-b border-white/50 bg-transparent px-1 py-2 text-center text-sm text-white outline-none placeholder:text-white/60"
+                      className="border-0 border-b bg-transparent px-1 py-2 text-center text-sm outline-none placeholder:opacity-60" style={{ borderColor: bordeFuerte }}
                     />
-                    <button disabled={cancionEstado === "sending"} className="rotulo border border-white/70 px-4 py-2.5 disabled:opacity-60">
+                    <button disabled={cancionEstado === "sending"} className="rotulo border px-4 py-2.5 disabled:opacity-60" style={{ borderColor: bordeFuerte }}>
                       {cancionEstado === "sending" ? "Enviando…" : "Enviar canción"}
                     </button>
                     {cancionEstado === "error" && <p className="text-xs">No se pudo enviar. Inténtalo de nuevo.</p>}
@@ -918,7 +895,7 @@ export function InvitationView({
 
           {state.bd && albumCode && (
             <Reveal>
-              <section className="px-6 py-12" style={{ backgroundColor: tema.soft }}>
+              <section className="px-6 py-12" style={bandaSuave}>
                 <div className="cartucho px-7 py-9 text-center" style={{ color: tema.accent }}>
                   <p className="tipo-manuscrita text-5xl" style={{ color: tema.ink }}>Buenos</p>
                   <p className="tipo-titulo -mt-1 text-xl uppercase tracking-[.3em]" style={{ color: tema.ink }}>Deseos</p>
@@ -954,10 +931,10 @@ export function InvitationView({
 
           {state.hg && (
             <Reveal>
-              <section className="px-8 py-12 text-center text-white" style={{ backgroundColor: tema.band }}>
+              <section className="px-8 py-12 text-center" style={bandaFuerte}>
                 <p className="rotulo opacity-80">Comparte tus fotos</p>
                 <p className="tipo-manuscrita mt-3 text-5xl">#{state.hg}</p>
-                <button onClick={() => copiar(`#${state.hg}`, "hashtag")} className="rotulo mt-6 border border-white/70 px-5 py-2.5">
+                <button onClick={() => copiar(`#${state.hg}`, "hashtag")} className="rotulo mt-6 border px-5 py-2.5" style={{ borderColor: bordeFuerte }}>
                   {copiado === "hashtag" ? "¡Copiado!" : "Copiar hashtag"}
                 </button>
               </section>

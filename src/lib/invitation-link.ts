@@ -56,7 +56,12 @@ export type InvitationLinkState = {
   // Datos de la experiencia web interactiva. Se guardan junto al resto para
   // que no se pierdan al compartir el QR.
   it?: boolean;
-  iv?: EstiloInvitacion;
+  /**
+   * Plantilla de la invitación web (`PLANTILLAS` en `invitation-styles`).
+   * Los enlaces repartidos antes de que hubiera catálogo traen aquí el
+   * nombre del evento ("quince", "boda"…); `plantillaDe()` los resuelve.
+   */
+  iv?: string;
   st?: string;
   mp?: string;
   dr?: string;
