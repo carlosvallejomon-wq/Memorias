@@ -73,6 +73,13 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     bandas: "oscuras", motivo: "deco", titulos: "versalitas", marco: "recto", lluvia: "destellos",
   },
   {
+    id: "quince-azul-real",
+    label: "Azul imperial",
+    evento: "quince",
+    paleta: { ink: "#f7f0df", paper: "#17254a", soft: "#233462", mezcla: "#314574", band: "#a78538", accent: "#d7ba69" },
+    bandas: "oscuras", motivo: "deco", titulos: "manuscrita", marco: "ovalo", lluvia: "destellos", marcoIlustrado: "/invitaciones/marco-quince-azul-real.png",
+  },
+  {
     id: "boda-marfil",
     label: "Marfil romántica",
     evento: "boda",
@@ -92,6 +99,13 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "boda",
     paleta: { ink: "#eef1f8", paper: "#1e2740", soft: "#28324f", mezcla: "#33405f", band: "#c2a35b", accent: "#cdb069" },
     bandas: "oscuras", motivo: "deco", titulos: "versalitas", marco: "recto", lluvia: "destellos",
+  },
+  {
+    id: "boda-noir-orchid",
+    label: "Noir Orchid",
+    evento: "boda",
+    paleta: { ink: "#f7f1e6", paper: "#181614", soft: "#28211e", mezcla: "#3b302b", band: "#927244", accent: "#d1ad70" },
+    bandas: "oscuras", motivo: "deco", titulos: "manuscrita", marco: "recto", lluvia: "destellos", marcoIlustrado: "/invitaciones/marco-boda-noir-orchid.png",
   },
   {
     id: "baby-salvia",
