@@ -597,6 +597,19 @@ details > summary::marker {
   opacity: 0.16;
 }
 
+/* Ilustraciones exclusivas de portada: flores, coronas y filigranas reales
+   con movimiento mínimo para que la tarjeta se sienta viva sin distraer. */
+.marco-ilustrado {
+  z-index: 1;
+  opacity: 0.84;
+  mix-blend-mode: multiply;
+  animation: marco-respira 7s ease-in-out infinite;
+}
+@keyframes marco-respira {
+  0%, 100% { transform: scale(1); opacity: 0.78; }
+  50% { transform: scale(1.018); opacity: 0.92; }
+}
+
 /* El sobre lacrado. La solapa gira sobre su borde de arriba, la tarjeta sale
    hacia arriba y el lacre se encoge; después el sobre entero se va. Ese toque
    es además el permiso que piden los navegadores para dejar sonar la música. */
@@ -695,6 +708,9 @@ details > summary::marker {
   .petalo {
     animation: none;
     display: none;
+  }
+  .marco-ilustrado {
+    animation: none;
   }
 }
 

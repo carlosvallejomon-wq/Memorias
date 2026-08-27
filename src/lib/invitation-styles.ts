@@ -46,6 +46,8 @@ export type PlantillaInvitacion = {
   titulos: Titulos;
   marco: Marco;
   lluvia: Lluvia;
+  /** Marco ilustrado propio para las portadas premium. */
+  marcoIlustrado?: string;
 };
 
 export const PLANTILLAS: PlantillaInvitacion[] = [
@@ -54,7 +56,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     label: "Rosa clásica",
     evento: "quince",
     paleta: { ink: "#54222f", paper: "#fdf2f6", soft: "#f8dee7", mezcla: "#f0c2d2", band: "#b05a76", accent: "#b05a76" },
-    bandas: "alternas", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos",
+    bandas: "alternas", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos", marcoIlustrado: "/invitaciones/marco-quince-rosa.png",
   },
   {
     id: "quince-blush",
@@ -75,7 +77,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     label: "Marfil romántica",
     evento: "boda",
     paleta: { ink: "#3c3029", paper: "#faf5ec", soft: "#f0e6d5", mezcla: "#e0cdac", band: "#a07551", accent: "#a07551" },
-    bandas: "claras", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos",
+    bandas: "claras", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos", marcoIlustrado: "/invitaciones/marco-boda-marfil.png",
   },
   {
     id: "boda-olivo",

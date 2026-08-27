@@ -637,7 +637,16 @@ export function InvitationView({
         <main className={`relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in ${texturaPapel}`} style={{ backgroundColor: tema.paper }}>
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
-          <section className="marco-doble relative px-9 pb-14 pt-16 text-center">
+          <section className="marco-doble relative overflow-hidden px-9 pb-14 pt-16 text-center">
+            {plantilla.marcoIlustrado && (
+              <img
+                src={plantilla.marcoIlustrado}
+                alt=""
+                aria-hidden="true"
+                className="marco-ilustrado pointer-events-none absolute inset-0 h-full w-full object-fill"
+              />
+            )}
+            <div className="relative z-10">
             <span className="absolute left-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <span className="absolute right-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <p className="rotulo opacity-55">Estás invitado</p>
@@ -650,6 +659,7 @@ export function InvitationView({
             {state.d && <p className="tipo-titulo mt-7 text-lg tracking-[.18em]">{state.d}</p>}
             {state.o && <p className="mx-auto mt-3 max-w-[15rem] text-sm italic opacity-65">{state.o}</p>}
             <p className="mt-10 text-xs opacity-45">Desliza para descubrir</p>
+            </div>
           </section>
 
           <Reveal>
