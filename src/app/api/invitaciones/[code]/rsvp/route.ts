@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { albums, invitationRsvps } from "@/db/schema";
 import { allow, clientKey } from "@/lib/rate-limit";
+import { ensureInvitationSchema } from "@/db/ensure-invitation-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export async function POST(
   if (!name || typeof body.attending !== "boolean") return NextResponse.json({ error: "Completa tu nombre y respuesta." }, { status: 400 });
   const partySize = body.attending ? Math.min(20, Math.max(1, Math.floor(Number(body.partySize) || 1))) : 0;
 
+  await ensureInvitationSchema();
   await db().insert(invitationRsvps).values({
     albumId: album.id,
     guestName: name,

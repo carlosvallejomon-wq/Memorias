@@ -6,6 +6,7 @@ import { isValidClientToken } from "@/lib/client-link";
 import { isExpired } from "@/lib/expiry";
 import { parseInvitationState } from "@/lib/invitation-link";
 import { allow, clientKey } from "@/lib/rate-limit";
+import { ensureInvitationSchema } from "@/db/ensure-invitation-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export async function POST(
     return NextResponse.json({ error: "La invitación es demasiado grande." }, { status: 413 });
   }
 
+  await ensureInvitationSchema();
   await db()
     .insert(invitations)
     .values({ albumId: album.id, data: state })
