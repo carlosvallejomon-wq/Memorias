@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { PartyPopper } from "lucide-react";
+import { PartyPopper, WandSparkles } from "lucide-react";
 import { useState } from "react";
 import type { InvitationLinkState } from "@/lib/invitation-link";
 
@@ -58,11 +58,22 @@ export function LazyInvitationGenerator({
   }
 
   return (
-    <button
-      onClick={() => setActive(true)}
-      className="btn btn-soft shimmer px-4 py-2 text-sm"
-    >
-      <PartyPopper size={16} /> Invitación
-    </button>
+    <div className="flex flex-wrap gap-2">
+      <button
+        onClick={() => setActive(true)}
+        className="btn btn-soft shimmer px-4 py-2 text-sm"
+      >
+        <PartyPopper size={16} /> Invitación
+      </button>
+      <a
+        href="https://party-flair-maker.lovable.app/editor"
+        target="_blank"
+        rel="noreferrer"
+        className="btn btn-soft px-4 py-2 text-sm"
+        title="Abrir el editor visual creado en Lovable"
+      >
+        <WandSparkles size={16} /> Editor visual
+      </a>
+    </div>
   );
 }
