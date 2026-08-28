@@ -605,6 +605,42 @@ details > summary::marker {
   text-wrap: balance;
   overflow-wrap: anywhere;
 }
+/* Cuatro composiciones de portada; la paleta es solo una capa más. Así cada
+   familia de plantillas conserva su propia silueta y no parece el mismo
+   diseño pintado de otro color. */
+.portada-editorial .portada-foto {
+  width: 68%;
+  transform: rotate(-2.2deg);
+  box-shadow: 0.75rem 0.85rem 0 rgba(0, 0, 0, 0.1);
+}
+.portada-editorial .invitacion-nombre {
+  max-width: 15rem;
+}
+.portada-retrato .portada-foto {
+  width: 60%;
+  padding: 0.7rem;
+  box-shadow: 0 0 0 1px currentColor, 0 0.9rem 2rem rgba(0, 0, 0, 0.12);
+}
+.portada-retrato .invitacion-nombre {
+  margin-top: 1.75rem;
+}
+.portada-protagonista .portada-foto {
+  width: 88%;
+  padding: 0.7rem;
+  transform: rotate(1.2deg);
+  box-shadow: 0 1.1rem 2.2rem rgba(0, 0, 0, 0.28);
+}
+.portada-protagonista .portada-contenido > .rotulo {
+  letter-spacing: 0.38em;
+}
+.portada-lamina .portada-foto {
+  box-shadow: 0 0.65rem 1.6rem rgba(0, 0, 0, 0.12);
+}
+@media (max-width: 360px) {
+  .portada-editorial .portada-foto { width: 72%; }
+  .portada-retrato .portada-foto { width: 64%; }
+  .portada-protagonista .portada-foto { width: 84%; }
+}
 .boton-invitacion {
   border-radius: 0.85rem;
   text-align: center;
@@ -703,39 +739,26 @@ details > summary::marker {
   opacity: 0;
 }
 
-/* Pétalos cayendo de fondo. Son nueve, con transformaciones y opacidad: no
-   repintan el documento y con `prefers-reduced-motion` se quedan quietos. */
+/* Pétalos y destellos repartidos por todo el largo de la invitación. No se
+   escapan al terminar la portada: quedan como detalles de papelería viva. */
 .lluvia {
-  position: fixed;
+  position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
 }
 .petalo {
   position: absolute;
-  top: -8%;
   width: 12px;
   height: 12px;
   border-radius: 60% 0 60% 0;
-  opacity: 0;
-  animation: caer linear infinite;
+  opacity: 0.16;
+  animation: flotar linear infinite;
 }
-@keyframes caer {
-  0% {
-    transform: translate3d(0, -10vh, 0) rotate(0deg);
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.32;
-  }
-  88% {
-    opacity: 0.32;
-  }
-  100% {
-    transform: translate3d(3vw, 108vh, 0) rotate(320deg);
-    opacity: 0;
-  }
+@keyframes flotar {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0.12; }
+  50% { transform: translate3d(0.8rem, -0.75rem, 0) rotate(18deg); opacity: 0.3; }
 }
 @media (prefers-reduced-motion: reduce) {
   .petalo {

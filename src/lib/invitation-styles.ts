@@ -25,6 +25,8 @@ export type Marco = "arco" | "ovalo" | "recto";
 
 /** Lo que cae de fondo. */
 export type Lluvia = "petalos" | "destellos" | "ninguna";
+/** La portada no debe ser la misma en todas las plantillas. */
+export type ComposicionPortada = "lamina" | "editorial" | "retrato" | "protagonista";
 
 export type Paleta = {
   ink: string;
@@ -46,6 +48,7 @@ export type PlantillaInvitacion = {
   titulos: Titulos;
   marco: Marco;
   lluvia: Lluvia;
+  composicion: ComposicionPortada;
   /** Ilustración real, contenida en dos esquinas de la portada. */
   ornamentoEsquina?: string;
   esquina?: "izquierda" | "derecha";
@@ -57,7 +60,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     label: "Rosa clásica",
     evento: "quince",
     paleta: { ink: "#54222f", paper: "#fdf2f6", soft: "#f8dee7", mezcla: "#f0c2d2", band: "#b05a76", accent: "#b05a76" },
-    bandas: "alternas", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos",
+    bandas: "alternas", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos", composicion: "lamina",
     ornamentoEsquina: "/invitaciones/floral-quince-blush-esquina.png", esquina: "derecha",
   },
   {
@@ -65,21 +68,21 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     label: "Blush botánica",
     evento: "quince",
     paleta: { ink: "#5d3b42", paper: "#fdf7f4", soft: "#f6e7de", mezcla: "#eed3c6", band: "#b9836f", accent: "#a97561" },
-    bandas: "claras", motivo: "botanico", titulos: "versalitas", marco: "ovalo", lluvia: "ninguna",
+    bandas: "claras", motivo: "botanico", titulos: "versalitas", marco: "ovalo", lluvia: "petalos", composicion: "editorial",
   },
   {
     id: "quince-deco",
     label: "Noche dorada",
     evento: "quince",
     paleta: { ink: "#f2e9d8", paper: "#241f2b", soft: "#2f2839", mezcla: "#3b3247", band: "#c9a227", accent: "#d9b64a" },
-    bandas: "oscuras", motivo: "deco", titulos: "versalitas", marco: "recto", lluvia: "destellos",
+    bandas: "oscuras", motivo: "deco", titulos: "versalitas", marco: "recto", lluvia: "destellos", composicion: "protagonista",
   },
   {
     id: "quince-azul-real",
     label: "Azul imperial",
     evento: "quince",
     paleta: { ink: "#f7f0df", paper: "#17254a", soft: "#233462", mezcla: "#314574", band: "#a78538", accent: "#d7ba69" },
-    bandas: "oscuras", motivo: "deco", titulos: "manuscrita", marco: "ovalo", lluvia: "destellos",
+    bandas: "oscuras", motivo: "deco", titulos: "manuscrita", marco: "ovalo", lluvia: "destellos", composicion: "retrato",
     ornamentoEsquina: "/invitaciones/quince-azul-real-esquina.png", esquina: "izquierda",
   },
   {
@@ -87,7 +90,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     label: "Marfil romántica",
     evento: "boda",
     paleta: { ink: "#3c3029", paper: "#faf5ec", soft: "#f0e6d5", mezcla: "#e0cdac", band: "#a07551", accent: "#a07551" },
-    bandas: "claras", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos",
+    bandas: "claras", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos", composicion: "lamina",
     ornamentoEsquina: "/invitaciones/floral-marfil-esquina.png", esquina: "izquierda",
   },
   {
@@ -95,7 +98,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     label: "Verde olivo",
     evento: "boda",
     paleta: { ink: "#2f3a2a", paper: "#f6f7f0", soft: "#e3e8d6", mezcla: "#cdd6b8", band: "#6b7a4b", accent: "#6b7a4b" },
-    bandas: "alternas", motivo: "botanico", titulos: "versalitas", marco: "arco", lluvia: "ninguna",
+    bandas: "alternas", motivo: "botanico", titulos: "versalitas", marco: "arco", lluvia: "petalos", composicion: "editorial",
     ornamentoEsquina: "/invitaciones/boda-olivo-magnolia-esquina.png", esquina: "derecha",
   },
   {
@@ -103,49 +106,49 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     label: "Azul noche",
     evento: "boda",
     paleta: { ink: "#eef1f8", paper: "#1e2740", soft: "#28324f", mezcla: "#33405f", band: "#c2a35b", accent: "#cdb069" },
-    bandas: "oscuras", motivo: "deco", titulos: "versalitas", marco: "recto", lluvia: "destellos",
+    bandas: "oscuras", motivo: "deco", titulos: "versalitas", marco: "recto", lluvia: "destellos", composicion: "protagonista",
   },
   {
     id: "boda-noir-orchid",
     label: "Noir Orchid",
     evento: "boda",
     paleta: { ink: "#f7f1e6", paper: "#181614", soft: "#28211e", mezcla: "#3b302b", band: "#927244", accent: "#d1ad70" },
-    bandas: "oscuras", motivo: "deco", titulos: "manuscrita", marco: "recto", lluvia: "destellos",
+    bandas: "oscuras", motivo: "deco", titulos: "manuscrita", marco: "recto", lluvia: "destellos", composicion: "editorial",
   },
   {
     id: "baby-salvia",
     label: "Salvia con lazo",
     evento: "baby",
     paleta: { ink: "#2f4a40", paper: "#f3f9f4", soft: "#dfeee4", mezcla: "#c6ded1", band: "#5f8574", accent: "#5f8574" },
-    bandas: "alternas", motivo: "lazo", titulos: "manuscrita", marco: "arco", lluvia: "ninguna",
+    bandas: "alternas", motivo: "lazo", titulos: "manuscrita", marco: "arco", lluvia: "petalos", composicion: "retrato",
   },
   {
     id: "cumple-coral",
     label: "Coral alegre",
     evento: "cumple",
     paleta: { ink: "#5a2f22", paper: "#fdf5f0", soft: "#fae0d3", mezcla: "#f4c6ae", band: "#c06a3c", accent: "#c06a3c" },
-    bandas: "alternas", motivo: "corazones", titulos: "manuscrita", marco: "arco", lluvia: "petalos",
+    bandas: "alternas", motivo: "corazones", titulos: "manuscrita", marco: "arco", lluvia: "petalos", composicion: "editorial",
   },
   {
     id: "bautizo-celeste",
     label: "Celeste con estrellas",
     evento: "bautizo",
     paleta: { ink: "#26405c", paper: "#f4f8fc", soft: "#dde9f4", mezcla: "#c2d8ea", band: "#5a80a6", accent: "#5a80a6" },
-    bandas: "claras", motivo: "estrellas", titulos: "manuscrita", marco: "ovalo", lluvia: "destellos",
+    bandas: "claras", motivo: "estrellas", titulos: "manuscrita", marco: "ovalo", lluvia: "destellos", composicion: "retrato",
   },
   {
     id: "comunion-dorada",
     label: "Comunión dorada",
     evento: "comunion",
     paleta: { ink: "#4a3f2a", paper: "#fdfaf1", soft: "#f4ecd8", mezcla: "#e8dbb8", band: "#9c8546", accent: "#9c8546" },
-    bandas: "claras", motivo: "floral", titulos: "manuscrita", marco: "ovalo", lluvia: "ninguna",
+    bandas: "claras", motivo: "floral", titulos: "manuscrita", marco: "ovalo", lluvia: "petalos", composicion: "lamina",
   },
   {
     id: "graduacion-gala",
     label: "Graduación de gala",
     evento: "graduacion",
     paleta: { ink: "#eceef6", paper: "#20263c", soft: "#2a3150", mezcla: "#374064", band: "#b9a05a", accent: "#c6ad66" },
-    bandas: "oscuras", motivo: "deco", titulos: "versalitas", marco: "recto", lluvia: "destellos",
+    bandas: "oscuras", motivo: "deco", titulos: "versalitas", marco: "recto", lluvia: "destellos", composicion: "protagonista",
   },
 ];
 

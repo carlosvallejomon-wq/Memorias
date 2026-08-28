@@ -157,22 +157,26 @@ function Titulo({ tema, children }: { tema: Tema; children: React.ReactNode }) {
  */
 function Petalos({ tema }: { tema: Tema }) {
   const cual = tema.plantilla.lluvia;
-  // Posiciones fijas y no aleatorias: si cambiaran en cada render, React
-  // volvería a arrancar las animaciones y los pétalos darían saltos.
+  // Posiciones fijas y repartidas por todo el largo de la invitación: no
+  // nacen solo arriba ni desaparecen al terminar la portada.
   const semillas = [
-    { x: 6, d: 15, r: 0, s: 11 }, { x: 19, d: 21, r: 5, s: 8 }, { x: 31, d: 17, r: 9, s: 13 },
-    { x: 45, d: 24, r: 2, s: 9 }, { x: 58, d: 19, r: 12, s: 12 }, { x: 70, d: 26, r: 7, s: 10 },
-    { x: 82, d: 16, r: 14, s: 8 }, { x: 91, d: 22, r: 4, s: 12 }, { x: 38, d: 28, r: 18, s: 9 },
+    { x: 6, y: 5, d: 15, r: 0, s: 11 }, { x: 82, y: 11, d: 21, r: 5, s: 8 },
+    { x: 18, y: 18, d: 17, r: 9, s: 13 }, { x: 91, y: 27, d: 24, r: 2, s: 9 },
+    { x: 8, y: 36, d: 19, r: 12, s: 12 }, { x: 77, y: 43, d: 26, r: 7, s: 10 },
+    { x: 14, y: 55, d: 16, r: 14, s: 8 }, { x: 88, y: 64, d: 22, r: 4, s: 12 },
+    { x: 28, y: 72, d: 28, r: 18, s: 9 }, { x: 76, y: 81, d: 20, r: 6, s: 11 },
+    { x: 11, y: 91, d: 23, r: 11, s: 8 }, { x: 89, y: 96, d: 18, r: 15, s: 10 },
   ];
   if (cual === "ninguna") return null;
   return (
     <div className="lluvia" aria-hidden="true">
       {semillas.map((p) => (
         <span
-          key={p.x}
+          key={`${p.x}-${p.y}`}
           className="petalo"
           style={{
             left: `${p.x}%`,
+            top: `${p.y}%`,
             width: cual === "destellos" ? Math.round(p.s * 0.6) : p.s,
             height: cual === "destellos" ? Math.round(p.s * 0.6) : p.s,
             borderRadius: cual === "destellos" ? "50%" : undefined,
@@ -637,7 +641,7 @@ export function InvitationView({
         <main className={`relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in ${texturaPapel}`} style={{ backgroundColor: tema.paper }}>
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
-          <section className="marco-doble relative overflow-hidden px-6 pb-14 pt-16 text-center sm:px-9">
+          <section className={`marco-doble portada-${plantilla.composicion} relative overflow-hidden px-6 pb-14 pt-16 text-center sm:px-9`}>
             {plantilla.ornamentoEsquina && (
               <>
                 <img
@@ -658,13 +662,13 @@ export function InvitationView({
                 />
               </>
             )}
-            <div className="relative z-10">
+            <div className="portada-contenido relative z-10">
             <span className="absolute left-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <span className="absolute right-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <p className="rotulo opacity-55">Estás invitado</p>
             <h1 className="invitacion-nombre tipo-titulo mx-auto mt-5 max-w-full uppercase">{state.n}</h1>
             {fotoPortada && (
-              <div className={`marco-foto ${claseMarco} mx-auto mt-8 w-[74%]`}>
+              <div className={`marco-foto portada-foto ${claseMarco} mx-auto mt-8 w-[74%]`}>
                 <img src={fotoPortada} alt="" className="aspect-[3/4] w-full object-cover" />
               </div>
             )}
