@@ -80,6 +80,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "quince",
     paleta: { ink: "#f7f0df", paper: "#17254a", soft: "#233462", mezcla: "#314574", band: "#a78538", accent: "#d7ba69" },
     bandas: "oscuras", motivo: "deco", titulos: "manuscrita", marco: "ovalo", lluvia: "destellos",
+    ornamentoEsquina: "/invitaciones/quince-azul-real-esquina.png", esquina: "izquierda",
   },
   {
     id: "boda-marfil",
@@ -95,6 +96,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "boda",
     paleta: { ink: "#2f3a2a", paper: "#f6f7f0", soft: "#e3e8d6", mezcla: "#cdd6b8", band: "#6b7a4b", accent: "#6b7a4b" },
     bandas: "alternas", motivo: "botanico", titulos: "versalitas", marco: "arco", lluvia: "ninguna",
+    ornamentoEsquina: "/invitaciones/boda-olivo-magnolia-esquina.png", esquina: "derecha",
   },
   {
     id: "boda-noche",
