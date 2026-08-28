@@ -121,6 +121,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "baby",
     paleta: { ink: "#2f4a40", paper: "#f3f9f4", soft: "#dfeee4", mezcla: "#c6ded1", band: "#5f8574", accent: "#5f8574" },
     bandas: "alternas", motivo: "lazo", titulos: "manuscrita", marco: "arco", lluvia: "petalos", composicion: "retrato",
+    ornamentoEsquina: "/invitaciones/baby-salvia-esquina.png", esquina: "izquierda",
   },
   {
     id: "cumple-coral",
