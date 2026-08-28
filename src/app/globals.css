@@ -609,6 +609,16 @@ details > summary::marker {
   border-radius: 0.85rem;
   text-align: center;
 }
+.boton-rsvp {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  white-space: normal;
+}
 
 /* Marco doble para las bandas de foto a todo lo ancho. */
 .marco-doble::before,
