@@ -638,14 +638,6 @@ export function InvitationView({
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
           <section className="marco-doble relative overflow-hidden px-9 pb-14 pt-16 text-center">
-            {plantilla.marcoIlustrado && (
-              <img
-                src={plantilla.marcoIlustrado}
-                alt=""
-                aria-hidden="true"
-                className="marco-ilustrado pointer-events-none absolute inset-0 h-full w-full object-fill"
-              />
-            )}
             <div className="relative z-10">
             <span className="absolute left-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <span className="absolute right-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
