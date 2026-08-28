@@ -567,8 +567,12 @@ details > summary::marker {
    filetes con esquinas elípticas; hereda el color del texto. */
 .cartucho {
   position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 22rem;
+  margin-inline: auto;
   border: 1px solid currentColor;
-  border-radius: 2.6rem / 3.4rem;
+  border-radius: 1.15rem;
 }
 .cartucho::before {
   content: "";
@@ -576,8 +580,27 @@ details > summary::marker {
   inset: 0.42rem;
   pointer-events: none;
   border: 1px solid currentColor;
-  border-radius: 2.2rem / 3rem;
+  border-radius: 0.8rem;
   opacity: 0.45;
+}
+
+/* En celular el formulario nunca debe quedar pegado a un lado ni desbordar
+   el recuadro decorativo. Los botones usan una curva suave: elegantes, pero
+   no cápsulas ovaladas. */
+.formulario-invitacion {
+  width: 100%;
+  max-width: 19rem;
+  margin-inline: auto;
+}
+.formulario-invitacion input,
+.formulario-invitacion textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+.boton-invitacion {
+  border-radius: 0.85rem;
+  text-align: center;
 }
 
 /* Marco doble para las bandas de foto a todo lo ancho. */

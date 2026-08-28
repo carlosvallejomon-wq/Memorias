@@ -559,12 +559,12 @@ export function InvitationView({
         <div className="mt-5 grid gap-3 text-left">
           <input required value={rsvpName} onChange={(e) => setRsvpName(e.target.value)} maxLength={100} placeholder="Tu nombre" className="rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <button type="button" onClick={() => setRsvpAttending(true)} className="rotulo border px-3 py-2.5" style={rsvpAttending ? { backgroundColor: tema.accent, color: "#fff", borderColor: tema.accent } : { borderColor: tema.accent }}>Sí, asistiré</button>
-            <button type="button" onClick={() => setRsvpAttending(false)} className="rotulo border px-3 py-2.5" style={!rsvpAttending ? { backgroundColor: tema.ink, color: "#fff", borderColor: tema.ink } : { borderColor: tema.accent }}>No podré</button>
+            <button type="button" onClick={() => setRsvpAttending(true)} className="boton-invitacion rotulo border px-3 py-2.5" style={rsvpAttending ? { backgroundColor: tema.accent, color: "#fff", borderColor: tema.accent } : { borderColor: tema.accent }}>Sí, asistiré</button>
+            <button type="button" onClick={() => setRsvpAttending(false)} className="boton-invitacion rotulo border px-3 py-2.5" style={!rsvpAttending ? { backgroundColor: tema.ink, color: "#fff", borderColor: tema.ink } : { borderColor: tema.accent }}>No podré</button>
           </div>
           {rsvpAttending && <label className="text-xs opacity-70">Personas en tu grupo<input type="number" min="1" max="20" value={rsvpGuests} onChange={(e) => setRsvpGuests(Math.max(1, Number(e.target.value) || 1))} className="mt-1 block w-full rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm text-inherit outline-none" style={{ borderColor: tema.accent }} /></label>}
           <input value={rsvpNote} onChange={(e) => setRsvpNote(e.target.value)} maxLength={300} placeholder="Mensaje opcional" className="rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
-          <button disabled={rsvpState === "sending"} className="rotulo mt-2 px-4 py-3 text-white disabled:opacity-60" style={{ backgroundColor: tema.accent }}>{rsvpState === "sending" ? "Enviando…" : "Enviar confirmación"}</button>
+          <button disabled={rsvpState === "sending"} className="boton-invitacion rotulo mt-2 px-4 py-3 text-white disabled:opacity-60" style={{ backgroundColor: tema.accent }}>{rsvpState === "sending" ? "Enviando…" : "Enviar confirmación"}</button>
           {rsvpState === "error" && <p className="text-center text-xs text-vino">No se pudo enviar. Inténtalo de nuevo.</p>}
         </div>
       )}
@@ -905,7 +905,7 @@ export function InvitationView({
                       placeholder="Canción y artista"
                       className="border-0 border-b bg-transparent px-1 py-2 text-center text-sm outline-none placeholder:opacity-60" style={{ borderColor: bordeFuerte }}
                     />
-                    <button disabled={cancionEstado === "sending"} className="rotulo border px-4 py-2.5 disabled:opacity-60" style={{ borderColor: bordeFuerte }}>
+                    <button disabled={cancionEstado === "sending"} className="boton-invitacion rotulo border px-4 py-2.5 disabled:opacity-60" style={{ borderColor: bordeFuerte }}>
                       {cancionEstado === "sending" ? "Enviando…" : "Enviar canción"}
                     </button>
                     {cancionEstado === "error" && <p className="text-xs">No se pudo enviar. Inténtalo de nuevo.</p>}
@@ -927,10 +927,10 @@ export function InvitationView({
                   {deseoEstado === "sent" ? (
                     <p className="mt-6 text-sm" style={{ color: tema.ink }}>¡Gracias! Tu mensaje quedará en el libro.</p>
                   ) : (
-                    <form onSubmit={sendDeseo} className="mt-6 grid gap-3 text-left" style={{ color: tema.ink }}>
+                    <form onSubmit={sendDeseo} className="formulario-invitacion mt-6 grid gap-3 text-left" style={{ color: tema.ink }}>
                       <input value={deseoNombre} onChange={(e) => setDeseoNombre(e.target.value)} maxLength={100} placeholder="Tu nombre (opcional)" className="border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
                       <textarea required value={deseoTexto} onChange={(e) => setDeseoTexto(e.target.value)} maxLength={2000} rows={3} placeholder="Escribe tus buenos deseos…" className="resize-y border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
-                      <button disabled={deseoEstado === "sending"} className="rotulo mt-1 px-4 py-3 text-white disabled:opacity-60" style={{ backgroundColor: tema.accent }}>
+                      <button disabled={deseoEstado === "sending"} className="boton-invitacion rotulo mt-1 px-4 py-3 text-white disabled:opacity-60" style={{ backgroundColor: tema.accent }}>
                         {deseoEstado === "sending" ? "Enviando…" : "Enviar buenos deseos"}
                       </button>
                       {deseoEstado === "error" && <p className="text-center text-xs text-vino">No se pudo enviar. Inténtalo de nuevo.</p>}
@@ -956,7 +956,7 @@ export function InvitationView({
               <section className="px-8 py-12 text-center" style={bandaFuerte}>
                 <p className="rotulo opacity-80">Comparte tus fotos</p>
                 <p className="tipo-manuscrita mt-3 text-5xl">#{state.hg}</p>
-                <button onClick={() => copiar(`#${state.hg}`, "hashtag")} className="rotulo mt-6 border px-5 py-2.5" style={{ borderColor: bordeFuerte }}>
+                <button onClick={() => copiar(`#${state.hg}`, "hashtag")} className="boton-invitacion rotulo mt-6 border px-5 py-2.5" style={{ borderColor: bordeFuerte }}>
                   {copiado === "hashtag" ? "¡Copiado!" : "Copiar hashtag"}
                 </button>
               </section>
@@ -966,7 +966,7 @@ export function InvitationView({
           <Reveal>
             <section className="grid gap-6 px-6 py-12">
               {rsvpForm}
-              <a href={shareUrl} className="rotulo block px-6 py-3.5 text-center text-white" style={{ backgroundColor: tema.accent }}>
+              <a href={shareUrl} className="boton-invitacion rotulo block px-6 py-3.5 text-center text-white" style={{ backgroundColor: tema.accent }}>
                 Ver álbum de fotos
               </a>
             </section>
