@@ -648,16 +648,16 @@ export function InvitationView({
                   src={plantilla.ornamentoEsquina}
                   alt=""
                   aria-hidden="true"
-                  className={`adorno-esquina pointer-events-none absolute top-0 z-0 h-44 w-44 object-contain sm:h-52 sm:w-52 ${
-                    plantilla.esquina === "derecha" ? "right-0" : "left-0"
+                  className={`adorno-esquina portada-adorno portada-adorno-superior pointer-events-none absolute z-[1] object-contain ${
+                    plantilla.esquina === "derecha" ? "right-[-1.35rem]" : "left-[-1.35rem]"
                   }`}
                 />
                 <img
                   src={plantilla.ornamentoEsquina}
                   alt=""
                   aria-hidden="true"
-                  className={`adorno-esquina pointer-events-none absolute bottom-0 z-0 h-36 w-36 rotate-180 object-contain opacity-70 sm:h-44 sm:w-44 ${
-                    plantilla.esquina === "derecha" ? "left-0" : "right-0"
+                  className={`adorno-esquina portada-adorno portada-adorno-inferior pointer-events-none absolute z-[1] rotate-180 object-contain ${
+                    plantilla.esquina === "derecha" ? "left-[-1.35rem]" : "right-[-1.35rem]"
                   }`}
                 />
               </>

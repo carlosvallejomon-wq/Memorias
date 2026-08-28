@@ -636,10 +636,17 @@ details > summary::marker {
 .portada-lamina .portada-foto {
   box-shadow: 0 0.65rem 1.6rem rgba(0, 0, 0, 0.12);
 }
+.portada-adorno {
+  width: 6rem;
+  height: 6rem;
+}
+.portada-adorno-superior { top: -0.65rem; }
+.portada-adorno-inferior { bottom: -0.85rem; opacity: 0.72; }
 @media (max-width: 360px) {
   .portada-editorial .portada-foto { width: 72%; }
   .portada-retrato .portada-foto { width: 64%; }
   .portada-protagonista .portada-foto { width: 84%; }
+  .portada-adorno { width: 5.5rem; height: 5.5rem; }
 }
 .boton-invitacion {
   border-radius: 0.85rem;
