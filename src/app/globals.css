@@ -641,11 +641,14 @@ details > summary::marker {
   height: 10rem;
 }
 .portada-adorno-superior { top: 0.35rem; }
+.portada-adorno-inferior { bottom: 0.35rem; width: 7.5rem; height: 7.5rem; opacity: 0.78; }
+.portada-ornamento-inferior-activo { padding-bottom: 12rem; }
 @media (max-width: 360px) {
   .portada-editorial .portada-foto { width: 72%; }
   .portada-retrato .portada-foto { width: 64%; }
   .portada-protagonista .portada-foto { width: 84%; }
   .portada-adorno { width: 8.75rem; height: 8.75rem; }
+  .portada-adorno-inferior { width: 6.75rem; height: 6.75rem; }
 }
 .boton-invitacion {
   border-radius: 0.85rem;

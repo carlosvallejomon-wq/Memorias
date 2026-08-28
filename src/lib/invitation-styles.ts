@@ -52,6 +52,8 @@ export type PlantillaInvitacion = {
   /** Ilustración real, contenida en dos esquinas de la portada. */
   ornamentoEsquina?: string;
   esquina?: "izquierda" | "derecha";
+  /** Algunas ilustraciones nacen para la parte inferior; no se deben girar. */
+  posicionOrnamento?: "superior" | "inferior";
 };
 
 export const PLANTILLAS: PlantillaInvitacion[] = [
@@ -99,7 +101,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "boda",
     paleta: { ink: "#2f3a2a", paper: "#f6f7f0", soft: "#e3e8d6", mezcla: "#cdd6b8", band: "#6b7a4b", accent: "#6b7a4b" },
     bandas: "alternas", motivo: "botanico", titulos: "versalitas", marco: "arco", lluvia: "petalos", composicion: "editorial",
-    ornamentoEsquina: "/invitaciones/boda-olivo-magnolia-esquina.png", esquina: "derecha",
+    ornamentoEsquina: "/invitaciones/boda-olivo-magnolia-esquina.png", esquina: "derecha", posicionOrnamento: "inferior",
   },
   {
     id: "boda-noche",
@@ -121,7 +123,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "baby",
     paleta: { ink: "#2f4a40", paper: "#f3f9f4", soft: "#dfeee4", mezcla: "#c6ded1", band: "#5f8574", accent: "#5f8574" },
     bandas: "alternas", motivo: "lazo", titulos: "manuscrita", marco: "arco", lluvia: "petalos", composicion: "retrato",
-    ornamentoEsquina: "/invitaciones/baby-salvia-esquina.png", esquina: "izquierda",
+    ornamentoEsquina: "/invitaciones/baby-salvia-esquina.png", esquina: "izquierda", posicionOrnamento: "inferior",
   },
   {
     id: "cumple-coral",
