@@ -598,6 +598,13 @@ details > summary::marker {
   width: 100%;
   max-width: 100%;
 }
+.invitacion-nombre {
+  font-size: clamp(1.45rem, 7vw, 1.875rem);
+  line-height: 1.2;
+  letter-spacing: clamp(0.08em, 2vw, 0.28em);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
 .boton-invitacion {
   border-radius: 0.85rem;
   text-align: center;

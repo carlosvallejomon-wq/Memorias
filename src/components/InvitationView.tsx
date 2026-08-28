@@ -556,14 +556,14 @@ export function InvitationView({
       {rsvpState === "sent" ? (
         <p className="mt-5 text-sm">¡Gracias! Tu respuesta fue enviada.</p>
       ) : (
-        <div className="mt-5 grid gap-3 text-left">
-          <input required value={rsvpName} onChange={(e) => setRsvpName(e.target.value)} maxLength={100} placeholder="Tu nombre" className="rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
+        <div className="formulario-invitacion mt-5 grid gap-3 text-center">
+          <input required value={rsvpName} onChange={(e) => setRsvpName(e.target.value)} maxLength={100} placeholder="Tu nombre" className="w-full rounded-none border-0 border-b bg-transparent px-1 py-2 text-center text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
           <div className="grid grid-cols-2 gap-2 text-xs">
             <button type="button" onClick={() => setRsvpAttending(true)} className="boton-invitacion rotulo border px-3 py-2.5" style={rsvpAttending ? { backgroundColor: tema.accent, color: "#fff", borderColor: tema.accent } : { borderColor: tema.accent }}>Sí, asistiré</button>
             <button type="button" onClick={() => setRsvpAttending(false)} className="boton-invitacion rotulo border px-3 py-2.5" style={!rsvpAttending ? { backgroundColor: tema.ink, color: "#fff", borderColor: tema.ink } : { borderColor: tema.accent }}>No podré</button>
           </div>
-          {rsvpAttending && <label className="text-xs opacity-70">Personas en tu grupo<input type="number" min="1" max="20" value={rsvpGuests} onChange={(e) => setRsvpGuests(Math.max(1, Number(e.target.value) || 1))} className="mt-1 block w-full rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm text-inherit outline-none" style={{ borderColor: tema.accent }} /></label>}
-          <input value={rsvpNote} onChange={(e) => setRsvpNote(e.target.value)} maxLength={300} placeholder="Mensaje opcional" className="rounded-none border-0 border-b bg-transparent px-1 py-2 text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
+          {rsvpAttending && <label className="block text-center text-xs opacity-70">Personas en tu grupo<input type="number" min="1" max="20" value={rsvpGuests} onChange={(e) => setRsvpGuests(Math.max(1, Number(e.target.value) || 1))} className="mt-1 block w-full rounded-none border-0 border-b bg-transparent px-1 py-2 text-center text-sm text-inherit outline-none" style={{ borderColor: tema.accent }} /></label>}
+          <input value={rsvpNote} onChange={(e) => setRsvpNote(e.target.value)} maxLength={300} placeholder="Mensaje opcional" className="w-full rounded-none border-0 border-b bg-transparent px-1 py-2 text-center text-sm outline-none placeholder:opacity-50" style={{ borderColor: tema.accent }} />
           <button disabled={rsvpState === "sending"} className="boton-invitacion rotulo mt-2 px-4 py-3 text-white disabled:opacity-60" style={{ backgroundColor: tema.accent }}>{rsvpState === "sending" ? "Enviando…" : "Enviar confirmación"}</button>
           {rsvpState === "error" && <p className="text-center text-xs text-vino">No se pudo enviar. Inténtalo de nuevo.</p>}
         </div>
@@ -637,7 +637,7 @@ export function InvitationView({
         <main className={`relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in ${texturaPapel}`} style={{ backgroundColor: tema.paper }}>
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
-          <section className="marco-doble relative overflow-hidden px-9 pb-14 pt-16 text-center">
+          <section className="marco-doble relative overflow-hidden px-6 pb-14 pt-16 text-center sm:px-9">
             {plantilla.ornamentoEsquina && (
               <>
                 <img
@@ -662,7 +662,7 @@ export function InvitationView({
             <span className="absolute left-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <span className="absolute right-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <p className="rotulo opacity-55">Estás invitado</p>
-            <h1 className="tipo-titulo mt-5 text-3xl uppercase tracking-[.28em]">{state.n}</h1>
+            <h1 className="invitacion-nombre tipo-titulo mx-auto mt-5 max-w-full uppercase">{state.n}</h1>
             {fotoPortada && (
               <div className={`marco-foto ${claseMarco} mx-auto mt-8 w-[74%]`}>
                 <img src={fotoPortada} alt="" className="aspect-[3/4] w-full object-cover" />
