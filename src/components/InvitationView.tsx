@@ -641,7 +641,7 @@ export function InvitationView({
         <main className={`relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in ${texturaPapel}`} style={{ backgroundColor: tema.paper }}>
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
-          <section className={`marco-doble portada-${plantilla.composicion} relative overflow-hidden px-6 pb-14 pt-36 text-center sm:px-9`}>
+          <section className={`marco-doble portada-${plantilla.composicion} relative overflow-hidden px-6 pb-14 pt-44 text-center sm:px-9`}>
             {plantilla.ornamentoEsquina && (
               <>
                 <img
