@@ -642,6 +642,14 @@ export function InvitationView({
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
           <section className={`marco-doble portada-${plantilla.composicion} ${plantilla.posicionOrnamento === "inferior" ? "portada-ornamento-inferior-activo" : ""} relative overflow-hidden px-6 pb-14 pt-44 text-center sm:px-9`}>
+            {plantilla.artePortada && (
+              <img
+                src={plantilla.artePortada}
+                alt=""
+                aria-hidden="true"
+                className="arte-portada pointer-events-none absolute inset-0 z-[1] h-full w-full object-fill"
+              />
+            )}
             {plantilla.ornamentoEsquina && (
               <>
                 <img

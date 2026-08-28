@@ -643,6 +643,7 @@ details > summary::marker {
 .portada-adorno-superior { top: 0.35rem; }
 .portada-adorno-inferior { bottom: 0.35rem; width: 7.5rem; height: 7.5rem; opacity: 0.78; }
 .portada-ornamento-inferior-activo { padding-bottom: 12rem; }
+.arte-portada { opacity: 0.94; }
 @media (max-width: 360px) {
   .portada-editorial .portada-foto { width: 72%; }
   .portada-retrato .portada-foto { width: 64%; }
