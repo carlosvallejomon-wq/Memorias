@@ -649,15 +649,7 @@ export function InvitationView({
                   alt=""
                   aria-hidden="true"
                   className={`adorno-esquina portada-adorno portada-adorno-superior pointer-events-none absolute z-[1] object-contain ${
-                    plantilla.esquina === "derecha" ? "right-[-0.15rem]" : "left-[-0.15rem]"
-                  }`}
-                />
-                <img
-                  src={plantilla.ornamentoEsquina}
-                  alt=""
-                  aria-hidden="true"
-                  className={`adorno-esquina portada-adorno portada-adorno-inferior pointer-events-none absolute z-[1] rotate-180 object-contain ${
-                    plantilla.esquina === "derecha" ? "left-[-0.15rem]" : "right-[-0.15rem]"
+                    plantilla.esquina === "derecha" ? "right-[0.35rem]" : "left-[0.35rem]"
                   }`}
                 />
               </>
