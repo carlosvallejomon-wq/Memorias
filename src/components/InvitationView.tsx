@@ -638,6 +638,26 @@ export function InvitationView({
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
           <section className="marco-doble relative overflow-hidden px-9 pb-14 pt-16 text-center">
+            {plantilla.ornamentoEsquina && (
+              <>
+                <img
+                  src={plantilla.ornamentoEsquina}
+                  alt=""
+                  aria-hidden="true"
+                  className={`adorno-esquina pointer-events-none absolute top-0 z-0 h-44 w-44 object-contain sm:h-52 sm:w-52 ${
+                    plantilla.esquina === "derecha" ? "right-0" : "left-0"
+                  }`}
+                />
+                <img
+                  src={plantilla.ornamentoEsquina}
+                  alt=""
+                  aria-hidden="true"
+                  className={`adorno-esquina pointer-events-none absolute bottom-0 z-0 h-36 w-36 rotate-180 object-contain opacity-70 sm:h-44 sm:w-44 ${
+                    plantilla.esquina === "derecha" ? "left-0" : "right-0"
+                  }`}
+                />
+              </>
+            )}
             <div className="relative z-10">
             <span className="absolute left-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>
             <span className="absolute right-7 top-9 text-2xl opacity-25" aria-hidden="true">{tema.ornament}</span>

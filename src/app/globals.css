@@ -597,6 +597,12 @@ details > summary::marker {
   opacity: 0.16;
 }
 
+/* Flores reales como detalle editorial: dos esquinas pequeñas dejan libre
+   el centro, donde van nombres, foto y datos. Nunca se usan como un fondo. */
+.adorno-esquina {
+  filter: saturate(0.9) contrast(0.97);
+}
+
 /* El sobre lacrado. La solapa gira sobre su borde de arriba, la tarjeta sale
    hacia arriba y el lacre se encoge; después el sobre entero se va. Ese toque
    es además el permiso que piden los navegadores para dejar sonar la música. */

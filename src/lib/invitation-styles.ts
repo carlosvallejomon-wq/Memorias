@@ -46,6 +46,9 @@ export type PlantillaInvitacion = {
   titulos: Titulos;
   marco: Marco;
   lluvia: Lluvia;
+  /** Ilustración real, contenida en dos esquinas de la portada. */
+  ornamentoEsquina?: string;
+  esquina?: "izquierda" | "derecha";
 };
 
 export const PLANTILLAS: PlantillaInvitacion[] = [
@@ -55,6 +58,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "quince",
     paleta: { ink: "#54222f", paper: "#fdf2f6", soft: "#f8dee7", mezcla: "#f0c2d2", band: "#b05a76", accent: "#b05a76" },
     bandas: "alternas", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos",
+    ornamentoEsquina: "/invitaciones/floral-quince-blush-esquina.png", esquina: "derecha",
   },
   {
     id: "quince-blush",
@@ -83,6 +87,7 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "boda",
     paleta: { ink: "#3c3029", paper: "#faf5ec", soft: "#f0e6d5", mezcla: "#e0cdac", band: "#a07551", accent: "#a07551" },
     bandas: "claras", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos",
+    ornamentoEsquina: "/invitaciones/floral-marfil-esquina.png", esquina: "izquierda",
   },
   {
     id: "boda-olivo",
