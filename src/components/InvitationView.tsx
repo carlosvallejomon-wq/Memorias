@@ -641,7 +641,7 @@ export function InvitationView({
         <main className={`relative mx-auto max-w-md overflow-hidden shadow-lift animate-fade-in ${texturaPapel}`} style={{ backgroundColor: tema.paper }}>
           <Petalos tema={tema} />
           {/* Portada: nombre, foto enmarcada y fecha, como una lámina. */}
-          <section className={`marco-doble portada-${plantilla.composicion} relative overflow-hidden px-6 pb-14 pt-16 text-center sm:px-9`}>
+          <section className={`marco-doble portada-${plantilla.composicion} relative overflow-hidden px-6 pb-14 pt-24 text-center sm:px-9`}>
             {plantilla.ornamentoEsquina && (
               <>
                 <img
@@ -649,7 +649,7 @@ export function InvitationView({
                   alt=""
                   aria-hidden="true"
                   className={`adorno-esquina portada-adorno portada-adorno-superior pointer-events-none absolute z-[1] object-contain ${
-                    plantilla.esquina === "derecha" ? "right-[-1.35rem]" : "left-[-1.35rem]"
+                    plantilla.esquina === "derecha" ? "right-[-0.7rem]" : "left-[-0.7rem]"
                   }`}
                 />
                 <img
@@ -657,7 +657,7 @@ export function InvitationView({
                   alt=""
                   aria-hidden="true"
                   className={`adorno-esquina portada-adorno portada-adorno-inferior pointer-events-none absolute z-[1] rotate-180 object-contain ${
-                    plantilla.esquina === "derecha" ? "left-[-1.35rem]" : "right-[-1.35rem]"
+                    plantilla.esquina === "derecha" ? "left-[-0.7rem]" : "right-[-0.7rem]"
                   }`}
                 />
               </>
