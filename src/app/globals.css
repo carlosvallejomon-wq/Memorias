@@ -637,17 +637,17 @@ details > summary::marker {
   box-shadow: 0 0.65rem 1.6rem rgba(0, 0, 0, 0.12);
 }
 .portada-adorno {
-  width: 8.5rem;
-  height: 8.5rem;
+  width: 11rem;
+  height: 11rem;
 }
-.portada-adorno-superior { top: -0.8rem; }
-.portada-adorno-inferior { bottom: -1rem; width: 7.75rem; height: 7.75rem; opacity: 0.8; }
+.portada-adorno-superior { top: -0.55rem; }
+.portada-adorno-inferior { bottom: -0.8rem; width: 9rem; height: 9rem; opacity: 0.82; }
 @media (max-width: 360px) {
   .portada-editorial .portada-foto { width: 72%; }
   .portada-retrato .portada-foto { width: 64%; }
   .portada-protagonista .portada-foto { width: 84%; }
-  .portada-adorno { width: 7.5rem; height: 7.5rem; }
-  .portada-adorno-inferior { width: 7rem; height: 7rem; }
+  .portada-adorno { width: 10rem; height: 10rem; }
+  .portada-adorno-inferior { width: 8.25rem; height: 8.25rem; }
 }
 .boton-invitacion {
   border-radius: 0.85rem;
