@@ -65,7 +65,6 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "quince",
     paleta: { ink: "#54222f", paper: "#fdf2f6", soft: "#f8dee7", mezcla: "#f0c2d2", band: "#b05a76", accent: "#b05a76" },
     bandas: "alternas", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos", composicion: "lamina",
-    artePortada: "/invitaciones/portada-quince-rosa-dorada.png",
   },
   {
     id: "quince-blush",
@@ -95,7 +94,6 @@ export const PLANTILLAS: PlantillaInvitacion[] = [
     evento: "boda",
     paleta: { ink: "#3c3029", paper: "#faf5ec", soft: "#f0e6d5", mezcla: "#e0cdac", band: "#a07551", accent: "#a07551" },
     bandas: "claras", motivo: "floral", titulos: "manuscrita", marco: "arco", lluvia: "petalos", composicion: "lamina",
-    artePortada: "/invitaciones/portada-boda-editorial-floral.png",
   },
   {
     id: "boda-olivo",
